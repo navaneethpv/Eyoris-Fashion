@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search, ShoppingBag, Camera } from 'lucide-react';
 import ImageSearchModal from './ImageSearchModal';
-// 1. Import Clerk components
 import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 export default function Navbar() {
@@ -47,7 +46,6 @@ export default function Navbar() {
           {/* Icons & Auth */}
           <div className="flex items-center gap-6">
             
-            {/* 2. Authentication Logic */}
             <div className="flex items-center">
               <SignedOut>
                 <SignInButton mode="modal">
@@ -61,13 +59,16 @@ export default function Navbar() {
               </SignedIn>
             </div>
 
-            <div className="flex flex-col items-center cursor-pointer group">
+            {/* 👇 THIS IS THE FIX: Added Link wrapper */}
+            <Link href="/cart" className="flex flex-col items-center cursor-pointer group">
               <div className="relative">
                 <ShoppingBag className="h-5 w-5 text-gray-600 group-hover:text-black" />
-                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">0</span>
+                {/* Optional: You can make this number dynamic later if you want */}
+                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">2</span>
               </div>
               <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">Bag</span>
-            </div>
+            </Link>
+
           </div>
         </div>
       </nav>

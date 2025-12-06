@@ -25,7 +25,7 @@ const ProductSchema = new mongoose.Schema({
   description: { type: String },
   
   // Pricing (in cents to avoid float issues)
-  price_cents: { type: Number, required: true, index: true },
+  price_cents: { type: Number, required: true },
   price_before_cents: { type: Number }, // For strike-through prices
   offer_tag: { type: String }, // e.g., "Flat 30% Off"
 

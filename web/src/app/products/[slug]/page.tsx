@@ -3,6 +3,7 @@ import Navbar from '../../components/Navbar';
 import Gallery from '../../components/Gallery';
 import OutfitGenerator from '../../components/OutfitGenerator';
 import { Star, Truck, ShieldCheck } from 'lucide-react';
+import AddToCartButton from '../../components/AddToCartButton';
 
 async function getProduct(slug: string) {
   try {
@@ -88,32 +89,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
 
             {/* Sizes */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-sm font-bold text-gray-900 uppercase">Select Size</h3>
-                <button className="text-xs text-primary font-medium hover:underline">Size Guide</button>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {product.variants?.map((v: any, i: number) => (
-                  <button 
-                    key={i}
-                    className="w-12 h-12 rounded-lg border border-gray-200 flex items-center justify-center font-bold text-sm hover:border-black hover:bg-gray-50 transition focus:ring-2 focus:ring-black focus:outline-none"
-                  >
-                    {v.size}
-                  </button>
-                )) || <p className="text-sm text-gray-500">One Size</p>}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4 mb-8">
-              <button className="flex-1 bg-gray-900 text-white h-14 rounded-xl font-bold text-lg hover:bg-black transition shadow-xl shadow-gray-200">
-                Add to Bag
-              </button>
-              <button className="w-14 h-14 flex items-center justify-center border border-gray-200 rounded-xl hover:bg-gray-50 transition">
-                <Star className="w-6 h-6 text-gray-400" />
-              </button>
-            </div>
+             {/* Sizes & Add Button REPLACED BY COMPONENT */}
+            <AddToCartButton 
+              productId={product._id} 
+              price={product.price_cents} 
+              variants={product.variants} 
+            />
 
             {/* Delivery & Trust */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mb-8">

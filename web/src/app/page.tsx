@@ -39,7 +39,7 @@ export default async function Home() {
               Discover the new season's hottest trends. Use our AI Color Match to find your perfect fit.
             </p>
             <div className="flex gap-4">
-               <Link href="/products" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 transition">
+               <Link href="/product" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 transition">
                 Shop Now
               </Link>
               <button className="bg-white text-gray-900 border border-gray-200 px-8 py-3.5 rounded-full font-bold hover:bg-gray-50 transition flex items-center gap-2">

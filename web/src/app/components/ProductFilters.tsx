@@ -29,7 +29,7 @@ export default function ProductFilters() {
   );
 
   const handleFilterChange = (key: string, value: string) => {
-    router.push(`/products?${createQueryString(key, value)}`);
+    router.push(`/product?${createQueryString(key, value)}`);
   };
 
   return (

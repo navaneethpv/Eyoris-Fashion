@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { connectDB } from './config/db';
-
+import cartRoutes from './routes/cartRoutes';
 // Import Routes
 import productRoutes from './routes/productRoutes';
 import aiRoutes from './routes/aiRoutes';
@@ -22,6 +22,8 @@ connectDB();
 // Mount Routes
 app.use('/api/products', productRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/cart', cartRoutes)
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
   res.send('Eyoris Fashion API is running...');

@@ -1,11 +1,13 @@
-"use client" // Make Navbar a client component
-import { useState } from 'react'; // Add import
+"use client"
+import { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingBag, User, Camera } from 'lucide-react';
-import ImageSearchModal from './ImageSearchModal'; // Import the modal
+import { Search, ShoppingBag, Camera } from 'lucide-react';
+import ImageSearchModal from './ImageSearchModal';
+// 1. Import Clerk components
+import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 export default function Navbar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false); // State
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <>
@@ -17,12 +19,11 @@ export default function Navbar() {
             <span className="text-xl font-bold tracking-tight text-gray-900">Eyoris</span>
           </Link>
 
-          {/* Links ... (Keep existing links) */}
+          {/* Links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
             <Link href="/products?category=T-Shirts" className="hover:text-primary transition-colors">Men</Link>
             <Link href="/products?category=Dresses" className="hover:text-primary transition-colors">Women</Link>
             <Link href="/products?category=Jeans" className="hover:text-primary transition-colors">Kids</Link>
-            <Link href="/products?offer=true" className="text-accent hover:text-pink-600 transition-colors">Offers</Link>
           </div>
 
           {/* Search Bar */}
@@ -35,34 +36,41 @@ export default function Navbar() {
               className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-md text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
               placeholder="Search for products..."
             />
-            {/* Camera Trigger */}
             <button 
               onClick={() => setIsSearchOpen(true)}
               className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer hover:text-primary transition-colors"
-              title="Search by Image"
             >
               <Camera className="h-5 w-5 text-gray-500 hover:text-primary" />
             </button>
           </div>
 
-          {/* Icons ... (Keep existing icons) */}
+          {/* Icons & Auth */}
           <div className="flex items-center gap-6">
-            <div className="flex flex-col items-center cursor-pointer group">
-              <User className="h-5 w-5 text-gray-600 group-hover:text-black" />
-              <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">Profile</span>
+            
+            {/* 2. Authentication Logic */}
+            <div className="flex items-center">
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="text-sm font-bold text-gray-700 hover:text-primary">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
             </div>
+
             <div className="flex flex-col items-center cursor-pointer group">
               <div className="relative">
                 <ShoppingBag className="h-5 w-5 text-gray-600 group-hover:text-black" />
-                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">2</span>
+                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">0</span>
               </div>
               <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">Bag</span>
             </div>
           </div>
         </div>
       </nav>
-
-      {/* Render Modal */}
       <ImageSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );

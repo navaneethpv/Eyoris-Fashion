@@ -94,7 +94,7 @@ export default function ProductFilters() {
              const params = new URLSearchParams(searchParams.toString());
              params.delete('minPrice');
              params.delete('maxPrice');
-             router.push(`/products?${params.toString()}`);
+             router.push(`/product?${params.toString()}`);
            }}
            className="text-xs text-red-500 hover:underline mt-2"
          >

@@ -39,7 +39,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const { data: products, meta } = await getProducts(resolvedSearchParams);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-gray-800">
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 py-8">

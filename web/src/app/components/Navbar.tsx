@@ -20,9 +20,9 @@ export default function Navbar() {
 
           {/* Links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            <Link href="/products?category=T-Shirts" className="hover:text-primary transition-colors">Men</Link>
-            <Link href="/products?category=Dresses" className="hover:text-primary transition-colors">Women</Link>
-            <Link href="/products?category=Jeans" className="hover:text-primary transition-colors">Kids</Link>
+            <Link href="/product?category=T-Shirts" className="hover:text-primary transition-colors">Men</Link>
+            <Link href="/product?category=Dresses" className="hover:text-primary transition-colors">Women</Link>
+            <Link href="/product?category=Jeans" className="hover:text-primary transition-colors">Kids</Link>
           </div>
 
           {/* Search Bar */}

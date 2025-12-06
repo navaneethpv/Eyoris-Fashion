@@ -1,54 +1,45 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
-interface ProductProps {
+interface Product {
+  id: number;
   slug: string;
   name: string;
-  price_cents: number;
-  price_before_cents?: number;
-  image: string;
   brand: string;
-  offer_tag?: string;
+  price_cents: number;
+  price_before_cents: number | null;
+  image: string;
+  offer_tag: string | null;
 }
 
-export default function ProductCard({ product }: { product: ProductProps }) {
-  const discount = product.price_before_cents 
-    ? Math.round(((product.price_before_cents - product.price_cents) / product.price_before_cents) * 100)
-    : 0;
+interface ProductCardProps {
+  product: Product;
+}
 
+export default function ProductCard({ product }: ProductCardProps) {
   return (
-    <Link href={`/products/${product.slug}`} className="group block bg-white hover:shadow-lg transition-shadow duration-300 border border-transparent hover:border-gray-100">
-      <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          sizes="(max-width: 768px) 50vw, 25vw"
-        />
-        {product.offer_tag && (
-          <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur text-[10px] font-bold px-2 py-1 text-primary uppercase tracking-wider">
-            {product.offer_tag}
-          </div>
-        )}
-      </div>
-      <div className="p-3">
-        <h3 className="font-bold text-sm text-gray-900 truncate">{product.brand}</h3>
-        <p className="text-xs text-gray-500 truncate mb-1">{product.name}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-sm font-bold text-gray-900">
-            ${(product.price_cents / 100).toFixed(2)}
-          </span>
-          {product.price_before_cents && (
-            <>
-              <span className="text-xs text-gray-400 line-through">
+    <Link href={`/products/${product.slug}?id=${product.id}`} className="group">
+      <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+        <div className="relative">
+          <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+          {product.offer_tag && (
+            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+              {product.offer_tag}
+            </span>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">{product.name}</h3>
+          <p className="text-xs text-gray-500">{product.brand}</p>
+          <div className="mt-2 flex items-baseline">
+            <span className="text-lg font-bold text-gray-900">
+              ${(product.price_cents / 100).toFixed(2)}
+            </span>
+            {product.price_before_cents && (
+              <span className="ml-2 text-sm text-gray-400 line-through">
                 ${(product.price_before_cents / 100).toFixed(2)}
               </span>
-              <span className="text-xs text-orange-500 font-bold">
-                ({discount}% OFF)
-              </span>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </Link>

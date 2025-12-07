@@ -97,7 +97,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             />
 
             {/* Delivery & Trust */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mb-8">
+            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-10 mb-16">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4" />
                 <span>Free Delivery</span>

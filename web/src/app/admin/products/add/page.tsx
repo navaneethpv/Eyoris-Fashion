@@ -1,8 +1,13 @@
 "use client"
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react'; // 👈 ADD useEffect
 import Link from 'next/link';
-import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Sparkles } from 'lucide-react'; // 👈 ADD Sparkles
+import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Sparkles, Zap } from 'lucide-react'; // 👈 ADD Zap
 import Image from 'next/image';
+import { useCategorySuggest } from '../../../../hooks/useCategorySuggest'; // 👈 CRITICAL: Import the hook
+
+// --- CONFIGURATION ---
+const CATEGORY_OPTIONS = ['T-Shirts', 'Jeans', 'Jackets', 'Dresses', 'Sneakers', 'Accessories', 'Ethnic Wear', 'Shirts', 'Joggers'];
+
 
 // Temporary type for managing file/url array
 interface ImageInput {
@@ -15,17 +20,18 @@ interface ImageInput {
 export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]); // 👈 NEW STATE FOR AI TAGS
+  const { suggestCategory, suggestedCategory, isSuggesting, setSuggestedCategory } = useCategorySuggest(); // 👈 Use the hook
 
   // --- CRITICAL CHANGE: ARRAY STATE ---
   const [imageInputs, setImageInputs] = useState<ImageInput[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const nextImageId = useRef(0); // For unique keys/IDs
+  const nextImageId = useRef(0);
 
   // ... (keep formData and variants state as before) ...
   const [formData, setFormData] = useState({
-    name: '', slug: '', brand: '', category: 'T-Shirts', price: '', imageUrl: '', description: ''
+    name: '', slug: '', brand: '', category: CATEGORY_OPTIONS[0], price: '', description: ''
   });
   const [variants, setVariants] = useState([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
 
@@ -37,12 +43,36 @@ export default function AddProductPage() {
       setFormData(prev => ({ ...prev, slug: value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') }));
     }
   };
+  
+  // 🛑 NEW HANDLER for Category Select to clear suggestion
+  const handleCategorySelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      handleChange(e);
+      setSuggestedCategory(null);
+  };
+  
+  // 🛑 NEW HANDLER for AI Suggest Click
+  const handleSuggestClick = () => {
+      // Find the first file-type image to send for analysis
+      const firstFile = imageInputs.find(input => input.type === 'file' && input.value instanceof File);
+      if (firstFile && firstFile.value instanceof File) {
+          suggestCategory(firstFile.value);
+      } else {
+          alert("Please upload at least one image file to ask the AI.");
+      }
+  };
 
-  // --- NEW IMAGE HANDLERS ---
+  // 🛑 Auto-apply suggested category when available
+  useEffect(() => {
+      if (suggestedCategory) {
+          setFormData(prev => ({ ...prev, category: suggestedCategory }));
+          setSuggestedCategory(null); // Clear suggestion after applying
+      }
+  }, [suggestedCategory, setSuggestedCategory]);
+
+
+  // --- IMAGE HANDLERS (Same) ---
   const addImageInput = useCallback((type: 'url' | 'file', fileOrUrl: File | string) => {
-    // Limit to 5 images
     if (imageInputs.length >= 5) return;
-    
     const preview = (type === 'file' && fileOrUrl instanceof File) 
       ? URL.createObjectURL(fileOrUrl) 
       : (fileOrUrl as string);
@@ -59,7 +89,7 @@ export default function AddProductPage() {
       for (const file of Array.from(files)) {
         addImageInput('file', file);
       }
-      e.target.value = ''; // Clear input for next time
+      e.target.value = '';
     }
   };
 
@@ -75,27 +105,30 @@ export default function AddProductPage() {
   const removeImage = (id: number) => {
     setImageInputs(prev => prev.filter(input => input.id !== id));
   };
-  // --- END NEW IMAGE HANDLERS ---
+  // --- END IMAGE HANDLERS ---
+  
+  // --- VARIANT HANDLERS (Same) ---
   const handleVariantChange = (index: number, field: 'size' | 'stock', value: string | number) => {
     const newVariants = [...variants];
-    // This casting is safe since we control the input types
     (newVariants[index] as any)[field] = value;
     setVariants(newVariants);
   };
 
   const addVariant = () => {
-    setVariants([...variants, { size: '', stock: 0 }]); // Changed initial size to empty string
+    setVariants([...variants, { size: '', stock: 0 }]);
   };
 
   const removeVariant = (index: number) => {
     setVariants(variants.filter((_, i) => i !== index));
   };
+  // --- END VARIANT HANDLERS ---
+
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
-    setSuggestedTags([]); // Clear previous tags
+    setSuggestedTags([]);
 
     // 1. Validation
     if (imageInputs.length === 0) {
@@ -112,11 +145,10 @@ export default function AddProductPage() {
 
     // 2. Construct FormData
     const form = new FormData();
-    // 👇 CRUCIAL: Append ALL required text fields
     form.append('name', formData.name);
     form.append('slug', formData.slug);
     form.append('brand', formData.brand);
-    form.append('category', formData.category);
+    form.append('category', formData.category); // 👈 Correct category from formData
     form.append('description', formData.description);
     form.append('price_cents', priceInCents.toString());
     
@@ -128,35 +160,33 @@ export default function AddProductPage() {
     const imageUrls: string[] = [];
     imageInputs.forEach(input => {
       if (input.type === 'file' && input.value instanceof File) {
-        form.append('images', input.value); // Multer looks for the key 'images' (plural)
+        form.append('images', input.value);
       } else if (input.type === 'url' && typeof input.value === 'string') {
         imageUrls.push(input.value);
       }
     });
 
-    // Send all collected URLs as a JSON string for the backend to handle
     form.append('imageUrls', JSON.stringify(imageUrls));
 
     try {
       const res = await fetch('http://localhost:4000/api/products', {
         method: 'POST',
-        // IMPORTANT: No 'Content-Type' header!
         body: form
       });
 
       if (res.ok) {
-        const newProduct = await res.json(); // 👈 Get the product with final tags
+        const newProduct = await res.json();
         setSuccess(true);
         
-        // Extract and display the final AI tags (filter out redundant tags)
+        // Extract and display the final AI tags
         setSuggestedTags(newProduct.tags.filter((t: string) => 
             !['new arrival', newProduct.category.toLowerCase(), newProduct.brand.toLowerCase()].includes(t.toLowerCase())
         )); 
 
         // Reset state
-        setFormData({ name: '', slug: '', brand: '', category: 'T-Shirts', price: '', imageUrl: '', description: '' });
+        setFormData({ name: '', slug: '', brand: '', category: CATEGORY_OPTIONS[0], price: '', description: '' });
         setVariants([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
-        setImageInputs([]); // Reset image array
+        setImageInputs([]);
       } else {
         alert('Failed. Check Network and unique Slug. (Backend returned error)');
       }
@@ -199,10 +229,33 @@ export default function AddProductPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Category</label>
-                  <select name="category" value={formData.category} onChange={handleChange} className="w-full p-3 border rounded-lg bg-white">
-                    {['T-Shirts', 'Jeans', 'Jackets', 'Sneakers', 'Dresses', 'Accessories'].map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select 
+                        name="category" 
+                        value={formData.category} 
+                        onChange={handleCategorySelectChange} // 👈 Use updated handler
+                        className="w-full p-3 border rounded-lg bg-white"
+                    >
+                        {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    
+                    {/* 🛑 AI SUGGEST BUTTON 🛑 */}
+                    <button
+                        type="button"
+                        onClick={handleSuggestClick}
+                        disabled={isSuggesting || imageInputs.length === 0}
+                        className="bg-purple-600 text-white p-3 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                        title="AI Suggest Category"
+                    >
+                        {isSuggesting ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Zap className="w-5 h-5" />
+                        )}
+                    </button>
+                  </div>
                 </div>
+                
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Price ($)</label>
                   <input required name="price" type="number" step="0.01" value={formData.price} onChange={handleChange} className="w-full p-3 border rounded-lg" placeholder="0.00" />
@@ -298,7 +351,6 @@ export default function AddProductPage() {
                     alt="Preview" 
                     fill 
                     className="object-cover" 
-                    // onError={() => console.error('Image load failed for URL:', input.preview)} // Optional: error logging
                   />
                   <button 
                     type="button"

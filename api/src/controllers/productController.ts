@@ -93,9 +93,16 @@ export const getProducts = async (req: Request, res: Response) => {
       { $skip: (page - 1) * limit },
       { $limit: limit },
       { $project: {
-          name: 1, slug: 1, price_cents: 1, price_before_cents: 1,
-          images: { $slice: ["$images", 1] }, 
-          category: 1, offer_tag: 1, totalStock: 1
+          id: '$_id',
+          name: '$title', // Ensure frontend 'name' maps from 'title'
+          slug: 1, 
+          price_cents: 1, 
+          price_before_cents: 1,
+          images: 1, // Let frontend handle slicing if needed, or slice before projection
+          brand: 1,
+          category: 1, 
+          offer_tag: 1, 
+          totalStock: 1
       }}
     );
     

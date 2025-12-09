@@ -74,7 +74,7 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
 
     // 4. Return Results
     res.json({
-      baseProduct: { slug: currentProduct.slug, tags: styleTags, category: currentCategory },
+      baseProduct: { slug: (currentProduct as any).slug, tags: styleTags, category: currentCategory },
       suggestions: recommendations
     });
 

@@ -1,11 +1,21 @@
 "use client"
 import { useState } from 'react';
-import Image from 'next/image';
-import clsx from 'clsx';
+import Image from "next/image";
 
 interface GalleryProps {
   images: { url: string; dominant_color?: string }[];
   name: string;
+}
+
+const PLACEHOLDER = "https://via.placeholder.com/600x600?text=No+Image";
+
+function normalizeImageSrc(url?: string) {
+  if (!url) return PLACEHOLDER;
+  const trimmed = url.toString().trim();
+  if (!trimmed) return PLACEHOLDER;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const base = (process.env.NEXT_PUBLIC_API_BASE as string) || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${base.replace(/\/$/, "")}/${trimmed.replace(/^\//, "")}`;
 }
 
 export default function Gallery({ images, name }: GalleryProps) {
@@ -14,43 +24,44 @@ export default function Gallery({ images, name }: GalleryProps) {
   // Fallback if no images
   if (!images || images.length === 0) return null;
 
-  return (
-    <div className="flex flex-col-reverse md:flex-row gap-4 sticky top-24">
-      {/* Thumbnails (Left on Desktop) */}
-      <div className="flex md:flex-col gap-4 overflow-auto md:overflow-hidden pb-2 md:pb-0">
-        {images.map((img, i) => (
-          <button
-            key={i}
-            onClick={() => setSelectedIndex(i)}
-            className={clsx(
-              "relative w-20 h-24 flex-shrink-0 border-2 rounded-lg overflow-hidden transition-all",
-              selectedIndex === i ? "border-primary" : "border-transparent hover:border-gray-200"
-            )}
-          >
-            <Image src={img.url} alt={`Thumbnail ${i}`} fill className="object-cover" />
-          </button>
-        ))}
-      </div>
+  const mainSrc = normalizeImageSrc(
+    typeof images?.[selectedIndex] === "string"
+      ? (images![selectedIndex] as string)
+      : (images?.[selectedIndex] as any)?.url
+  );
 
+  return (
+    <>
       {/* Main Image */}
       <div className="relative flex-1 aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-        <Image 
-          src={images[selectedIndex].url} 
-          alt={name} 
-          fill 
-          className="object-cover"
+        <Image
+          src={mainSrc}
+          alt={name || "Product image"}
+          fill
+          className="object-contain"
           priority
         />
-        {images[selectedIndex].dominant_color && (
-          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-mono shadow-sm">
-            <div 
-              className="w-3 h-3 rounded-full border border-gray-200" 
-              style={{ backgroundColor: images[selectedIndex].dominant_color }} 
-            />
-            {images[selectedIndex].dominant_color}
-          </div>
-        )}
       </div>
-    </div>
+
+      {/* Thumbnails */}
+      <div className="flex gap-2 mt-4">
+        {images?.map((img, i) => {
+          const thumbSrc =
+            typeof img === "string" ? img : (img as any)?.url;
+          const src = normalizeImageSrc(thumbSrc);
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Thumbnail ${i}`}
+              className={`relative h-20 w-20 overflow-hidden rounded ${i === selectedIndex ? "ring-2 ring-blue-500" : ""}`}
+              onClick={() => setSelectedIndex(i)}
+            >
+              <Image src={src} alt={`Thumbnail ${i}`} fill className="object-cover" />
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }

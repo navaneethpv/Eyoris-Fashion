@@ -16,7 +16,7 @@ interface AddToCartButtonProps {
   variants: Variant[];
 }
 
-export default function AddToCartButton({ productId, price, variants }: AddToCartButtonProps) {
+export default function AddToCartButton({ variants = [], productId, price }: AddToCartButtonProps) {
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const router = useRouter();
@@ -26,9 +26,10 @@ export default function AddToCartButton({ productId, price, variants }: AddToCar
   const [selectedSize, setSelectedSize] = useState<string>("");
 
   // --- STOCK LOGIC ---
-  const selectedVariant = variants.find(v => v.size === selectedSize);
-  const availableStock = selectedVariant ? selectedVariant.stock : 0;
-  const isOutOfStock = selectedSize && availableStock <= 0;
+  // ensure variants is an array before calling find
+  const selectedVariant = Array.isArray(variants) ? variants.find(v => v.size === selectedSize) : undefined;
+  const availableStock = selectedVariant ? (selectedVariant.stock ?? 0) : 0;
+  const isOutOfStock = !!selectedSize && availableStock <= 0;
   const isLowStock = availableStock > 0 && availableStock <= 10;
   const isAnySizeInStock = variants.some(v => v.stock > 0);
   // --- END STOCK LOGIC ---

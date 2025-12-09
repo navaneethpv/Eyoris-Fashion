@@ -1,7 +1,7 @@
 "use client"
 import { useState } from 'react';
 import Link from 'next/link';
-import { Wand2, Loader2, Shirt, Zap, Tag, Info } from 'lucide-react';
+import { Wand2, Loader2, Zap, Tag, Info, ChevronDown } from 'lucide-react'; // 👈 ADD ChevronDown
 
 // Simplified types matching the Gemini output schema
 interface OutfitItem {
@@ -19,23 +19,39 @@ interface OutfitResult {
     tags: string[];
 }
 
+// Styles available for the user to choose
+const STYLE_VIBES = [
+    { value: 'simple_elegant', label: 'Simple & Elegant' },
+    { value: 'street_casual', label: 'Street & Casual' },
+    { value: 'office_formal', label: 'Office & Formal' },
+    { value: 'party_bold', label: 'Party & Bold' },
+];
+
 
 export default function OutfitGenerator({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
 
+  // 🛑 NEW STATE FOR USER INPUT 🛑
+  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
+  // 🛑 END NEW STATE 🛑
+
+
   const handleGenerate = async () => {
     setLoading(true);
     setResult(null);
 
-    // Mock user preferences (you would get these from a user profile in a real app)
+    // 🛑 GATHERING USER INPUT FOR AI PROMPT 🛑
     const userPreferences = {
-        gender: 'female',
-        styleVibe: 'simple_elegant',
-        avoidColors: ['neon green'],
+        gender: gender, // Use state
+        styleVibe: styleVibe, // Use state
+        avoidColors: ['neon green', 'bright yellow'], // Test a few colors
         preferredBrightness: 'medium',
         maxItems: 4
     };
+    // 🛑 END GATHERING USER INPUT 🛑
+
 
     try {
       const res = await fetch('http://localhost:4000/api/ai/outfit', {
@@ -79,6 +95,42 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
             {result ? 'Generate New Look' : 'Generate Outfit'}
         </button>
       </div>
+      
+      {/* 🛑 USER PREFERENCE INPUTS 🛑 */}
+      <div className='flex gap-4 pb-4 mb-4 border-b border-violet-100'>
+        {/* Gender Selector */}
+        <div className='flex-1'>
+            <label className='text-xs font-bold text-gray-500 uppercase block mb-1'>Gender</label>
+            <div className='relative'>
+                <select 
+                    value={gender} 
+                    onChange={(e) => setGender(e.target.value as 'male' | 'female')}
+                    className='w-full p-2 border border-gray-300 rounded-lg appearance-none bg-white pr-8 text-sm focus:border-primary'
+                >
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                </select>
+                <ChevronDown className='w-4 h-4 absolute right-3 top-2.5 text-gray-500 pointer-events-none' />
+            </div>
+        </div>
+
+        {/* Style Vibe Selector */}
+        <div className='flex-1'>
+            <label className='text-xs font-bold text-gray-500 uppercase block mb-1'>Style Vibe</label>
+            <div className='relative'>
+                <select 
+                    value={styleVibe} 
+                    onChange={(e) => setStyleVibe(e.target.value)}
+                    className='w-full p-2 border border-gray-300 rounded-lg appearance-none bg-white pr-8 text-sm focus:border-primary'
+                >
+                    {STYLE_VIBES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                </select>
+                <ChevronDown className='w-4 h-4 absolute right-3 top-2.5 text-gray-500 pointer-events-none' />
+            </div>
+        </div>
+      </div>
+      {/* 🛑 END NEW: USER PREFERENCE INPUTS 🛑 */}
+
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-6">
@@ -104,6 +156,7 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
                     <span className="text-sm text-gray-600 capitalize">{item.colorSuggestion}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-3 border-t border-gray-50 pt-2">{item.reason}</p>
+                {/* Note: This link is purely illustrative; matching real catalog products requires complex search or pre-computation */}
                 {item.role === 'top' && (
                     <Link href={`/products/${productId}`} className="text-xs font-bold text-primary hover:underline mt-2">
                         (View Base Item)

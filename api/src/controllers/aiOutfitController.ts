@@ -16,19 +16,19 @@ export const generateOutfit = async (req: Request, res: Response) => {
 
     // Narrow baseProduct to IProduct type and ensure TypeScript understands tags is present
     const product = baseProduct as IProduct;
-    const tags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = Array.isArray(product.aiTags?.style_tags) ? product.aiTags.style_tags : [];
 
     const attributes = {
       fit: tags.includes('oversized') ? 'oversized' : 'regular',
       pattern: tags.includes('printed') ? 'printed' : 'solid',
-      fabric: tags.find(t => t.toLowerCase().includes('cotton')) ? 'cotton' : 'blend',
+      fabric: tags.find((t: string) => t.toLowerCase().includes('cotton')) ? 'cotton' : 'blend',
       occasion: tags.includes('party') ? 'party' : 'casual',
     };
 
     const base: any = {
       type: product.category as string,
-      color: product.images[0]?.dominant_color || 'unknown',
-      colorHex: product.images[0]?.dominant_color || '#000000',
+      color: product.dominantColor?.hex || 'unknown',
+      colorHex: product.dominantColor?.hex || '#000000',
       ...attributes,
     };
 

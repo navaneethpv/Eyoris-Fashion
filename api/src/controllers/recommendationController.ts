@@ -32,7 +32,7 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
 
     // 2. Define Suggestion Criteria
     const currentCategory = currentProduct.category as string;
-    const styleTags = Array.isArray(currentProduct.tags) ? currentProduct.tags : [];
+    const styleTags = Array.isArray(currentProduct.aiTags?.style_tags) ? currentProduct.aiTags.style_tags : [];
     const excludeId = currentProduct._id;
 
     // Get complementary categories or fall back to main category suggestions
@@ -41,17 +41,17 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
     // Build the query
     const recommendationQuery: any = {
       _id: { $ne: excludeId }, // Exclude the current product
-      is_published: true,
+      isPublished: true,
       $or: [
         // Rule 1: Match Complementary Category AND Share Style Tags (High Priority)
-        { 
+        {
           category: { $in: targetCategories },
-          tags: { $in: (styleTags ?? []).slice(0, 3) } // Match top 3 style tags
+          'aiTags.style_tags': { $in: (styleTags ?? []).slice(0, 3) } // Match top 3 style tags
         },
         // Rule 2: Fallback to same Category AND Share Style Tags (e.g., another T-Shirt)
-        { 
-          category: currentCategory, 
-          tags: { $in: (styleTags ?? []).slice(0, 3) }
+        {
+          category: currentCategory,
+          'aiTags.style_tags': { $in: (styleTags ?? []).slice(0, 3) }
         },
         // Rule 3: Match Complementary Category only (General suggestions)
         {
@@ -66,7 +66,7 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
       { $match: recommendationQuery },
       { $sample: { size: 4 } }, // Get a random sample of 4
       { $project: {
-          name: 1, slug: 1, price_cents: 1, brand: 1, category: 1, tags: 1,
+          name: 1, slug: 1, price_cents: 1, brand: 1, category: 1, 'aiTags.style_tags': 1,
           images: { $slice: ["$images", 1] }
       }}
     ]);

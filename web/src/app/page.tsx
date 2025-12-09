@@ -74,18 +74,18 @@ export default async function Home() {
         {products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-8 gap-4">
             {products.map((p: any) => (
-              <ProductCard 
-                key={p.id} 
+              <ProductCard
+                key={p._id || p.id}
                 product={{
-                  id: p.id,
+                  _id: p.id,
                   slug: p.slug,
                   name: p.name,
                   price_cents: p.price_cents,
                   price_before_cents: p.price_before_cents,
-                  image: p.images[0].url,
+                  images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [],
                   brand: p.brand,
                   offer_tag: p.offer_tag
-                }} 
+                }}
               />
             ))}
           </div>

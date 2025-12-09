@@ -1,151 +1,105 @@
-import { notFound } from "next/navigation";
-import Navbar from "../../components/Navbar";
-import Gallery from "../../components/Gallery";
-import OutfitGenerator from "../../components/OutfitGenerator";
-import CollapsibleSection from "../../components/CollapsibleSection";
-import ProductReviews from "../../components/productReview"; 
-import AddToCartButton from "../../components/AddToCartButton";
-import { Star, Truck, ShieldCheck } from "lucide-react";
+// /web/src/app/products/[slug]/page.tsx
 
+import { notFound } from 'next/navigation';
+import AddToCartButton from '../../components/AddToCartButton'; // Assuming you have this client component
+import Gallery from '../../components/Gallery'; // Assuming you have this client component
 
-async function getProduct(slug: string) {
+// Define the shape of the Product data we expect from the API
+interface Product {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  brand: string;
+  category: string;
+  price_cents: number;
+  price_before_cents?: number;
+  images: { url: string }[];
+  variants: {
+    size: string;
+    color: string;
+    stock: number;
+  }[];
+  rating?: number;
+  reviewsCount?: number;
+}
+
+// This function fetches the data for a single product from your backend API
+async function getProduct(slug: string): Promise<Product | null> {
   try {
-    const res = await fetch(`http://localhost:4000/api/products/${slug}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return await res.json();
+    // IMPORTANT: Make sure the URL matches your API endpoint structure
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/slug/${slug}`, {
+      next: { revalidate: 60 } // Revalidate data every 60 seconds
+    }); 
+
+    // If the API returns a 404 or any other error, handle it
+    if (!res.ok) {
+      return null;
+    }
+
+    return res.json();
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("Failed to fetch product:", error);
     return null;
   }
 }
 
-export default async function ProductPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const product = await getProduct(slug);
+// This is the main page component
+export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const product = await getProduct(resolvedParams.slug);
 
-  if (!product) return notFound();
+  // If no product was found, display the 404 page. This is why you're seeing it.
+  if (!product) {
+    notFound();
+  }
 
-  const discount = product.price_before_cents
-    ? Math.round(
-        ((product.price_before_cents - product.price_cents) /
-          product.price_before_cents) *
-          100
-      )
-    : 0;
+  // Extract image URLs for the Gallery component
+  const imageUrls = product.images.map(img => img.url);
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
-          {/* Left Column: Gallery */}
-          <div className="sticky top-24 self-start">
-            <Gallery images={product.images} name={product.name} />
-          </div>
-
-          {/* Right Column: Details */}
-          <div>
-            <div className="mb-6">
-              <h1 className="text-sm font-bold text-primary uppercase tracking-wider mb-2">
-                {product.brand}
-              </h1>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">
-                {product.name}
-              </h2>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                  <span className="font-bold text-sm">
-                    {product.rating ? product.rating.toFixed(1) : "—"}
-                  </span>
-                  <Star className="w-3 h-3 fill-current text-yellow-500" />
-                  <span className="text-xs text-gray-500 border-l border-gray-300 pl-2 ml-1">
-                    {product.reviews_count} Ratings
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="h-px bg-gray-100 my-6" />
-
-            {/* Price */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-bold text-gray-900">
-                  ${(product.price_cents / 100).toFixed(2)}
-                </span>
-                {product.price_before_cents && (
-                  <span className="text-xl text-gray-400 line-through">
-                    ${(product.price_before_cents / 100).toFixed(2)}
-                  </span>
-                )}
-                {discount > 0 && (
-                  <span className="text-sm font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded">
-                    {discount}% OFF
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Inclusive of all taxes
-              </p>
-            </div>
-
-            {/* Sizes & Add Button */}
-            <AddToCartButton
-              productId={product._id}
-              price={product.price_cents}
-              variants={product.variants}
-            />
-
-            {/* Delivery & Trust */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-10">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4" /> <span>Free Delivery</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" /> <span>30 Day Returns</span>
-              </div>
-            </div>
-
-            <div className="h-px bg-gray-100 my-6" />
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Left Side: Image Gallery */}
+        <div>
+          {/* Assuming you have a Gallery component that takes an array of image URLs */}
+          <Gallery images={imageUrls} />
         </div>
-        <div className="max-w-4xl mx-auto pt-8">
-          {/* 1. PRODUCT DETAILS / DESCRIPTION */}
-          {CollapsibleSection && (
-            <CollapsibleSection title="Product Details" defaultOpen={true}>
-              <div className="prose prose-sm text-gray-600">
-                <p>{product.description}</p>
-                <p>Fabric: {product.fabric || "100% Cotton"}</p>
-                <p>Care: {product.careInstructions || "Machine wash cold."}</p>
-              </div>
-            </CollapsibleSection>
-          )}
 
-          {/* 2. REVIEWS */}
-          {CollapsibleSection && ProductReviews && (
-            <CollapsibleSection
-              title={`Customer Reviews (${product.reviews_count || 0})`}
-            >
-              <ProductReviews productId={product._id} />
-            </CollapsibleSection>
-          )}
-
-          {/* 3. AI ASSISTANT / OUTFIT SUGGESTION */}
-          <div className="mt-8">
-            {/* 👇 CRITICAL FIX: Pass the MongoDB _id for API call 👇 */}
-            <OutfitGenerator productId={product._id} />
+        {/* Right Side: Product Details */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
+          <p className="text-sm text-gray-500 mb-4">Brand: {product.brand}</p>
+          
+          <div className="mb-4">
+            <span className="text-3xl font-bold text-red-600">
+              ₹{(product.price_cents / 100).toFixed(0)}
+            </span>
+            {product.price_before_cents && (
+              <span className="ml-3 text-lg text-gray-400 line-through">
+                ₹{(product.price_before_cents / 100).toFixed(0)}
+              </span>
+            )}
           </div>
+
+          <p className="text-gray-700 mb-6">{product.description}</p>
+
+          {/* This should be a Client Component for interactivity */}
+          <AddToCartButton product={product} />
         </div>
-      </main>
+      </div>
     </div>
   );
+}
+
+// Optional: Add metadata for SEO
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const product = await getProduct(params.slug);
+  if (!product) {
+    return { title: 'Product Not Found' };
+  }
+  return {
+    title: product.name,
+    description: product.description,
+  };
 }

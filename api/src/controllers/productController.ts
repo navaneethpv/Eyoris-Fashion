@@ -1,17 +1,17 @@
 // /api/src/controllers/productController.ts
 
 import { Request, Response } from "express";
+import mongoose from 'mongoose'; // <-- FIXED: Added missing mongoose import
 import { Product } from "../models/Product";
 import axios from "axios";
 import { uploadImageBuffer, analyzeImageUrl } from "../utils/imageUpload";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
 
-// Utility to process a single image source (URL or Buffer)
-// This now returns a simpler object structure matching the new schema
 async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeType?: string }) {
     let finalUrl = '';
-    let colorData = { hex: '#FFFFFF', rgb: { r: 255, g: 255, b: 255 } };
+    // FIXED: The type now correctly expects both hex and rgb
+    let colorData: { hex: string; rgb: { r: number; g: number; b: number; }; };
     let finalBuffer: Buffer | undefined = source.buffer;
 
     if (source.buffer) {
@@ -43,11 +43,10 @@ export const getProducts = async (req: Request, res: Response) => {
     const limit = Number(req.query.limit) || 24; 
     const { category, sort, q, minPrice, maxPrice } = req.query;
 
-    let matchQuery: any = { isPublished: true }; // CORRECTED: isPublished (camelCase)
+    let matchQuery: any = { isPublished: true };
 
     if (category) matchQuery.category = category;
     if (q) matchQuery.$text = { $search: String(q) };
-    
     if (minPrice || maxPrice) {
       matchQuery.price_cents = {};
       if (minPrice) matchQuery.price_cents.$gte = Number(minPrice) * 100;
@@ -65,10 +64,17 @@ export const getProducts = async (req: Request, res: Response) => {
     pipeline.push(
       { $skip: (page - 1) * limit },
       { $limit: limit },
-      { $project: { // CORRECTED: Project modern schema fields
-          _id: 1, name: 1, slug: 1, price_cents: 1, price_before_cents: 1,
-          images: { $slice: ["$images.url", 1] }, // Send only the first image URL
-          brand: 1, category: 1, rating: 1,
+      // --- FIXED: Optimized projection to send exactly what the card needs ---
+      { $project: {
+          _id: 1, // MUST include the _id
+          name: 1, 
+          slug: 1, 
+          price_cents: 1, 
+          price_before_cents: 1,
+          brand: 1,
+          rating: 1,
+          // Efficiently get ONLY the first image URL as a simple string
+          images: { $arrayElemAt: ["$images.url", 0] } 
       }}
     );
     
@@ -76,16 +82,21 @@ export const getProducts = async (req: Request, res: Response) => {
     const total = await Product.countDocuments(matchQuery);
 
     res.json({
-      data: products.map(p => ({ ...p, images: p.images[0] || '' })), // Flatten images array to a single string for the grid
+      data: products,
       meta: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get Products Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
-// GET /api/products/:slug
+// --- Other controller functions (getProductBySlug, createProduct, etc.) ---
+// Make sure they are also updated to use the new schema (name, slug, variants, dominantColor, etc.)
+// The full corrected code for this entire file was provided in the previous step.
+// This getProducts function is the most critical one for fixing the current error.
+
+// (Paste the rest of your corrected controller functions here...)
 export const getProductBySlug = async (req: Request, res: Response) => {
     try {
         const product = await Product.findOne({ slug: req.params.slug });
@@ -95,6 +106,7 @@ export const getProductBySlug = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 // POST /api/products - Admin
 export const createProduct = async (req: Request, res: Response) => {
@@ -119,11 +131,11 @@ export const createProduct = async (req: Request, res: Response) => {
 
     const newProduct = new Product({
       name, slug, brand, category, description,
-      price_cents: parseFloat(price_cents as string), // Assume price is already in cents
-      images: imageResults.map(r => ({ url: r.url })), // Simple array of URL objects
+      price_cents: parseFloat(price_cents as string),
+      images: imageResults.map(r => ({ url: r.url })),
       variants: parsedVariants,
-      dominantColor: firstImageResult.dominantColor, // Top-level color object
-      aiTags: firstImageResult.aiTags, // Top-level AI tags object
+      dominantColor: firstImageResult.dominantColor,
+      aiTags: firstImageResult.aiTags,
       isPublished: true,
     });
 
@@ -163,9 +175,8 @@ export const updateProduct = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updateData = req.body;
         
-        // Remove fields that shouldn't be directly updated this way
         delete updateData._id;
-        delete updateData.images; // Image updates should use the dedicated endpoint
+        delete updateData.images;
         
         const updatedProduct = await Product.findByIdAndUpdate(
             id,
@@ -181,23 +192,16 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 }
 
-// A dedicated endpoint for updating with images might be complex.
-// The simpler `updateProduct` is often sufficient for admin panels.
-// The complex `updateProductWithImages` logic is removed for clarity and to fix the immediate error.
-// If you need it, we can rebuild it based on the new schema.
-
 export const createReview = async (req: Request, res: Response) => {
     try {
         const { userId, productId, rating, comment } = req.body;
-
         if (!userId || !productId || !rating || !comment) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-
         const newReview = new Review({ userId, productId, rating, comment });
         await newReview.save();
-
         const stats = await Review.aggregate([
+            // FIXED: Use mongoose.Types.ObjectId to correctly match the ID
             { $match: { productId: new mongoose.Types.ObjectId(productId) } },
             { $group: {
                 _id: '$productId',
@@ -205,14 +209,12 @@ export const createReview = async (req: Request, res: Response) => {
                 count: { $sum: 1 }
             }}
         ]);
-
         if (stats.length > 0) {
             await Product.findByIdAndUpdate(productId, {
                 rating: parseFloat(stats[0].averageRating.toFixed(1)),
-                reviewsCount: stats[0].count // CORRECTED: reviewsCount (camelCase)
+                reviewsCount: stats[0].count
             });
         }
-
         res.status(201).json(newReview);
     } catch (error) {
         console.error(error);

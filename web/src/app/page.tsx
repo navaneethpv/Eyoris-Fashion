@@ -68,7 +68,7 @@ export default async function Home() {
       <section className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex justify-between items-end mb-8">
           <h2 className="text-3xl font-bold tracking-tight">Trending Now</h2>
-          <Link href="/products" className="text-primary font-semibold hover:underline">View All</Link>
+          <Link href="/product" className="text-primary font-semibold hover:underline">View All</Link>
         </div>
         
         {products.length > 0 ? (

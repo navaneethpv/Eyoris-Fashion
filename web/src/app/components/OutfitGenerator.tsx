@@ -63,7 +63,13 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
       });
 
       const data = await res.json();
-      setResult(data);
+      // ensure outfitItems is always an array to avoid runtime map errors
+      if (!data || typeof data !== "object") {
+        setResult(null);
+      } else {
+        data.outfitItems = data.outfitItems ?? [];
+        setResult(data);
+      }
       setTimeout(() => instanceRef.current?.update(), 50);
     } catch (e) {
       console.error(e);
@@ -147,33 +153,39 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
           <h4 className="text-2xl font-bold text-gray-900">{result.outfitTitle}</h4>
 
           <div ref={sliderRef} className="keen-slider">
-            {result.outfitItems.map((item, idx) => (
-              <div key={idx} className="keen-slider__slide bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2">{item.role}</p>
+            {(result.outfitItems ?? []).length > 0 ? (
+              (result.outfitItems ?? []).map((item, idx) => (
+                <div key={idx} className="keen-slider__slide bg-white border rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-bold text-gray-500 uppercase mb-2">{item.role}</p>
 
-                {item.product ? (
-                  <>
-                    <Link href={`/products/${item.product.slug}`} className="block">
-                      <img
-                        src={item.product.images?.[0]?.url}
-                        alt={item.product.name}
-                        className="w-full h-44 object-cover rounded-lg mb-3"
+                  {item.product ? (
+                    <>
+                      <Link href={`/products/${item.product.slug}`} className="block">
+                        <img
+                          src={item.product.images?.[0]?.url}
+                          alt={item.product.name}
+                          className="w-full h-44 object-cover rounded-lg mb-3"
+                        />
+                        <p className="font-bold text-gray-900">{item.product.name}</p>
+                        <p className="text-sm text-gray-600">{item.product.brand}</p>
+                        <p className="text-sm font-bold mt-1">₹{(item.product.price_cents / 100).toFixed(0)}</p>
+                      </Link>
+                      <AddToCartButton
+                        productId={item.product._id}
+                        price={item.product.price_cents}
+                        variants={item.product.variants}
                       />
-                      <p className="font-bold text-gray-900">{item.product.name}</p>
-                      <p className="text-sm text-gray-600">{item.product.brand}</p>
-                      <p className="text-sm font-bold mt-1">₹{(item.product.price_cents / 100).toFixed(0)}</p>
-                    </Link>
-                    <AddToCartButton
-                      productId={item.product._id}
-                      price={item.product.price_cents}
-                      variants={item.product.variants}
-                    />
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">No matching item found.</p>
-                )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No matching item found.</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-600">
+                No outfit items suggested.
               </div>
-            ))}
+            )}
           </div>
 
           <p className="text-gray-600 text-sm bg-gray-50 p-4 rounded-lg shadow-sm">

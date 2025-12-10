@@ -53,20 +53,35 @@ const ROLE_TO_SUBCATEGORY: Record<string, string[]> = {
 function classifyBaseRole(subCategory: string): "top" | "bottom" | "accessory" | "other" {
   const sub = (subCategory || "").toLowerCase();
 
-  if (["shirts", "t-shirts", "tops", "kurtis", "hoodies", "sweaters", "jackets"].some(s => sub.includes(s.toLowerCase()))) {
+  if (
+    ["shirts", "t-shirts", "tops", "kurtis", "hoodies", "sweaters", "jackets"].some((s) =>
+      sub.includes(s.toLowerCase()),
+    )
+  ) {
     return "top";
   }
-  if (["jeans", "pants", "trousers", "joggers", "skirts", "shorts"].some(s => sub.includes(s.toLowerCase()))) {
+  if (
+    ["jeans", "pants", "trousers", "joggers", "skirts", "shorts"].some((s) =>
+      sub.includes(s.toLowerCase()),
+    )
+  ) {
     return "bottom";
   }
-  if (["watches", "belts", "bags", "handbags", "jewelry"].some(s => sub.includes(s.toLowerCase()))) {
+  if (
+    ["watches", "belts", "bags", "handbags", "jewelry"].some((s) =>
+      sub.includes(s.toLowerCase()),
+    )
+  ) {
     return "accessory";
   }
   return "other";
 }
 
 // Filter outfitItems if AI misbehaves and sends unwanted roles
-function filterOutfitRolesForBase(baseRole: "top" | "bottom" | "accessory" | "other", items: any[]) {
+function filterOutfitRolesForBase(
+  baseRole: "top" | "bottom" | "accessory" | "other",
+  items: any[],
+) {
   if (baseRole === "top") {
     // base is shirt/top → only show bottom, shoes, accessories
     return items.filter((i) => !["top"].includes((i.role || "").toLowerCase()));
@@ -82,30 +97,62 @@ function filterOutfitRolesForBase(baseRole: "top" | "bottom" | "accessory" | "ot
   return items; // other = no extra restriction
 }
 
-// Find a matching product for a given AI suggestion
-async function findMatchingProduct(suggested: any, baseProductId: string) {
+// 🧠 Add gender-aware filters to MongoDB query (no gender field in DB, so we use heuristics)
+function applyGenderFilterToQuery(query: any, userGender?: string | null) {
+  if (!userGender) return query;
+
+  const malePattern = /(men|man's|men's|boy|boys|gents)/i;
+  const femalePattern = /(women|woman|girls|girl|ladies|lady|female)/i;
+
+  query.$and = query.$and || [];
+
+  if (userGender === "female") {
+    // Avoid clearly male-only items
+    query.$and.push({
+      $nor: [{ name: malePattern }, { description: malePattern }],
+    });
+  } else if (userGender === "male") {
+    // Avoid clearly women-only items
+    query.$and.push({
+      $nor: [{ name: femalePattern }, { description: femalePattern }],
+    });
+  }
+
+  // Neutral products (no gender words) are allowed.
+  return query;
+}
+
+// Find a matching product for a given AI suggestion, respecting user gender
+async function findMatchingProduct(
+  suggested: any,
+  baseProductId: string,
+  userGender?: string | null,
+) {
   const role = (suggested.role || "").toLowerCase();
   const colorSuggestion = suggested.colorSuggestion as string | undefined;
 
   const allowedSubCategories = ROLE_TO_SUBCATEGORY[role] || [];
   if (allowedSubCategories.length === 0) return null;
 
-  const query: any = {
+  let query: any = {
     isPublished: true,
     _id: { $ne: baseProductId },
     subCategory: { $in: allowedSubCategories },
   };
 
   if (colorSuggestion) {
-    query["variants.color"] = new RegExp(colorSuggestion, "i");
+    query['variants.color'] = new RegExp(colorSuggestion, 'i');
   }
 
-  // Try color + category first
+  // 🧠 Apply gender filter based on userPreferences.gender
+  query = applyGenderFilterToQuery(query, userGender);
+
+  // Try color + category + gender first
   let product = await Product.findOne(query).lean();
 
-  // Fallback: ignore color if none found
+  // Fallback: ignore color if none found (but still respect gender)
   if (!product) {
-    delete query["variants.color"];
+    delete query['variants.color'];
     product = await Product.findOne(query).lean();
   }
 
@@ -143,6 +190,10 @@ export const generateOutfit = async (req: Request, res: Response) => {
     }
 
     const baseRole = classifyBaseRole(baseSub);
+    const userGender: string | null =
+      userPreferences?.gender === "male" || userPreferences?.gender === "female"
+        ? userPreferences.gender
+        : null;
 
     // 3) Prepare input for AI
     const inputData = {
@@ -162,10 +213,10 @@ export const generateOutfit = async (req: Request, res: Response) => {
     let outfitItems = Array.isArray(aiResult.outfitItems) ? aiResult.outfitItems : [];
     outfitItems = filterOutfitRolesForBase(baseRole, outfitItems);
 
-    // 6) Attach real products from DB
+    // 6) Attach real products from DB (gender-aware)
     const matchedItems: any[] = [];
     for (const item of outfitItems) {
-      const product = await findMatchingProduct(item, baseProduct._id.toString());
+      const product = await findMatchingProduct(item, baseProduct._id.toString(), userGender);
       matchedItems.push({
         ...item,
         product,

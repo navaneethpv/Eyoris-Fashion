@@ -124,7 +124,8 @@ export async function generateAIOutfits(inputData: any) {
       return {
         outfitTitle: "Error Generating Outfit",
         outfitItems: [],
-        overallStyleExplanation: "The AI stylist failed to generate a suggestion because the response was empty.",
+        overallStyleExplanation:
+          "The AI stylist failed to generate a suggestion because the response was empty.",
         tags: ["error"],
       };
     }
@@ -136,7 +137,8 @@ export async function generateAIOutfits(inputData: any) {
     return {
       outfitTitle: "Error Generating Outfit",
       outfitItems: [],
-      overallStyleExplanation: "The AI stylist failed to generate a suggestion. Please try again.",
+      overallStyleExplanation:
+        "The AI stylist failed to generate a suggestion. Please try again.",
       tags: ["error"],
     };
   }

@@ -1,13 +1,22 @@
 // /web/src/app/products/[slug]/page.tsx
 
 import { notFound } from "next/navigation";
-import ProductActions from '../../components/ProductActions';
 
-// (Your interfaces are correct and do not need to be changed)
+// ✅ UI components from your FIRST style
+import Navbar from "../../components/Navbar";
+import Gallery from "../../components/Gallery";
+import OutfitGenerator from "../../components/OutfitGenerator";
+import CollapsibleSection from "../../components/CollapsibleSection";
+import ProductReviews from "../../components/productReview";
+import AddToCartButton from "../../components/AddToCartButton";
+import { Star, Truck, ShieldCheck } from "lucide-react";
+
+// (Your interfaces extended slightly for optional fields)
 interface ImageType { url: string; }
 interface VariantType { size: string; color: string; sku: string; stock: number; }
 interface DominantColorType { hex: string; name?: string; }
 interface AiTagsType { style_tags: string[]; material_tags: string[]; }
+
 interface Product {
   _id: string;
   name: string;
@@ -22,9 +31,14 @@ interface Product {
   aiTags: AiTagsType;
   rating?: number;
   reviewsCount?: number;
+
+  // Optional extra fields that first layout uses
+  fabric?: string;
+  careInstructions?: string;
 }
 
-// --- THIS FUNCTION IS NOW CORRECTED AND SIMPLIFIED ---
+// --- DO NOT TOUCH: your fetching + slug logic ---
+
 async function getProduct(id?: string, slug?: string): Promise<Product | null> {
   if (!id && !slug) return null;
 
@@ -34,7 +48,6 @@ async function getProduct(id?: string, slug?: string): Promise<Product | null> {
     "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
-  // Build candidates in order: slug route (public), admin/id, direct id, slug path
   const candidates: string[] = [];
   if (slug) {
     candidates.push(`${baseUrl}/api/products/slug/${encodeURIComponent(slug)}`);
@@ -98,7 +111,7 @@ async function getProduct(id?: string, slug?: string): Promise<Product | null> {
   return null;
 }
 
-// Add helper to normalize image value (string | array<string> | array<{url}>)
+// (helper kept in case you want it later, but Gallery already handles images)
 function resolveImageSrc(images: any): string | null {
   const PLACEHOLDER = "https://via.placeholder.com/600x600?text=No+Image";
   const base =
@@ -112,9 +125,7 @@ function resolveImageSrc(images: any): string | null {
   };
 
   if (!images) return PLACEHOLDER;
-  // images may be a string
   if (typeof images === "string") return prefixIfRelative(images);
-  // images may be an array of strings
   if (Array.isArray(images) && images.length > 0) {
     const first = images[0];
     if (!first) return PLACEHOLDER;
@@ -136,69 +147,126 @@ export default async function ProductDetailPage({
   const product = await getProduct(searchParamsResolved?.id, paramsResolved.slug);
 
   if (!product) {
-    notFound();
+    return notFound();
   }
 
-  const discountPercentage = product.price_before_cents
-    ? Math.round(((product.price_before_cents - product.price_cents) / product.price_before_cents) * 100)
+  const discount = product.price_before_cents
+    ? Math.round(
+        ((product.price_before_cents - product.price_cents) /
+          product.price_before_cents) *
+          100
+      )
     : 0;
 
-  const imageSrc = resolveImageSrc((product as any).images);
-
   return (
-    <div className="bg-white">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
-          <div className="flex flex-col items-center">
-            {imageSrc && (
-              <img
-                src={imageSrc}
-                alt={product.name}
-                className="w-full max-w-lg h-auto object-cover rounded-lg shadow-lg"
-              />
-            )}
+    <div className="min-h-screen bg-white">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+        {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
+          {/* Left Column: Gallery */}
+          <div className="sticky top-24 self-start">
+            {/* Uses your product.images directly */}
+            <Gallery images={product.images} name={product.name} />
           </div>
 
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-gray-500">{product.brand}</p>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 mt-1">{product.name}</h1>
-            
-            <div className="flex items-baseline mt-4">
-              <span className="text-3xl font-extrabold text-gray-900">₹{(product.price_cents / 100).toFixed(0)}</span>
-              {product.price_before_cents && (
-                <>
-                  <span className="text-xl text-gray-500 line-through ml-3">₹{(product.price_before_cents / 100).toFixed(0)}</span>
-                  <span className="ml-3 text-sm font-semibold text-green-600">({discountPercentage}% OFF)</span>
-                </>
+          {/* Right Column: Details */}
+          <div>
+            {/* Brand + Title + Rating */}
+            <div className="mb-6">
+              <h1 className="text-sm font-bold text-primary uppercase tracking-wider mb-2">
+                {product.brand}
+              </h1>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">
+                {product.name}
+              </h2>
+
+              {typeof product.rating === "number" && (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                    <span className="font-bold text-sm">
+                      {product.rating.toFixed(1)}
+                    </span>
+                    <Star className="w-3 h-3 fill-current text-yellow-500" />
+                    <span className="text-xs text-gray-500 border-l border-gray-300 pl-2 ml-1">
+                      {product.reviewsCount ?? 0} Ratings
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
-            
-            {product.rating && product.reviewsCount && (
-              <div className="flex items-center mt-3">
-                <span className="text-yellow-400">{'★'.repeat(Math.round(product.rating))}</span>
-                <span className="text-gray-300">{'★'.repeat(5 - Math.round(product.rating))}</span>
-                <span className="ml-3 text-sm text-gray-600 hover:underline cursor-pointer">{product.reviewsCount} reviews</span>
+
+            <div className="h-px bg-gray-100 my-6" />
+
+            {/* Price */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold text-gray-900">
+                  ₹{(product.price_cents / 100).toFixed(0)}
+                </span>
+                {product.price_before_cents && (
+                  <span className="text-xl text-gray-400 line-through">
+                    ₹{(product.price_before_cents / 100).toFixed(0)}
+                  </span>
+                )}
+                {discount > 0 && (
+                  <span className="text-sm font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded">
+                    {discount}% OFF
+                  </span>
+                )}
               </div>
-            )}
-
-            <p className="text-base text-gray-700 mt-6">{product.description}</p>
-            
-            <div className="mt-8">
-              <ProductActions product={product} />
+              <p className="text-xs text-gray-500 mt-1">
+                Inclusive of all taxes
+              </p>
             </div>
 
-            <div className="mt-8 border-t pt-6">
-                <h3 className="text-sm font-medium text-gray-900">Style Details</h3>
-                <div className="mt-4 flex flex-wrap gap-2">
-                    {product.aiTags?.style_tags?.map(tag => (
-                        <span key={tag} className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full capitalize">{tag}</span>
-                    ))}
-                </div>
-                    <div className="flex items-center mt-4">
-                        <span className="text-sm text-gray-600 mr-2">Color:</span>
-                        <span className="w-6 h-6 rounded-full border border-gray-300" style={{ backgroundColor: product.variants[0].color }}></span>
-                    </div>
+            {/* Sizes & Add Button */}
+            <AddToCartButton
+              productId={product._id}
+              price={product.price_cents}
+              variants={product.variants}
+            />
+
+            {/* Delivery & Trust */}
+            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-10">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4" /> <span>Free Delivery</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> <span>30 Day Returns</span>
+              </div>
             </div>
+
+            <div className="h-px bg-gray-100 my-6" />
+          </div>
+        </div>
+
+        {/* BOTTOM SECTIONS */}
+        <div className="max-w-4xl mx-auto pt-8">
+          {/* 1. PRODUCT DETAILS / DESCRIPTION */}
+          {CollapsibleSection && (
+            <CollapsibleSection title="Product Details" defaultOpen={true}>
+              <div className="prose prose-sm text-gray-600">
+                <p>{product.description}</p>
+                <p>Fabric: {product.fabric || "100% Cotton"}</p>
+                <p>Care: {product.careInstructions || "Machine wash cold."}</p>
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* 2. REVIEWS */}
+          {CollapsibleSection && ProductReviews && (
+            <CollapsibleSection
+              title={`Customer Reviews (${product.reviewsCount || 0})`}
+            >
+              <ProductReviews productId={product._id} />
+            </CollapsibleSection>
+          )}
+
+          {/* 3. AI ASSISTANT / OUTFIT SUGGESTION */}
+          <div className="mt-8">
+            <OutfitGenerator productId={product._id} />
           </div>
         </div>
       </main>

@@ -1,59 +1,74 @@
+// /api/src/controllers/aiOutfitController.ts
 import { Request, Response } from 'express';
-import { Product, IProduct } from '../models/Product';
+import { Product } from '../models/Product';
 import { generateAIOutfits } from '../utils/aiOutfitGenerator';
 
-// 🛑 NEW: POST /api/ai/outfit
+// HELPER: map role to DB subCategory groups
+const ROLE_TO_SUBCATEGORY: any = {
+  top: ["Shirts", "T-Shirts", "Tops", "Kurtis", "Hoodies", "Sweaters", "Jackets"],
+  bottom: ["Jeans", "Pants", "Trousers", "Joggers", "Skirts", "Shorts"],
+  shoes: ["Shoes", "Sneakers", "Heels", "Sandals", "Boots"],
+  accessories: ["Watches", "Bracelets", "Necklaces", "Bags", "Jewelry"]
+};
+
+async function findMatchingProduct(suggested: any, baseProductId: string) {
+  const { suggestedType, role, colorSuggestion } = suggested;
+
+  const validSubCategories = ROLE_TO_SUBCATEGORY[role.toLowerCase()] || [];
+
+  const query: any = {
+    isPublished: true,
+    _id: { $ne: baseProductId },
+    subCategory: { $in: validSubCategories }
+  };
+
+  if (colorSuggestion) {
+    query['variants.color'] = new RegExp(colorSuggestion, "i");
+  }
+
+  let product = await Product.findOne(query).lean();
+
+  if (!product) {
+    delete query['variants.color'];
+    product = await Product.findOne(query).lean();
+  }
+
+  return product;
+}
+
 export const generateOutfit = async (req: Request, res: Response) => {
   try {
-    // ⚠️ FIX: Ensure userPreferences is destructured and passed correctly ⚠️
     const { productId, userPreferences } = req.body; 
+    const baseProduct = await Product.findById(productId).lean();
+    if (!baseProduct) return res.status(404).json({ message: "Base product not found" });
 
-    // 1. Fetch Product Data (same as before)
-    const baseProduct = await Product.findById(productId);
-    if (!baseProduct) {
-        return res.status(404).json({ message: 'Base product not found in catalog.' });
-    }
-
-    // Narrow baseProduct to IProduct type and ensure TypeScript understands tags is present
-    const product = baseProduct as IProduct;
-    const tags = Array.isArray(product.aiTags?.style_tags) ? product.aiTags.style_tags : [];
-
-    const attributes = {
-      fit: tags.includes('oversized') ? 'oversized' : 'regular',
-      pattern: tags.includes('printed') ? 'printed' : 'solid',
-      fabric: tags.find((t: string) => t.toLowerCase().includes('cotton')) ? 'cotton' : 'blend',
-      occasion: tags.includes('party') ? 'party' : 'casual',
-    };
-
-    const base: any = {
-      type: product.category as string,
-      color: product.dominantColor?.hex || 'unknown',
-      colorHex: product.dominantColor?.hex || '#000000',
-      ...attributes,
-    };
-
-    // 2. Format Input Data for Gemini
     const inputData = {
       baseItem: {
-        id: product._id.toString(),
-        category: product.category as string,
-        ...base,
-        priceRange: (product.price_cents > 30000) ? 'high' : 'mid',
-        season: 'summer'
+        id: baseProduct._id.toString(),
+        category: baseProduct.subCategory, // ⚠️ use subCategory
+        color: baseProduct.variants[0]?.color,
+        colorHex: baseProduct.dominantColor?.hex,
       },
-      // 🛑 USE PASSED-IN PREFERENCES 🛑
-      userPreferences: userPreferences || { gender: 'unisex', styleVibe: 'street', avoidColors: [] }
-      // 🛑 END USE PASSED-IN PREFERENCES 🛑
+      userPreferences: userPreferences || {}
     };
-    
-    // 3. Call Gemini (same as before)
-    const outfitResult = await generateAIOutfits(inputData);
-    
-    // 4. Return Result (same as before)
-    res.json(outfitResult);
 
-  } catch (error) {
-    console.error('API Error during outfit generation:', error);
-    res.status(500).json({ message: 'Failed to communicate with AI stylist.' });
+    const aiResult = await generateAIOutfits(inputData);
+
+    const matched = [];
+    for (const item of aiResult.outfitItems) {
+      const p = await findMatchingProduct(item, baseProduct._id.toString());
+      matched.push({ ...item, product: p });
+    }
+
+    res.json({
+      base: baseProduct,
+      outfitTitle: aiResult.outfitTitle,
+      outfitItems: matched,
+      overallStyleExplanation: aiResult.overallStyleExplanation,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to generate outfit" });
   }
 };

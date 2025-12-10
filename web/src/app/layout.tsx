@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs'; // Import this
+// import "keen-slider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 

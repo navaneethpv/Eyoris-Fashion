@@ -1,81 +1,80 @@
-"use client"
-import { useState } from 'react';
-import Link from 'next/link';
-import { Wand2, Loader2, Zap, Tag, Info, ChevronDown } from 'lucide-react'; // 👈 ADD ChevronDown
+"use client";
 
-// Simplified types matching the Gemini output schema
+import { useState } from "react";
+import Link from "next/link";
+import { useKeenSlider } from "keen-slider/react";
+import { Wand2, Loader2, Zap, ChevronDown, ArrowRight } from "lucide-react";
+import AddToCartButton from "./AddToCartButton";
+
 interface OutfitItem {
-    role: string;
-    suggestedType: string;
-    colorSuggestion: string;
-    colorHexSuggestion: string;
-    reason: string;
+  role: string;
+  suggestedType: string;
+  colorSuggestion: string;
+  colorHexSuggestion: string;
+  reason: string;
+  product?: any; // 👉 contains DB product
 }
 
 interface OutfitResult {
-    outfitTitle: string;
-    outfitItems: OutfitItem[];
-    overallStyleExplanation: string;
-    tags: string[];
+  outfitTitle: string;
+  outfitItems: OutfitItem[];
+  overallStyleExplanation: string;
 }
 
-// Styles available for the user to choose
 const STYLE_VIBES = [
-    { value: 'simple_elegant', label: 'Simple & Elegant' },
-    { value: 'street_casual', label: 'Street & Casual' },
-    { value: 'office_formal', label: 'Office & Formal' },
-    { value: 'party_bold', label: 'Party & Bold' },
+  { value: "simple_elegant", label: "Simple & Elegant" },
+  { value: "street_casual", label: "Street & Casual" },
+  { value: "office_formal", label: "Office & Formal" },
+  { value: "party_bold", label: "Party & Bold" },
 ];
-
 
 export default function OutfitGenerator({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
 
-  // 🛑 NEW STATE FOR USER INPUT 🛑
-  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [gender, setGender] = useState<"male" | "female">("female");
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
-  // 🛑 END NEW STATE 🛑
 
+  const [sliderRef, instanceRef] = useKeenSlider<HTMLDivElement>({
+    slides: { perView: 1.3, spacing: 15 },
+    breakpoints: {
+      "(min-width: 640px)": { slides: { perView: 2.5, spacing: 20 } },
+      "(min-width: 1024px)": { slides: { perView: 4, spacing: 25 } },
+    },
+  });
 
   const handleGenerate = async () => {
     setLoading(true);
     setResult(null);
 
-    // 🛑 GATHERING USER INPUT FOR AI PROMPT 🛑
     const userPreferences = {
-        gender: gender, // Use state
-        styleVibe: styleVibe, // Use state
-        avoidColors: ['neon green', 'bright yellow'], // Test a few colors
-        preferredBrightness: 'medium',
-        maxItems: 4
+      gender,
+      styleVibe,
+      avoidColors: ["neon green", "bright yellow"],
+      preferredBrightness: "medium",
+      maxItems: 4,
     };
-    // 🛑 END GATHERING USER INPUT 🛑
-
 
     try {
-      const res = await fetch('http://localhost:4000/api/ai/outfit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, userPreferences })
+      const res = await fetch("http://localhost:4000/api/ai/outfit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, userPreferences }),
       });
-      
-      if (!res.ok) throw new Error("API failed");
-      
+
       const data = await res.json();
       setResult(data);
-
-    } catch (err) {
-      console.error(err);
-      setResult({ outfitTitle: "Generation Failed", overallStyleExplanation: "Could not connect to AI stylist.", outfitItems: [], tags: ["error"] });
+      setTimeout(() => instanceRef.current?.update(), 50);
+    } catch (e) {
+      console.error(e);
+      alert("AI failed to suggest an outfit.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mt-12 border border-violet-100 bg-gradient-to-r from-violet-50 to-white rounded-2xl p-6 md:p-8">
-      
+    <div className="mt-12 border border-violet-100 bg-gradient-to-r from-violet-50 to-white rounded-2xl p-6 md:p-8 shadow-sm">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900">
@@ -83,101 +82,103 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
             AI Stylist: Outfit Generator
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Let our AI generate a complete, matching outfit for your current item.
+            AI builds a full matching outfit from your wardrobe.
           </p>
         </div>
-        <button 
-            onClick={handleGenerate}
-            disabled={loading}
-            className="bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg shadow-violet-200 hover:bg-violet-700 transition flex items-center gap-2 disabled:opacity-70"
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg hover:bg-violet-700 transition flex items-center gap-2 disabled:opacity-70"
         >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {result ? 'Generate New Look' : 'Generate Outfit'}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          {result ? "Regenerate" : "Generate"}
         </button>
       </div>
-      
-      {/* 🛑 USER PREFERENCE INPUTS 🛑 */}
-      <div className='flex gap-4 pb-4 mb-4 border-b border-violet-100'>
-        {/* Gender Selector */}
-        <div className='flex-1'>
-            <label className='text-xs font-bold text-gray-500 uppercase block mb-1'>Gender</label>
-            <div className='relative'>
-                <select 
-                    value={gender} 
-                    onChange={(e) => setGender(e.target.value as 'male' | 'female')}
-                    className='w-full p-2 border border-gray-300 rounded-lg appearance-none bg-white pr-8 text-sm focus:border-primary'
-                >
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
-                </select>
-                <ChevronDown className='w-4 h-4 absolute right-3 top-2.5 text-gray-500 pointer-events-none' />
-            </div>
+
+      {/* Filter Inputs */}
+      <div className="flex gap-4 pb-4 mb-4 border-b border-violet-100">
+        <div className="flex-1">
+          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Gender</label>
+          <div className="relative">
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value as "male" | "female")}
+              className="w-full p-2 border border-gray-300 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary"
+            >
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-2.5 text-gray-500" />
+          </div>
         </div>
 
-        {/* Style Vibe Selector */}
-        <div className='flex-1'>
-            <label className='text-xs font-bold text-gray-500 uppercase block mb-1'>Style Vibe</label>
-            <div className='relative'>
-                <select 
-                    value={styleVibe} 
-                    onChange={(e) => setStyleVibe(e.target.value)}
-                    className='w-full p-2 border border-gray-300 rounded-lg appearance-none bg-white pr-8 text-sm focus:border-primary'
-                >
-                    {STYLE_VIBES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-                </select>
-                <ChevronDown className='w-4 h-4 absolute right-3 top-2.5 text-gray-500 pointer-events-none' />
-            </div>
+        <div className="flex-1">
+          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+            Style Vibe
+          </label>
+          <div className="relative">
+            <select
+              value={styleVibe}
+              onChange={(e) => setStyleVibe(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary"
+            >
+              {STYLE_VIBES.map((v) => (
+                <option key={v.value} value={v.value}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-2.5 text-gray-500" />
+          </div>
         </div>
       </div>
-      {/* 🛑 END NEW: USER PREFERENCE INPUTS 🛑 */}
 
-
+      {/* Loader */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-6">
-          <Loader2 className="w-6 h-6 text-primary animate-spin mb-3" /> 
-          <p className="text-sm text-gray-500">Thinking like a stylist...</p>
+        <div className="text-center py-8 text-gray-600">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+          Generating your outfit...
         </div>
       )}
 
-      {result && result.outfitItems.length > 0 && (
-        <div className="animate-fade-in space-y-6">
+      {/* Carousel Display */}
+      {result && (
+        <div className="space-y-6">
           <h4 className="text-2xl font-bold text-gray-900">{result.outfitTitle}</h4>
-          
-          {/* Outfit Items Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {result.outfitItems.map((item, index) => (
-              <div key={index} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
-                <div className="text-xs font-bold text-gray-500 uppercase flex items-center mb-2">
-                    <Tag className="w-3 h-3 mr-1" /> {item.role}
-                </div>
-                <h5 className="font-bold text-lg text-gray-900">{item.suggestedType}</h5>
-                <div className="flex items-center gap-2 mt-2">
-                    <div className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: item.colorHexSuggestion }} />
-                    <span className="text-sm text-gray-600 capitalize">{item.colorSuggestion}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-3 border-t border-gray-50 pt-2">{item.reason}</p>
-                {/* Note: This link is purely illustrative; matching real catalog products requires complex search or pre-computation */}
-                {item.role === 'top' && (
-                    <Link href={`/products/${productId}`} className="text-xs font-bold text-primary hover:underline mt-2">
-                        (View Base Item)
+
+          <div ref={sliderRef} className="keen-slider">
+            {result.outfitItems.map((item, idx) => (
+              <div key={idx} className="keen-slider__slide bg-white border rounded-xl p-4 shadow-sm">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">{item.role}</p>
+
+                {item.product ? (
+                  <>
+                    <Link href={`/products/${item.product.slug}`} className="block">
+                      <img
+                        src={item.product.images?.[0]?.url}
+                        alt={item.product.name}
+                        className="w-full h-44 object-cover rounded-lg mb-3"
+                      />
+                      <p className="font-bold text-gray-900">{item.product.name}</p>
+                      <p className="text-sm text-gray-600">{item.product.brand}</p>
+                      <p className="text-sm font-bold mt-1">₹{(item.product.price_cents / 100).toFixed(0)}</p>
                     </Link>
+                    <AddToCartButton
+                      productId={item.product._id}
+                      price={item.product.price_cents}
+                      variants={item.product.variants}
+                    />
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No matching item found.</p>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Explanation */}
-          <div className="bg-gray-50 p-4 rounded-xl text-sm border border-gray-100">
-            <h5 className="font-bold mb-1 flex items-center gap-1 text-gray-800"><Info className="w-4 h-4" /> Stylist's Notes</h5>
-            <p className="text-gray-600">{result.overallStyleExplanation}</p>
-          </div>
-
-        </div>
-      )}
-
-      {result && result.outfitItems.length === 0 && !loading && (
-        <div className="text-center py-6 text-gray-500">
+          <p className="text-gray-600 text-sm bg-gray-50 p-4 rounded-lg shadow-sm">
             {result.overallStyleExplanation}
+          </p>
         </div>
       )}
     </div>

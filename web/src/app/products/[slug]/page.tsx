@@ -194,12 +194,10 @@ export default async function ProductDetailPage({
                         <span key={tag} className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full capitalize">{tag}</span>
                     ))}
                 </div>
-                 {product.dominantColor?.hex && (
                     <div className="flex items-center mt-4">
                         <span className="text-sm text-gray-600 mr-2">Color:</span>
-                        <span className="w-6 h-6 rounded-full border border-gray-300" style={{ backgroundColor: product.dominantColor.hex }}></span>
+                        <span className="w-6 h-6 rounded-full border border-gray-300" style={{ backgroundColor: product.variants[0].color }}></span>
                     </div>
-                )}
             </div>
           </div>
         </div>

@@ -88,7 +88,7 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg hover:bg-violet-700 transition flex items-center gap-2 disabled:opacity-70"
+          className="bg-primary text-white bg-violet-500 px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg hover:bg-violet-700 transition flex items-center gap-2 disabled:opacity-70 hover:cursor-pointer"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
           {result ? "Regenerate" : "Generate"}
@@ -103,7 +103,7 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value as "male" | "female")}
-              className="w-full p-2 border border-gray-300 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary"
+              className="w-full p-2 border border-gray-600 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary text-gray-700"
             >
               <option value="female">Female</option>
               <option value="male">Male</option>
@@ -113,14 +113,14 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
         </div>
 
         <div className="flex-1">
-          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+          <label className="text-xs font-bold text-gray-900 uppercase block mb-1">
             Style Vibe
           </label>
           <div className="relative">
             <select
               value={styleVibe}
               onChange={(e) => setStyleVibe(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary"
+              className="w-full p-2 border border-gray-300 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary text-gray-700"
             >
               {STYLE_VIBES.map((v) => (
                 <option key={v.value} value={v.value}>
@@ -135,7 +135,7 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
 
       {/* Loader */}
       {loading && (
-        <div className="text-center py-8 text-gray-600">
+        <div className="text-center py-8 text-gray-900 ">
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
           Generating your outfit...
         </div>

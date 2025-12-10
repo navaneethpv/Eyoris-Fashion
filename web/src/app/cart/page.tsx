@@ -107,7 +107,7 @@ export default function CartPage() {
             <div className="flex-1 space-y-6">
               {cart.items.map((item: any) => (
                 <div
-                  key={`${item.product._id}-${item.variantSku}`}
+                  key={`${item.product._id}-₹{item.variantSku}`}
                   className="flex gap-4 p-4 border rounded-xl"
                 >
                   <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -150,7 +150,7 @@ export default function CartPage() {
                         Qty: {item.quantity}
                       </div>
                       <div className="font-bold text-lg text-gray-800">
-                        ${(item.product.price_cents / 100).toFixed(2)}
+                        ₹{(item.product.price_cents / 100).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -161,25 +161,25 @@ export default function CartPage() {
             {/* Summary */}
             <div className="w-full lg:w-96 flex-shrink-0">
               <div className="bg-gray-50 p-6 rounded-2xl sticky top-24">
-                <h3 className="font-bold text-lg mb-6">Order Summary</h3>
+                <h3 className="font-bold text-gray-700 text-lg mb-6">Order Summary</h3>
 
                 <div className="space-y-4 mb-6 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-900">Subtotal</span>
                     <span className="font-medium">
-                      ${(subtotal / 100).toFixed(2)}
+                      ₹{(subtotal / 100).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
+                    <span className="text-gray-900">Shipping</span>
                     <span className="font-medium text-green-600">Free</span>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-4 mb-8">
+                <div className="border-t text-gray-700 border-gray-200 pt-4 mb-8">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>${(subtotal / 100).toFixed(2)}</span>
+                    <span>₹{(subtotal / 100).toFixed(2)}</span>
                   </div>
                 </div>
 

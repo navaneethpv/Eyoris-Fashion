@@ -12,10 +12,23 @@ import AddToCartButton from "../../components/AddToCartButton";
 import { Star, Truck, ShieldCheck } from "lucide-react";
 
 // (Your interfaces extended slightly for optional fields)
-interface ImageType { url: string; }
-interface VariantType { size: string; color: string; sku: string; stock: number; }
-interface DominantColorType { hex: string; name?: string; }
-interface AiTagsType { style_tags: string[]; material_tags: string[]; }
+interface ImageType {
+  url: string;
+}
+interface VariantType {
+  size: string;
+  color: string;
+  sku: string;
+  stock: number;
+}
+interface DominantColorType {
+  hex: string;
+  name?: string;
+}
+interface AiTagsType {
+  style_tags: string[];
+  material_tags: string[];
+}
 
 interface Product {
   _id: string;
@@ -92,13 +105,19 @@ async function getProduct(id?: string, slug?: string): Promise<Product | null> {
       return null;
     }
     const json = await listRes.json();
-    const items = Array.isArray(json) ? json : json?.data ?? json?.products ?? null;
+    const items = Array.isArray(json)
+      ? json
+      : json?.data ?? json?.products ?? null;
     if (!Array.isArray(items)) {
       console.warn("Unexpected list response shape", Object.keys(json || {}));
       return null;
     }
     const found = items.find((it: any) => {
-      if (id && (it._id === id || it.id === id || String(it._id) === String(id))) return true;
+      if (
+        id &&
+        (it._id === id || it.id === id || String(it._id) === String(id))
+      )
+        return true;
       if (slug && it.slug === slug) return true;
       return false;
     });
@@ -130,7 +149,8 @@ function resolveImageSrc(images: any): string | null {
     const first = images[0];
     if (!first) return PLACEHOLDER;
     if (typeof first === "string") return prefixIfRelative(first);
-    if (typeof first === "object" && first.url) return prefixIfRelative(first.url);
+    if (typeof first === "object" && first.url)
+      return prefixIfRelative(first.url);
   }
   return PLACEHOLDER;
 }
@@ -144,7 +164,10 @@ export default async function ProductDetailPage({
 }) {
   const paramsResolved = await params;
   const searchParamsResolved = await searchParams;
-  const product = await getProduct(searchParamsResolved?.id, paramsResolved.slug);
+  const product = await getProduct(
+    searchParamsResolved?.id,
+    paramsResolved.slug
+  );
 
   if (!product) {
     return notFound();
@@ -244,13 +267,37 @@ export default async function ProductDetailPage({
 
         {/* BOTTOM SECTIONS */}
         <div className="max-w-4xl mx-auto pt-8">
-          {/* 1. PRODUCT DETAILS / DESCRIPTION */}
+          {/* 1. PRODUCT DETAILS */}
           {CollapsibleSection && (
             <CollapsibleSection title="Product Details" defaultOpen={true}>
               <div className="prose prose-sm text-gray-600">
                 <p>{product.description}</p>
-                <p>Fabric: {product.fabric || "100% Cotton"}</p>
-                <p>Care: {product.careInstructions || "Machine wash cold."}</p>
+
+                <div className="mt-4">
+                  {/* Big primary swatch + meta */}
+                  <div className="flex items-center justify gap-4">
+                    {product.variants?.[0]?.color ? (
+                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                        Color:{" "}
+                        <span
+                          className="inline-block px-3 py-3 rounded bg-gray-100 text-gray-700 text-xs"
+                          style={
+                            product.variants[0]?.color
+                              ? { backgroundColor: product.variants[0].color }
+                              : undefined
+                          }
+                        >
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">
+                        No color information available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Swatch grid */}
               </div>
             </CollapsibleSection>
           )}

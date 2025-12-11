@@ -150,7 +150,7 @@ export const getProducts = async (req: Request, res: Response) => {
           price_before_cents: 1,
           brand: 1,
           rating: 1,
-          images: { $arrayElemAt: ["$images", 0] },
+          images: "$images",
           variants: {
             $map: {
               input: "$variants",
@@ -287,16 +287,18 @@ export const createProduct = async (req: Request, res: Response) => {
       price_cents: priceNumber,
       price_before_cents: req.body.price_before_cents ? Number(req.body.price_before_cents) : Math.round(priceNumber * 1.3),
       variants: parsedVariants.length ? parsedVariants : [{ size: "One Size", color: "Default", sku: `${slug}-OS`, stock: 10 }],
-      images: imageUrls.length ? imageUrls : [firstImageResult.url], // Set images as array of string URLs
+      images: [firstImageResult.url], // Set images as array of string URLs
       dominantColor: firstImageResult.dominantColor || undefined,
-      aiTags: firstImageResult.aiTags || {},
+      tags: firstImageResult.aiTags.style_tags || [],
       rating: req.body.rating ? Number(req.body.rating) : parseFloat((Math.random() * (5 - 3.8) + 3.8).toFixed(1)),
       reviewsCount: req.body.reviewsCount ? Number(req.body.reviewsCount) : 0,
       isPublished: req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : true,
     });
 
     await newProduct.save();
-    return res.status(201).json(newProduct);
+    const responseData = newProduct.toObject();
+    (responseData as any).tags = newProduct.aiTags.style_tags || [];
+    return res.status(201).json(responseData);
   } catch (error: any) {
     if (error?.code === 11000) return res.status(409).json({ message: "Product slug already exists." });
     console.error("Product Creation Error:", error);

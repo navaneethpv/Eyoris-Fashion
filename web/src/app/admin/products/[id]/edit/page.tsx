@@ -19,11 +19,11 @@ export default function AdminProductEditPage({ params }: { params: { id: string 
     const [message, setMessage] = useState('');
 
     const productId = params.id;
-
+    console.log('Editing product ID:', productId);
     const fetchProduct = async () => {
         setLoading(true);
         try {
-            // Fetch product by ID (we need a new API endpoint for this!)
+            // Fetch product by ID (we need a new API en23dpoint for this!)
             const res = await fetch(`http://localhost:4000/api/products/${productId}/admin`); 
             if (!res.ok) throw new Error('Product not found or API error');
             const data = await res.json();

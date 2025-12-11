@@ -8,22 +8,48 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function ProductsListPage() {
-  const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const fetchProducts = () => {
-    fetch("http://localhost:4000/api/products?limit=100")
-      .then((res) => res.json())
-      .then((res) => setProducts(res.data || []));
+  type Product = {
+    _id: string;
+    name: string;
+    slug: string;
+    images?: any;
+    variants?: any;
+    price_cents?: number;
+    category?: string;
   };
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(24);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [pageInput, setPageInput] = useState<string>(String(page));
+
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const p = page;
+    fetch(`http://localhost:4000/api/products?limit=${limit}&page=${p}`)
+      .then((res) => res.json())
+      .then((res) => {
+        setProducts(res.data || []);
+        setTotalPages(res.meta?.pages || 1);
+        setPageInput(String(p));
+      })
+      .catch(() => {
+        setProducts([]);
+        setTotalPages(1);
+      });
+  }, [page, limit]);
+
+  // keep pageInput in sync when page changes externally
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
 
   const handleDelete = async (id: string) => {
     if (
@@ -44,14 +70,14 @@ export default function ProductsListPage() {
       } else {
         alert("Failed to delete");
       }
-    } catch (err) {
+    } catch (error) {
       alert("Error deleting product");
     } finally {
       setDeletingId(null);
     }
   };
 
-  const filteredProducts = products.filter((p: any) =>
+  const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -59,12 +85,21 @@ export default function ProductsListPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Products Catalog</h1>
-        <Link
-          href="/admin/products/add"
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Add Product
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setPage(1); setSearch(''); }}
+            className="bg-green-600 text-white px-3 py-2 rounded-xl font-bold text-sm hover:bg-green-700 transition"
+            title="Show latest products (page 1)"
+          >
+            Latest
+          </button>
+          <Link
+            href="/admin/products/add"
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
@@ -73,7 +108,7 @@ export default function ProductsListPage() {
           placeholder="Search products..."
           className="flex-1 outline-none text-sm"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
       </div>
 
@@ -89,19 +124,19 @@ export default function ProductsListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredProducts.map((p: any) => {
-              console.log(p);
-              // Calculate total stock from variants (supports both array of variants or single object)
+            {filteredProducts.map((p) => {
+               console.log(p);
+               // Calculate total stock from variants (supports both array of variants or single object)
               const stock = Array.isArray(p.variants)
                 ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
                 : (p.variants?.stock ?? 0);
 
-              // normalize image src (supports array or single string)
-              const imgSrc =
-                Array.isArray(p.images) ? p.images[0]?.url ?? "" : p.images ?? "";
+               // normalize image src (supports array or single string)
+               const imgSrc =
+                 Array.isArray(p.images) ? p.images[0]?.url ?? "" : p.images ?? "";
 
-              return (
-                <tr key={p._id} className="hover:bg-gray-50">
+               return (
+                 <tr key={p._id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
@@ -116,7 +151,7 @@ export default function ProductsListPage() {
                   </td>
                   <td className="px-6 py-3 text-gray-600">{p.category}</td>
                   <td className="px-6 py-3 font-mono">
-                    ${(p.price_cents / 100).toFixed(2)}
+                    ₹{(p.price_cents / 100).toFixed(2)}
                   </td>
                   <td className="px-6 py-3">
                     <span
@@ -181,10 +216,58 @@ export default function ProductsListPage() {
                     </button>
                   </td>
                 </tr>
-              );
-            })}
+               );
+             })}
           </tbody>
         </table>
+        {/* Pagination Controls (arrow + input) */}
+        <div className="px-4 py-3 flex items-center justify-between bg-white">
+          <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="p-2 rounded bg-gray-100 disabled:opacity-50"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center border rounded overflow-hidden">
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const n = Math.max(1, Math.min(totalPages, Number(pageInput) || 1));
+                    setPage(n);
+                    setPageInput(String(n));
+                  }
+                }}
+                onBlur={() => {
+                  const n = Math.max(1, Math.min(totalPages, Number(pageInput) || 1));
+                  setPage(n);
+                  setPageInput(String(n));
+                }}
+                className="w-20 text-center px-2 py-1 outline-none"
+                aria-label="Page number"
+              />
+              <div className="px-3 text-sm text-gray-700">/ {totalPages}</div>
+            </div>
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="p-2 rounded bg-gray-100 disabled:opacity-50"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

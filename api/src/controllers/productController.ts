@@ -146,6 +146,7 @@ export const getProducts = async (req: Request, res: Response) => {
           _id: 1,
           name: 1,
           slug: 1,
+          category: 1,
           price_cents: 1,
           price_before_cents: 1,
           brand: 1,

@@ -33,7 +33,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard 
           title="Total Revenue" 
-          value={`$${(stats.revenue / 100).toLocaleString()}`} 
+          value={`₹${(stats.revenue / 100).toLocaleString()}`} 
           trend="+12.5%" 
           isPositive={true}
           icon={DollarSign}
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-bold">${(order.total_cents / 100).toFixed(2)}</td>
+                  <td className="px-6 py-4 font-bold">₹{(order.total_cents / 100).toFixed(2)}</td>
                   <td className="px-6 py-4 text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>

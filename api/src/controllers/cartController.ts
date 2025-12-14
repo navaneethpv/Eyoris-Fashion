@@ -2,82 +2,120 @@ import { Request, Response } from "express";
 import { Cart } from "../models/Cart";
 import { Product } from "../models/Product";
 
-// GET /api/cart?userId=...
+/**
+ * GET /api/cart?userId=...
+ * Always returns populated product including images
+ */
 export const getCart = async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    if (!userId) return res.status(400).json({ message: "User ID required" });
 
-    const cart = await Cart.findOne({ userId }).populate(
-      "items.product",
-      "name price_cents images slug brand"
-    );
+    if (!userId) {
+      return res.status(400).json({ message: "User ID required" });
+    }
 
-    if (!cart) return res.json({ items: [] });
-    res.json(cart);
+    const cart = await Cart.findOne({ userId })
+      .populate({
+        path: "items.product",
+        select: "name brand images price_cents",
+      }) // include images
+      .lean();
+
+    return res.json(cart);
   } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+    console.error("GET CART ERROR:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// POST /api/cart
+/**
+ * POST /api/cart
+ * Add item and return populated cart
+ */
 export const addToCart = async (req: Request, res: Response) => {
   try {
     const { userId, productId, variant, quantity } = req.body;
 
-    // 1. Find or Create Cart
+    if (!userId || !productId || !variant || !quantity) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     let cart = await Cart.findOne({ userId });
     if (!cart) {
       cart = new Cart({ userId, items: [] });
     }
 
-    // 2. Check Product Price (Always fetch fresh price from DB)
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    const product = await Product.findById(productId).lean();
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
-    // 3. Check if item exists in cart
-    const itemIndex = cart.items.findIndex(
+    const index = cart.items.findIndex(
       (item: any) =>
-        item.product.toString() === productId && item.variantSku === variant
+        item.product.toString() === productId &&
+        item.variantSku === variant
     );
 
-    if (itemIndex > -1) {
-      // Update quantity
-      cart.items[itemIndex].quantity += quantity;
+    if (index > -1) {
+      cart.items[index].quantity += quantity;
     } else {
-      // Add new item
+      // images[] may be an array of strings (urls) or objects with a `url` property.
+      // Normalize to a string URL or null.
+      let imageUrl: string | null = null;
+      if (product?.images && product.images.length) {
+        const firstImage = product.images[0] as any;
+        imageUrl = typeof firstImage === "string" ? firstImage : firstImage?.url ?? null;
+      }
+
       cart.items.push({
-        product: productId,
+        product: product._id, // or store snapshot
         variantSku: variant,
         quantity,
-
         price_at_add: product.price_cents,
+        image_at_add: imageUrl, // new field on CartItem
       });
     }
 
     await cart.save();
-    res.json(cart); // Return updated cart
+
+    // 🔥 ALWAYS populate before returning
+    const populatedCart = await Cart.findOne({ userId }).populate(
+      "items.product",
+      "name brand images price_cents slug"
+    );
+
+    res.json(populatedCart);
   } catch (error) {
-    console.error(error);
+    console.error("ADD TO CART ERROR:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
-// DELETE /api/cart
+/**
+ * DELETE /api/cart
+ * Remove item and return populated cart
+ */
 export const removeFromCart = async (req: Request, res: Response) => {
   try {
     const { userId, productId, variant } = req.body;
+
+    if (!userId || !productId || !variant) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
     const cart = await Cart.findOneAndUpdate(
       { userId },
       { $pull: { items: { product: productId, variantSku: variant } } },
       { new: true }
-    );
+    ).populate("items.product", "name brand images price_cents slug");
 
-    if (!cart) return res.status(404).json({ message: "Cart not found" });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
 
     res.json(cart);
   } catch (error) {
+    console.error("REMOVE CART ERROR:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };

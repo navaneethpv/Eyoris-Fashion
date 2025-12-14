@@ -84,6 +84,16 @@ export default function CartPage() {
     );
   }
 
+  // Helper to safely resolve image URL
+  const resolveImageUrl = (product: any) => {
+    const PLACEHOLDER = "https://via.placeholder.com/300x200?text=No+Image";
+    if (!product || !product.images || product.images.length === 0) return PLACEHOLDER;
+
+    const image = product.images[0];
+    if (typeof image === "string") return image;
+    return image.url || PLACEHOLDER;
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -107,17 +117,18 @@ export default function CartPage() {
             <div className="flex-1 space-y-6">
               {cart.items.map((item: any) => (
                 <div
-                  key={`${item.product._id}-₹{item.variantSku}`}
+                  key={`${item.product._id}-${item.variantSku}`}
                   className="flex gap-4 p-4 border rounded-xl"
                 >
                   <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <Image
-                      src={item.product.images[0].url}
-                      alt={item.product.name}
+                      src={resolveImageUrl(item.product)}
+                      alt={item.product?.name ?? "product"}
                       fill
                       className="object-cover"
                     />
                   </div>
+
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
@@ -181,14 +192,14 @@ export default function CartPage() {
                     <span>Total</span>
                     <span>₹{(subtotal / 100).toFixed(2)}</span>
                   </div>
-                </div>
 
-                <Link
-                  href="/checkout"
-                  className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition flex items-center justify-center gap-2 mt-6"
-                >
-                  Checkout <ArrowRight className="w-4 h-4" />
-                </Link>
+                  <Link
+                    href="/checkout"
+                    className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition flex items-center justify-center gap-2 mt-6"
+                  >
+                    Checkout <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

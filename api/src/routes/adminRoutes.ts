@@ -1,10 +1,12 @@
+
 import { Router } from 'express';
-import { getDashboardStats } from '../controllers/orderController';
+import { getDashboardStats, getMonthlySales } from '../controllers/orderController';
 import { User } from '../models/User';
 
 const router = Router();
 
 router.get('/stats', getDashboardStats);
+router.get('/monthly-sales', getMonthlySales);
 
 // Simple User List
 router.get('/users', async (req, res) => {

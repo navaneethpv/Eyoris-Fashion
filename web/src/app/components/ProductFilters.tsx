@@ -49,30 +49,6 @@ export default function ProductFilters({
 
   return (
     <div className="space-y-8">
-      {/* Search */}
-      <div>
-        <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Search</h3>
-        <input
-          type="text"
-          className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
-          placeholder="Search by name, brand, category"
-          defaultValue={searchParams.get('search') || ''}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              const value = (e.target as HTMLInputElement).value.trim();
-              handleFilterChange('search', value);
-            }
-          }}
-        />
-        {searchParams.get('search') && (
-          <button
-            onClick={() => handleFilterChange('search', '')}
-            className="mt-2 text-xs text-red-500 hover:underline"
-          >
-            Clear Search
-          </button>
-        )}
-      </div>
       {/* Sort By */}
       <div>
         <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Sort By</h3>

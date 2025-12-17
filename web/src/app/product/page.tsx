@@ -6,7 +6,8 @@ import Pagination from '../components/Pagination';
 // Interface for Search Parameters coming from the URL
 interface SearchParams {
   page?: string;
-  category?: string;
+  articleType?: string;  // Primary category (e.g., Tshirts, Shirts, Jeans)
+  gender?: string;       // Filter: Men, Women, Kids
   sort?: string;
   minPrice?: string;
   maxPrice?: string;
@@ -19,11 +20,19 @@ interface SearchParams {
 async function getProducts(searchParams: SearchParams) {
   const params = new URLSearchParams();
   if (searchParams.page) params.set('page', searchParams.page);
-  if (searchParams.category) params.set('category', searchParams.category);
+  // Set limit to 100 products per page (or more if gender filter is active to ensure results after client-side filtering)
+  const baseLimit = 100;
+  // If gender filter is active, fetch more products to ensure we have results after client-side filtering
+  const limit = searchParams.gender ? Math.min(baseLimit * 3, 500) : baseLimit;
+  params.set('limit', String(limit));
+  // articleType maps to 'category' in backend (articleType is stored as category in DB)
+  if (searchParams.articleType) params.set('category', searchParams.articleType);
+  // Note: Backend doesn't support gender filter yet, so we'll filter client-side
+  // Fetching more products when gender filter is active ensures we have results after filtering
   if (searchParams.sort) params.set('sort', searchParams.sort);
   if (searchParams.minPrice) params.set('minPrice', searchParams.minPrice);
   if (searchParams.maxPrice) params.set('maxPrice', searchParams.maxPrice);
-  // Brand, size, color, and search are applied client-side for precise Myntra-like behavior
+  // Brand, size, color, gender, and search are applied client-side for precise Myntra-like behavior
 
   try {
     const res = await fetch(`http://localhost:4000/api/products?${params.toString()}`, {
@@ -40,8 +49,9 @@ async function getProducts(searchParams: SearchParams) {
 
 type ProductForContext = {
   name?: string | null;
-  category?: string | null;
+  category?: string | null;  // This contains articleType (e.g., Tshirts, Shirts)
   brand?: string | null;
+  gender?: string | null;
   masterCategory?: string | null;
   subCategory?: string | null;
   dominantColor?: { name?: string | null } | null;
@@ -107,18 +117,30 @@ function applyClientFilters(
 ): ProductForContext[] {
   let filtered = [...products];
 
-  const category = params.category?.trim();
+  const articleType = params.articleType?.trim();
+  const gender = params.gender?.trim();
   const brand = params.brand?.trim().toLowerCase();
   const color = params.color?.trim().toLowerCase();
   const size = params.size?.trim().toLowerCase();
   const search = params.search?.trim().toLowerCase();
 
-  // 1. Category (backend also applies this, but keep it strict here)
-  if (category) {
-    filtered = filtered.filter((p) => p.category?.trim() === category);
+  // 1. ArticleType (stored as 'category' in DB, backend also applies this, but keep it strict here)
+  if (articleType) {
+    filtered = filtered.filter((p) => p.category?.trim() === articleType);
   }
 
-  // 2. Search across name / brand / category / subCategory / dominantColor.name
+  // 2. Gender filter (Men, Women, Kids) - case-insensitive exact match
+  // Database values are normalized to "Men", "Women", "Kids"
+  if (gender) {
+    const genderNormalized = gender.trim();
+    filtered = filtered.filter((p) => {
+      const pGender = p.gender?.trim();
+      // Case-insensitive match (database has "Men", "Women", "Kids")
+      return pGender && pGender.toLowerCase() === genderNormalized.toLowerCase();
+    });
+  }
+
+  // 3. Search across name / brand / category (articleType) / subCategory / dominantColor.name
   if (search) {
     filtered = filtered.filter((p) => {
       const fields: Array<string | null | undefined> = [
@@ -134,14 +156,14 @@ function applyClientFilters(
     });
   }
 
-  // 3. Brand
+  // 4. Brand
   if (brand) {
     filtered = filtered.filter(
       (p) => p.brand && p.brand.toLowerCase() === brand
     );
   }
 
-  // 4. Color
+  // 5. Color
   if (color) {
     filtered = filtered.filter(
       (p) =>
@@ -150,7 +172,7 @@ function applyClientFilters(
     );
   }
 
-  // 5. Size (exact size match inside variants)
+  // 6. Size (exact size match inside variants)
   if (size) {
     filtered = filtered.filter((p) =>
       (p.variants || []).some((v) =>
@@ -172,13 +194,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const sizeFilterMode = inferSizeFilterMode(filteredProducts);
 
   // Derive available filter facets strictly from the current result set
-  const categories = Array.from(
-    new Set(
-      filteredProducts
-        .map((p) => p.category?.trim())
-        .filter((v): v is string => !!v)
-    )
-  ).sort();
+  // Note: We don't show articleType categories in filters when one is already selected
+  // Gender options are always: Men, Women, Kids
+  const genders = ['Men', 'Women', 'Kids'];
 
   const brands = Array.from(
     new Set(
@@ -200,8 +218,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   let pageTitle = 'All Products';
   if (resolvedSearchParams.search) {
       pageTitle = `Results for "${resolvedSearchParams.search}"`;
-  } else if (resolvedSearchParams.category) {
-      pageTitle = resolvedSearchParams.category;
+  } else if (resolvedSearchParams.articleType) {
+      pageTitle = resolvedSearchParams.articleType;
+      if (resolvedSearchParams.gender) {
+          pageTitle = `${resolvedSearchParams.gender}'s ${resolvedSearchParams.articleType}`;
+      }
   }
   // 👆 END LOGIC 👆
 
@@ -219,9 +240,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               </div>
               <ProductFilters
                 sizeFilterMode={sizeFilterMode}
-                categories={categories}
+                genders={genders}
                 brands={brands}
                 colors={colors}
+                activeArticleType={resolvedSearchParams.articleType}
               />
             </div>
           </aside>
@@ -232,8 +254,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 {pageTitle} {/* Use the dynamically determined title */}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {/* Show total results if a search or filter is active */}
-                Showing {filteredProducts.length} {meta.total > 0 && `of ${meta.total}`} results
+                {/* Show filtered results count - total from backend may not reflect client-side filters */}
+                {filteredProducts.length > 0 
+                  ? `Showing ${filteredProducts.length} ${filteredProducts.length < products.length ? 'filtered ' : ''}results`
+                  : 'No products found matching your filters'
+                }
               </p>
             </div>
 

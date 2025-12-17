@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Camera } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface SearchInputProps {
   onCameraClick: () => void;
@@ -17,6 +16,10 @@ interface ProductForSuggestions {
   images?: string[] | { url?: string }[] | string;
 }
 
+type SuggestionItem = 
+  | { type: 'category'; value: string; label: string }
+  | { type: 'brand'; value: string; label: string };
+
 function useDebouncedValue<T>(value: T, delay = 300) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -29,7 +32,7 @@ function useDebouncedValue<T>(value: T, delay = 300) {
 export default function SearchInput({ onCameraClick }: SearchInputProps) {
   const [query, setQuery] = useState('');
   const [allProducts, setAllProducts] = useState<ProductForSuggestions[]>([]);
-  const [suggestions, setSuggestions] = useState<ProductForSuggestions[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebouncedValue(query);
 
@@ -88,18 +91,6 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
     }
   }, [allProducts.length, loading]);
 
-  // Helper to extract image URL from various formats
-  const getImageUrl = (images: ProductForSuggestions['images']): string => {
-    if (!images) return '/placeholder.png';
-    if (typeof images === 'string') return images || '/placeholder.png';
-    if (Array.isArray(images) && images.length > 0) {
-      const first = images[0];
-      if (typeof first === 'string') return first || '/placeholder.png';
-      if (typeof first === 'object' && first?.url) return first.url;
-    }
-    return '/placeholder.png';
-  };
-
   // Helper to highlight matching text
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
@@ -115,7 +106,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
     );
   };
 
-  // Build suggestions client-side from cached products
+  // Build suggestions client-side from cached products (Flipkart-style: only categories/brands, no products)
   useEffect(() => {
     const raw = query.trim();
     const q = debouncedQuery.trim().toLowerCase();
@@ -131,17 +122,48 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       return;
     }
 
-    const max = 8;
-    const next = allProducts
-      .filter((p) => {
-        const nameMatch = p.name?.toLowerCase().includes(q);
-        const categoryMatch = p.category?.toLowerCase().includes(q);
-        const brandMatch = p.brand?.toLowerCase().includes(q);
-        return nameMatch || categoryMatch || brandMatch;
-      })
-      .slice(0, max);
+    const suggestionsList: SuggestionItem[] = [];
 
-    setSuggestions(next);
+    // 1. Extract unique categories (articleTypes) that match the query
+    const uniqueCategories = Array.from(
+      new Set(
+        allProducts
+          .map((p) => p.category?.trim())
+          .filter((v): v is string => !!v && v.toLowerCase().includes(q))
+      )
+    ).sort();
+
+    // Add category suggestions (max 5)
+    uniqueCategories.slice(0, 5).forEach((category) => {
+      suggestionsList.push({
+        type: 'category',
+        value: category,
+        label: category,
+      });
+    });
+
+    // 2. Extract unique brands that match the query (if categories are less than 5)
+    if (suggestionsList.length < 8) {
+      const uniqueBrands = Array.from(
+        new Set(
+          allProducts
+            .map((p) => p.brand?.trim())
+            .filter((v): v is string => !!v && v.toLowerCase().includes(q))
+        )
+      ).sort();
+
+      // Add brand suggestions (fill up to 8 total)
+      const remainingSlots = 8 - suggestionsList.length;
+      uniqueBrands.slice(0, remainingSlots).forEach((brand) => {
+        suggestionsList.push({
+          type: 'brand',
+          value: brand,
+          label: brand,
+        });
+      });
+    }
+
+    setSuggestions(suggestionsList);
   }, [debouncedQuery, query, allProducts]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -185,48 +207,47 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
           ) : (
             <div className="divide-y divide-gray-100">
               {suggestions.map((s) => {
-                const imageUrl = getImageUrl(s.images);
-                const categoryContext = s.category
-                  ? `in ${s.category}`
-                  : s.brand
-                  ? `by ${s.brand}`
-                  : '';
-                // Navigate to shop page with category filter, not product detail page
-                const shopUrl = s.category
-                  ? `/product?category=${encodeURIComponent(s.category)}`
-                  : s.brand
-                  ? `/product?brand=${encodeURIComponent(s.brand)}`
-                  : `/product?search=${encodeURIComponent(s.name)}`;
-                return (
-                  <Link
-                    key={s.slug}
-                    href={shopUrl}
-                    onClick={() => setSuggestions([])}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-gray-100 shrink-0">
-                      <Image
-                        src={imageUrl}
-                        alt={s.name}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/placeholder.png';
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {highlightText(s.name, debouncedQuery.trim())}
+                if (s.type === 'category') {
+                  // Category suggestion (articleType)
+                  return (
+                    <Link
+                      key={`category-${s.value}`}
+                      href={`/product?articleType=${encodeURIComponent(s.value)}`}
+                      onClick={() => setSuggestions([])}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-primary/20 to-accent/20 shrink-0 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-primary">CAT</span>
                       </div>
-                      {categoryContext && (
-                        <div className="text-xs text-gray-500 mt-0.5">{categoryContext}</div>
-                      )}
-                    </div>
-                  </Link>
-                );
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900">
+                          {highlightText(s.label, debouncedQuery.trim())}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">Browse all {s.label}</div>
+                      </div>
+                    </Link>
+                  );
+                } else {
+                  // Brand suggestion
+                  return (
+                    <Link
+                      key={`brand-${s.value}`}
+                      href={`/product?brand=${encodeURIComponent(s.value)}`}
+                      onClick={() => setSuggestions([])}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-gray-200 to-gray-300 shrink-0 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-gray-700">BR</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900">
+                          {highlightText(s.label, debouncedQuery.trim())}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">Brand</div>
+                      </div>
+                    </Link>
+                  );
+                }
               })}
               {query.trim() && (
                 <button

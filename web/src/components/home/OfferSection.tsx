@@ -60,8 +60,8 @@ function buildQueryString(filters: OfferFilters): string {
   }
 
   if (filters.category && filters.category.length > 0) {
-    // Use first category for now – backend currently expects a single category string
-    params.set("category", filters.category[0]);
+    // Use articleType (category in DB = articleType like Tshirts, Shirts)
+    params.set("articleType", filters.category[0]);
   }
 
   if (typeof filters.maxPrice === "number") {

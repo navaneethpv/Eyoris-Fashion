@@ -12,16 +12,18 @@ export type SizeFilterMode = 'apparel' | 'footwear' | 'none';
 
 interface ProductFiltersProps {
   sizeFilterMode?: SizeFilterMode;
-  categories: string[];
+  genders: string[];
   brands: string[];
   colors: string[];
+  activeArticleType?: string;
 }
 
 export default function ProductFilters({
   sizeFilterMode = 'none',
-  categories,
+  genders,
   brands,
   colors,
+  activeArticleType,
 }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,20 +87,20 @@ export default function ProductFilters({
         </select>
       </div>
 
-      {/* Categories (derived from current products) */}
-      {categories.length > 0 && (
+      {/* Gender Filter */}
+      {genders.length > 0 && (
         <div>
-          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Categories</h3>
+          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Gender</h3>
           <div className="space-y-2">
-            {categories.map((cat) => {
-              const isActive = searchParams.get('category') === cat;
+            {genders.map((gender) => {
+              const isActive = searchParams.get('gender') === gender;
               return (
-                <label key={cat} className="flex items-center gap-2 cursor-pointer group">
+                <label key={gender} className="flex items-center gap-2 cursor-pointer group">
                   <input
                     type="radio"
-                    name="category"
+                    name="gender"
                     checked={isActive}
-                    onChange={() => handleFilterChange('category', cat)}
+                    onChange={() => handleFilterChange('gender', isActive ? '' : gender)}
                     className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
                   />
                   <span
@@ -106,18 +108,18 @@ export default function ProductFilters({
                       isActive ? 'font-bold text-gray-900' : 'text-gray-600'
                     }`}
                   >
-                    {cat}
+                    {gender}
                   </span>
                 </label>
               );
             })}
             {/* Clear Filter */}
-            {searchParams.get('category') && (
+            {searchParams.get('gender') && (
               <button
-                onClick={() => handleFilterChange('category', '')}
+                onClick={() => handleFilterChange('gender', '')}
                 className="text-xs text-red-500 hover:underline mt-2"
               >
-                Clear Category
+                Clear Gender
               </button>
             )}
           </div>

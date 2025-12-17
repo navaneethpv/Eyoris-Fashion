@@ -149,11 +149,15 @@ export const getProducts = async (req: Request, res: Response) => {
           name: 1,
           slug: 1,
           category: 1,
+          gender: 1,
+          subCategory: 1,
+          masterCategory: 1,
           price_cents: 1,
           price_before_cents: 1,
           brand: 1,
           rating: 1,
           images: "$images",
+          dominantColor: 1,
           variants: {
             $map: {
               input: "$variants",

@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import ProductFilters, { SizeFilterMode } from '../components/ProductFilters';
@@ -17,7 +21,12 @@ interface SearchParams {
   color?: string;
 }
 
-async function getProducts(searchParams: SearchParams) {
+type ProductsApiResponse = {
+  data: ProductForContext[];
+  meta: ApiMeta;
+};
+
+async function getProducts(searchParams: SearchParams): Promise<ProductsApiResponse> {
   const params = new URLSearchParams();
   if (searchParams.page) params.set('page', searchParams.page);
   // Set limit to 100 products per page (or more if gender filter is active to ensure results after client-side filtering)
@@ -48,6 +57,8 @@ async function getProducts(searchParams: SearchParams) {
 }
 
 type ProductForContext = {
+  _id?: string;
+  slug?: string | null;
   name?: string | null;
   category?: string | null;  // This contains articleType (e.g., Tshirts, Shirts)
   brand?: string | null;
@@ -56,6 +67,12 @@ type ProductForContext = {
   subCategory?: string | null;
   dominantColor?: { name?: string | null } | null;
   variants?: { size?: string | number | null }[] | null;
+  price_cents?: number | null;
+  price_before_cents?: number | null;
+  images?: (string | { url?: string | null })[] | null;
+  offer_tag?: string | null;
+  rating?: number | null;
+  createdAt?: string | null;
 };
 
 function inferSizeFilterMode(products: ProductForContext[]): SizeFilterMode {
@@ -126,7 +143,16 @@ function applyClientFilters(
 
   // 1. ArticleType (stored as 'category' in DB, backend also applies this, but keep it strict here)
   if (articleType) {
-    filtered = filtered.filter((p) => p.category?.trim() === articleType);
+    // Special-case: Footwear behaves like a master category in the UI,
+    // while products may have more specific categories (e.g. "Casual Shoes").
+    // To avoid hiding all shoes, map "Footwear" to masterCategory.
+    if (articleType.toLowerCase() === 'footwear') {
+      filtered = filtered.filter(
+        (p) => p.masterCategory?.trim().toLowerCase() === 'footwear'
+      );
+    } else {
+      filtered = filtered.filter((p) => p.category?.trim() === articleType);
+    }
   }
 
   // 2. Gender filter (Men, Women, Kids) - case-insensitive exact match
@@ -184,13 +210,101 @@ function applyClientFilters(
   return filtered;
 }
 
-// Next.js Server Component
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const resolvedSearchParams = await searchParams; // Await the promise
-  const { data: products, meta } = await getProducts(resolvedSearchParams);
+type ApiMeta = {
+  page: number;
+  pages: number;
+  total: number;
+};
 
-  const typedProducts = (products as ProductForContext[]) || [];
-  const filteredProducts = applyClientFilters(typedProducts, resolvedSearchParams);
+type SortKey = 'price_asc' | 'price_desc' | 'new' | 'rating' | undefined;
+
+export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [products, setProducts] = useState<ProductForContext[]>([]);
+  const [meta, setMeta] = useState<ApiMeta>({ page: 1, pages: 1, total: 0 });
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const resolvedSearchParams: SearchParams = useMemo(
+    () => ({
+      page: searchParams.get('page') || undefined,
+      articleType: searchParams.get('articleType') || undefined,
+      gender: searchParams.get('gender') || undefined,
+      sort: searchParams.get('sort') || undefined,
+      minPrice: searchParams.get('minPrice') || undefined,
+      maxPrice: searchParams.get('maxPrice') || undefined,
+      search: searchParams.get('search') || undefined,
+      brand: searchParams.get('brand') || undefined,
+      size: searchParams.get('size') || undefined,
+      color: searchParams.get('color') || undefined,
+    }),
+    [searchParams]
+  );
+
+  const sortKey = (resolvedSearchParams.sort as SortKey) || undefined;
+
+  // Fetch products whenever URL search params that affect backend query change
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchData() {
+      setLoading(true);
+      const { data, meta } = await getProducts(resolvedSearchParams);
+      if (!isCancelled) {
+        setProducts((data as ProductForContext[]) || []);
+        setMeta(meta as ApiMeta);
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [resolvedSearchParams]);
+
+  const filteredProducts = useMemo(
+    () => applyClientFilters(products, resolvedSearchParams),
+    [products, resolvedSearchParams]
+  );
+
+  const sortedProducts = useMemo(() => {
+    const list = [...filteredProducts];
+
+    if (!sortKey) return list;
+
+    if (sortKey === 'price_asc') {
+      return list.sort(
+        (a, b) => (a.price_cents ?? 0) - (b.price_cents ?? 0)
+      );
+    }
+
+    if (sortKey === 'price_desc') {
+      return list.sort(
+        (a, b) => (b.price_cents ?? 0) - (a.price_cents ?? 0)
+      );
+    }
+
+    if (sortKey === 'new') {
+      return list.sort((a, b) => {
+        const da = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const db = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return db - da;
+      });
+    }
+
+    if (sortKey === 'rating') {
+      return list.sort(
+        (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
+      );
+    }
+
+    return list;
+  }, [filteredProducts, sortKey]);
+
   const sizeFilterMode = inferSizeFilterMode(filteredProducts);
 
   // Derive available filter facets strictly from the current result set
@@ -198,45 +312,96 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   // Gender options are always: Men, Women, Kids
   const genders = ['Men', 'Women', 'Kids'];
 
-  const brands = Array.from(
-    new Set(
-      filteredProducts
-        .map((p) => p.brand?.trim())
-        .filter((v): v is string => !!v)
-    )
-  ).sort();
+  const brands = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          filteredProducts
+            .map((p) => p.brand?.trim())
+            .filter((v): v is string => !!v)
+        )
+      ).sort(),
+    [filteredProducts]
+  );
 
-  const colors = Array.from(
-    new Set(
-      filteredProducts
-        .map((p) => p.dominantColor?.name?.trim())
-        .filter((v): v is string => !!v)
-    )
-  ).sort();
+  const colors = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          filteredProducts
+            .map((p) => p.dominantColor?.name?.trim())
+            .filter((v): v is string => !!v)
+        )
+      ).sort(),
+    [filteredProducts]
+  );
 
   // 👇 LOGIC FOR PAGE TITLE & HEADER 👇
   let pageTitle = 'All Products';
   if (resolvedSearchParams.search) {
-      pageTitle = `Results for "${resolvedSearchParams.search}"`;
+    pageTitle = `Results for "${resolvedSearchParams.search}"`;
   } else if (resolvedSearchParams.articleType) {
-      pageTitle = resolvedSearchParams.articleType;
-      if (resolvedSearchParams.gender) {
-          pageTitle = `${resolvedSearchParams.gender}'s ${resolvedSearchParams.articleType}`;
-      }
+    pageTitle = resolvedSearchParams.articleType;
+    if (resolvedSearchParams.gender) {
+      pageTitle = `${resolvedSearchParams.gender}'s ${resolvedSearchParams.articleType}`;
+    }
   }
   // 👆 END LOGIC 👆
+
+  const hasActiveFiltersOrSort =
+    !!resolvedSearchParams.gender ||
+    !!resolvedSearchParams.brand ||
+    !!resolvedSearchParams.color ||
+    !!resolvedSearchParams.size ||
+    !!resolvedSearchParams.minPrice ||
+    !!resolvedSearchParams.maxPrice ||
+    !!resolvedSearchParams.search ||
+    !!resolvedSearchParams.sort;
+
+  const handleSortChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!value) {
+      params.delete('sort');
+    } else {
+      params.set('sort', value);
+    }
+    router.push(
+      params.toString() ? `${pathname}?${params.toString()}` : pathname,
+      { scroll: false }
+    );
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    ['gender', 'brand', 'color', 'size', 'minPrice', 'maxPrice', 'search', 'sort'].forEach(
+      (key) => params.delete(key)
+    );
+    router.push(
+      params.toString() ? `${pathname}?${params.toString()}` : pathname,
+      { scroll: false }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-white text-gray-800">
       <Navbar />
-      
+
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
           
           <aside className="w-full md:w-64 flex-shrink-0">
             <div className="sticky top-24">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold">Filters</h2>
+                {hasActiveFiltersOrSort && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-xs font-semibold text-gray-600 hover:text-primary underline-offset-2 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
               <ProductFilters
                 sizeFilterMode={sizeFilterMode}
@@ -253,30 +418,66 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <h1 className="text-2xl font-bold">
                 {pageTitle} {/* Use the dynamically determined title */}
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                {/* Show filtered results count - total from backend may not reflect client-side filters */}
-                {filteredProducts.length > 0 
-                  ? `Showing ${filteredProducts.length} ${filteredProducts.length < products.length ? 'filtered ' : ''}results`
-                  : 'No products found matching your filters'
-                }
-              </p>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-500">
+                  {loading
+                    ? 'Loading products...'
+                    : sortedProducts.length > 0
+                    ? `Showing ${sortedProducts.length} product${
+                        sortedProducts.length === 1 ? '' : 's'
+                      }`
+                    : 'No products found matching your filters'}
+                </p>
+
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">
+                    Sort by
+                  </span>
+                  <select
+                    className="border border-gray-200 text-sm rounded-full px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    value={sortKey || ''}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                  >
+                    <option value="">Recommended</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="new">New Arrivals</option>
+                    <option value="rating">Customer Rating</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {Array.from({ length: 8 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col rounded-xl border border-gray-100 bg-white p-3 shadow-sm animate-pulse"
+                  >
+                    <div className="mb-3 h-40 w-full rounded-lg bg-gray-200" />
+                    <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
+                    <div className="mb-2 h-3 w-1/2 rounded bg-gray-100" />
+                    <div className="mt-3 h-4 w-1/3 rounded bg-gray-200" />
+                  </div>
+                ))}
+              </div>
+            ) : sortedProducts.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {filteredProducts.map((p: any) => (
+                  {sortedProducts.map((p) => (
                     <ProductCard
                       key={p._id}
                       product={{
                         _id: p._id,
-                        slug: p.slug,
-                        name: p.name,
-                        brand: p.brand,
-                        price_cents: p.price_cents,
-                        price_before_cents: p.price_before_cents,
-                        images: p.images,
-                        offer_tag: p.offer_tag
+                        slug: (p.slug as string) || '',
+                        name: (p.name as string) || '',
+                        brand: (p.brand as string) || '',
+                        price_cents: p.price_cents ?? 0,
+                        price_before_cents: p.price_before_cents ?? p.price_cents ?? 0,
+                        images: p.images ?? [],
+                        offer_tag: p.offer_tag ?? undefined,
                       }}
                     />
                   ))}
@@ -285,8 +486,19 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               </>
             ) : (
               <div className="text-center py-20 bg-gray-50 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-900">No products found</h3>
-                <p className="text-gray-500">Try adjusting your filters, or check your spelling if you searched.</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  No products found
+                </h3>
+                <p className="mt-2 text-gray-500">
+                  We couldn&apos;t find anything that matches your current filters.
+                </p>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="mt-6 inline-flex items-center justify-center rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+                >
+                  Clear filters and show all
+                </button>
               </div>
             )}
           </div>

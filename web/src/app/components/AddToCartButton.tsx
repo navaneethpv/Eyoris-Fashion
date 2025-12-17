@@ -87,12 +87,13 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
           <button 
             // Mock Size Guide Modal function call
             onClick={() => alert("Showing Size Guide Modal")}
-            className="text-xs text-primary font-medium hover:underline flex items-center"
+            className="text-xs font-medium hover:underline flex items-center"
+            style={{ color: 'rgba(13, 13, 13, 1)' }}
           >
             <Ruler className="w-3 h-3 mr-1" /> Size Guide
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="flex flex-wrap gap-3">
           {variants.map((v: Variant, i: number) => (
             <button
               key={i}

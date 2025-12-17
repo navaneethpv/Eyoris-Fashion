@@ -12,7 +12,9 @@ interface SearchInputProps {
 interface ProductForSuggestions {
   name: string;
   slug: string;
-  images?: string[] | { url?: string }[];
+  category?: string;
+  brand?: string;
+  images?: string[] | { url?: string }[] | string;
 }
 
 function useDebouncedValue<T>(value: T, delay = 300) {
@@ -67,16 +69,51 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       const res = await fetch('http://localhost:4000/api/products?limit=200');
       if (!res.ok) return;
       const data = await res.json();
-      const list: ProductForSuggestions[] = (data.data || []).map((p: ProductForSuggestions) => ({
-        name: p.name,
-        slug: p.slug,
-        images: p.images,
+      const list: ProductForSuggestions[] = (data.data || []).map((p: {
+        name?: string;
+        slug?: string;
+        category?: string;
+        brand?: string;
+        images?: string[] | { url?: string }[] | string;
+      }) => ({
+        name: p.name || '',
+        slug: p.slug || '',
+        category: p.category || '',
+        brand: p.brand || '',
+        images: p.images || [],
       }));
       setAllProducts(list);
     } finally {
       setLoading(false);
     }
   }, [allProducts.length, loading]);
+
+  // Helper to extract image URL from various formats
+  const getImageUrl = (images: ProductForSuggestions['images']): string => {
+    if (!images) return '/placeholder.png';
+    if (typeof images === 'string') return images || '/placeholder.png';
+    if (Array.isArray(images) && images.length > 0) {
+      const first = images[0];
+      if (typeof first === 'string') return first || '/placeholder.png';
+      if (typeof first === 'object' && first?.url) return first.url;
+    }
+    return '/placeholder.png';
+  };
+
+  // Helper to highlight matching text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 font-semibold">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
   // Build suggestions client-side from cached products
   useEffect(() => {
@@ -96,7 +133,12 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
 
     const max = 8;
     const next = allProducts
-      .filter((p) => p.name.toLowerCase().includes(q))
+      .filter((p) => {
+        const nameMatch = p.name?.toLowerCase().includes(q);
+        const categoryMatch = p.category?.toLowerCase().includes(q);
+        const brandMatch = p.brand?.toLowerCase().includes(q);
+        return nameMatch || categoryMatch || brandMatch;
+      })
       .slice(0, max);
 
     setSuggestions(next);
@@ -142,31 +184,50 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
             <div className="p-3 text-xs text-gray-500">Loading suggestions…</div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {suggestions.map((s) => (
-                <Link
-                  key={s.slug}
-                  href={`/products/${s.slug}`}
-                  onClick={() => setSuggestions([])}
-                  className="flex items-center px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
-                >
-                  <div className="relative h-12 w-12 rounded-md overflow-hidden bg-gray-100 shrink-0 mr-3">
-                    <Image
-                      src={
-                        Array.isArray(s.images) && s.images[0]
-                          ? (typeof s.images[0] === 'string'
-                              ? s.images[0]
-                              : (s.images[0] as { url?: string }).url || '/placeholder.png')
-                          : '/placeholder.png'
-                      }
-                      alt={s.name}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <span className="truncate text-gray-900">{s.name}</span>
-                </Link>
-              ))}
+              {suggestions.map((s) => {
+                const imageUrl = getImageUrl(s.images);
+                const categoryContext = s.category
+                  ? `in ${s.category}`
+                  : s.brand
+                  ? `by ${s.brand}`
+                  : '';
+                // Navigate to shop page with category filter, not product detail page
+                const shopUrl = s.category
+                  ? `/product?category=${encodeURIComponent(s.category)}`
+                  : s.brand
+                  ? `/product?brand=${encodeURIComponent(s.brand)}`
+                  : `/product?search=${encodeURIComponent(s.name)}`;
+                return (
+                  <Link
+                    key={s.slug}
+                    href={shopUrl}
+                    onClick={() => setSuggestions([])}
+                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-gray-100 shrink-0">
+                      <Image
+                        src={imageUrl}
+                        alt={s.name}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder.png';
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {highlightText(s.name, debouncedQuery.trim())}
+                      </div>
+                      {categoryContext && (
+                        <div className="text-xs text-gray-500 mt-0.5">{categoryContext}</div>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
               {query.trim() && (
                 <button
                   type="button"

@@ -71,7 +71,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       setLoading(true);
       const res = await fetch('http://localhost:4000/api/products?limit=200');
       if (!res.ok) return;
-      const data = await res.json();
+        const data = await res.json();
       const list: ProductForSuggestions[] = (data.data || []).map((p: {
         name?: string;
         slug?: string;
@@ -210,32 +210,32 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
                 if (s.type === 'category') {
                   // Category suggestion (articleType)
                   return (
-                    <Link
+                <Link
                       key={`category-${s.value}`}
                       href={`/product?articleType=${encodeURIComponent(s.value)}`}
                       onClick={() => setSuggestions([])}
                       className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                    >
+                >
                       <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-primary/20 to-accent/20 shrink-0 flex items-center justify-center">
                         <span className="text-[10px] font-bold text-primary">CAT</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
+                  </div>
+                  <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-900">
                           {highlightText(s.label, debouncedQuery.trim())}
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">Browse all {s.label}</div>
-                      </div>
-                    </Link>
+                  </div>
+                </Link>
                   );
                 } else {
                   // Brand suggestion
                   return (
-                    <Link
+              <Link
                       key={`brand-${s.value}`}
                       href={`/product?brand=${encodeURIComponent(s.value)}`}
                       onClick={() => setSuggestions([])}
                       className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                    >
+              >
                       <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-gray-200 to-gray-300 shrink-0 flex items-center justify-center">
                         <span className="text-[10px] font-bold text-gray-700">BR</span>
                       </div>
@@ -245,7 +245,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">Brand</div>
                       </div>
-                    </Link>
+              </Link>
                   );
                 }
               })}

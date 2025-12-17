@@ -53,7 +53,7 @@ export default async function Home() {
           <div className="absolute inset-0 bg-linear-to-r from-violet-100 via-violet-100/80 to-transparent z-0 pointer-events-none" />
         </div>
       </section>
-      
+
       {/* Curated Offer / Campaign Section */}
       <OfferSection />
 

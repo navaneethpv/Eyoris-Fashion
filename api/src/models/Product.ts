@@ -70,6 +70,11 @@ const ProductSchema = new Schema<IProduct>(
       style_tags: { type: [String] },
       material_tags: { type: [String] },
     },
+
+    variants: [{ type: Schema.Types.Mixed }],
+    rating: { type: Number },
+    reviewsCount: { type: Number, default: 0 },
+    isPublished: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

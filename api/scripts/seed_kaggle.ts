@@ -14,7 +14,7 @@ dotenv.config();
 
 const DATASET_FILE = path.join(__dirname, "..", "dataset", "styles.csv");
 const IMAGES_FOLDER = path.join(__dirname, "..", "dataset", "images");
-const MAX_PER_CATEGORY = 300; // Your setting to top-up categories
+const MAX_PER_CATEGORY = 50; // Your setting to top-up categories
 
 const BATCH_SIZE = 10;
 let DISABLE_GEMINI_FOR_INGESTION = false; // Set to `false` to enable AI
@@ -220,7 +220,8 @@ async function processRow(
 
     const priceInRupees = Math.floor(199 + Math.random() * 801);
 
-
+    const variants = generateRandomVariants(id, category, row.baseColour);
+    const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
     const productDocument = {
       name: displayName,
@@ -236,7 +237,8 @@ async function processRow(
       price_cents: priceInRupees * 100,
       price_before_cents: Math.round(priceInRupees * 1.35) * 100,
       images: [imageUrl],
-      variants: generateRandomVariants(id, category, row.baseColour),
+      variants: variants,
+      stock: totalStock,
       dominantColor: dominantColorData,
       aiTags: aiTagsData,
       rating: parseFloat((Math.random() * (5 - 3.8) + 3.8).toFixed(1)),

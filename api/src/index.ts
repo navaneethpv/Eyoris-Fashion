@@ -19,8 +19,6 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-connectDB();
-
 // Mount Routes
 app.use('/api/products', productRoutes);
 app.use('/api/ai', aiRoutes);
@@ -33,6 +31,17 @@ app.get('/', (req, res) => {
   res.send('Eyoris Fashion API is running...');
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// Start server after DB connection
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

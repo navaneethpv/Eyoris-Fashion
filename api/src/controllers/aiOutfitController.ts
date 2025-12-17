@@ -228,28 +228,55 @@ async function findMatchingProduct(
   userGender: string | null,
   usedProductIds: Set<string>,
   baseProductColor: string | null | undefined,
+  baseProductGender: string | null | undefined,
 ) {
   const role = (suggested.role || "").toLowerCase();
   const colorSuggestion = suggested.colorSuggestion as string | undefined;
 
   const allowedSubCategories = ROLE_TO_SUBCATEGORY[role] || [];
-  if (allowedSubCategories.length === 0) return null;
+  if (allowedSubCategories.length === 0) {
+    console.log(`[findMatchingProduct] No allowed subcategories for role: ${role}`);
+    return null;
+  }
 
   let query: any = {
     isPublished: true,
+    isFashionItem: true, // Ensure we only get fashion items
     _id: { $ne: baseProductId },
-    subCategory: { $in: allowedSubCategories },
+    $or: [
+      { subCategory: { $in: allowedSubCategories } },
+      { category: { $in: allowedSubCategories } },
+      { masterCategory: { $in: allowedSubCategories } },
+    ],
   };
+
+  // Match gender from base product if available (preferred)
+  // Use $in to allow multiple gender values or null if gender field is flexible
+  if (baseProductGender) {
+    query.gender = baseProductGender;
+  } else if (userGender) {
+    // Fallback to user gender preference if base product doesn't have gender
+    const genderMap: Record<string, string> = {
+      male: "Men",
+      female: "Women",
+    };
+    const mappedGender = genderMap[userGender];
+    if (mappedGender) {
+      query.gender = mappedGender;
+    }
+  }
+  // If no gender specified, don't filter by gender (allow unisex/neutral items)
 
   if (colorSuggestion) {
     query['variants.color'] = new RegExp(colorSuggestion, 'i');
   }
 
-  // Apply gender filter based on userPreferences.gender
+  // Apply additional gender filter based on userPreferences.gender (heuristic fallback)
   query = applyGenderFilterToQuery(query, userGender);
 
   // 1) Try with color + gender + subCategory
   let candidates = await Product.find(query).lean();
+  console.log(`[findMatchingProduct] Found ${candidates.length} candidates for role ${role} with initial query`);
 
   // Remove already used product IDs (avoid same dress/shoe within same outfit)
   candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
@@ -285,6 +312,7 @@ async function findMatchingProduct(
   if (!candidates.length) {
     delete query['variants.color'];
     candidates = await Product.find(query).lean();
+    console.log(`[findMatchingProduct] Found ${candidates.length} candidates after dropping color filter`);
     candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
     
     // Re-apply color compatibility if base color exists (second attempt)
@@ -312,7 +340,31 @@ async function findMatchingProduct(
     }
   }
 
+  // 4) Final fallback: If still no candidates and gender filter is active, try without gender filter
+  if (!candidates.length && (baseProductGender || userGender)) {
+    console.log(`[findMatchingProduct] Trying without gender filter as final fallback`);
+    const fallbackQuery: any = {
+      isPublished: true,
+      isFashionItem: true,
+      _id: { $ne: baseProductId },
+      $or: [
+        { subCategory: { $in: allowedSubCategories } },
+        { category: { $in: allowedSubCategories } },
+        { masterCategory: { $in: allowedSubCategories } },
+      ],
+    };
+    
+    candidates = await Product.find(fallbackQuery).lean();
+    candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
+    console.log(`[findMatchingProduct] Found ${candidates.length} candidates without gender filter`);
+  }
+
   const picked = pickRandom(candidates);
+  if (picked) {
+    console.log(`[findMatchingProduct] Selected: ${picked.name} (${picked.subCategory || picked.category}) for role ${role}`);
+  } else {
+    console.log(`[findMatchingProduct] No product selected for role ${role} after all fallbacks`);
+  }
   return picked || null;
 }
 
@@ -370,10 +422,12 @@ export const generateOutfit = async (req: Request, res: Response) => {
 
     // 4) Call Gemini
     const aiResult = await generateAIOutfits(inputData);
+    console.log(`[generateOutfit] AI returned ${aiResult?.outfitItems?.length || 0} outfit items`);
 
     // 5) Safeguard: filter roles locally as well
     let outfitItems = Array.isArray(aiResult.outfitItems) ? aiResult.outfitItems : [];
     outfitItems = filterOutfitRolesForBase(baseRole, outfitItems);
+    console.log(`[generateOutfit] After filtering roles: ${outfitItems.length} outfit items`);
 
     // 6) Attach real products from DB (gender-aware, color-compatible, non-repeating)
     const matchedItems: any[] = [];
@@ -383,6 +437,9 @@ export const generateOutfit = async (req: Request, res: Response) => {
     const baseProductColor = (baseProduct as any).dominantColor?.name || 
                              (baseProduct as any).aiTags?.dominant_color_name || 
                              null;
+    
+    // Extract base product gender
+    const baseProductGender = (baseProduct as any).gender || null;
 
     for (const item of outfitItems) {
       const product = await findMatchingProduct(
@@ -391,10 +448,14 @@ export const generateOutfit = async (req: Request, res: Response) => {
         userGender,
         usedProductIds,
         baseProductColor,
+        baseProductGender,
       );
 
       if (product) {
         usedProductIds.add(String(product._id));
+        console.log(`[generateOutfit] Matched product: ${product.name} (${product.subCategory || product.category}) for role ${item.role}`);
+      } else {
+        console.log(`[generateOutfit] No product found for role ${item.role}, color: ${item.colorSuggestion}`);
       }
 
       matchedItems.push({
@@ -402,6 +463,17 @@ export const generateOutfit = async (req: Request, res: Response) => {
         product,
       });
     }
+    
+    console.log(`[generateOutfit] Total matched items: ${matchedItems.length}, with products: ${matchedItems.filter(m => m.product).length}`);
+    
+    // Log details of matched items for debugging
+    matchedItems.forEach((item, idx) => {
+      if (item.product) {
+        console.log(`[generateOutfit] Item ${idx + 1}: ${item.role} - ${item.product.name} (${item.product.subCategory || item.product.category})`);
+      } else {
+        console.log(`[generateOutfit] Item ${idx + 1}: ${item.role} - NO PRODUCT MATCHED`);
+      }
+    });
 
     // 7) Optional AI explanation layer (does NOT affect outfit selection logic)
     let explanationResult: {

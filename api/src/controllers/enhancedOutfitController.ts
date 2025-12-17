@@ -302,6 +302,142 @@ function normalizeCategories(categories: string[]): string[] {
   return categories.map((c) => c.trim()).filter(Boolean);
 }
 
+// Accessory priority groups with keywords for matching
+// Each group contains keywords that should match against category, subCategory, or name
+const ACCESSORY_PRIORITY: Record<Gender, string[][]> = {
+  Women: [
+    // Priority 1: Earrings (highest)
+    ["earrings", "earring", "ear ring"],
+    // Priority 2: Bangles / Jewelry
+    ["bangles", "bangle", "bracelets", "bracelet", "jewelry", "jewellery", "jewels"],
+    // Priority 3: Watches
+    ["watches", "watch", "timepiece"],
+    // Priority 4: Necklaces
+    ["necklaces", "necklace", "pendant", "chain"],
+    // Priority 5: Handbags
+    ["handbags", "handbag", "clutch", "purse", "tote"],
+    // Priority 6: Backpacks / Bags (lowest - fallback only)
+    ["backpacks", "backpack", "bags", "bag", "rucksack"],
+  ],
+  Men: [
+    // Priority 1: Watches (highest)
+    ["watches", "watch", "timepiece"],
+    // Priority 2: Belts / Wallets
+    ["belts", "belt", "wallets", "wallet"],
+    // Priority 3: Caps / Hats
+    ["caps", "cap", "hats", "hat", "baseball cap"],
+    // Priority 4: Sunglasses
+    ["sunglasses", "sunglass", "shades"],
+    // Priority 5: Backpacks / Bags (lowest - fallback only)
+    ["backpacks", "backpack", "bags", "bag", "rucksack", "messenger bag"],
+  ],
+  Kids: [
+    // Kids accessories - simpler priority
+    ["watches", "watch"],
+    ["caps", "cap", "hats", "hat"],
+    ["bags", "bag", "backpacks", "backpack"],
+  ],
+};
+
+// Check if a product matches any keyword in a priority group
+function matchesAccessoryPriority(product: any, keywords: string[]): boolean {
+  const name = normalize(product.name || "");
+  const category = normalize(product.category || "");
+  const subCategory = normalize(product.subCategory || "");
+  const masterCategory = normalize(product.masterCategory || "");
+
+  const searchFields = [name, category, subCategory, masterCategory].filter(Boolean);
+
+  return keywords.some((keyword) => {
+    // Check each field for the keyword
+    return searchFields.some((field) => {
+      // Exact match
+      if (field === keyword) return true;
+      
+      // Contains match (case-insensitive, already normalized)
+      // The priority order ensures higher priority items are checked first,
+      // so even if "bag" matches "handbag", handbags will be selected in their priority group first
+      if (field.includes(keyword)) return true;
+      
+      return false;
+    });
+  });
+}
+
+// Priority-based accessory selection
+async function pickAccessoryWithPriority(
+  baseProduct: any,
+  gender: Gender,
+  usedProductIds: Set<string>,
+  usedCategories: Set<string>,
+  styleVibe?: string,
+): Promise<any | null> {
+  const priorityGroups = ACCESSORY_PRIORITY[gender] || [];
+  const baseColor = baseProduct?.dominantColor?.name;
+
+  // Try each priority group in order
+  for (const keywords of priorityGroups) {
+    // Build query for this priority group
+    const query: any = {
+      isPublished: true,
+      isFashionItem: true,
+      gender,
+      _id: { $ne: baseProduct._id.toString() },
+      $or: [
+        { subCategory: { $regex: keywords.join("|"), $options: "i" } },
+        { category: { $regex: keywords.join("|"), $options: "i" } },
+        { masterCategory: { $regex: keywords.join("|"), $options: "i" } },
+        { name: { $regex: keywords.join("|"), $options: "i" } },
+      ],
+    };
+
+    let candidates = await Product.find(query).lean();
+
+    // Filter by keyword matching (more precise than regex)
+    candidates = candidates.filter((p: any) => matchesAccessoryPriority(p, keywords));
+
+    // Remove already used products and duplicate categories
+    candidates = candidates.filter((p: any) => {
+      const cat = normalize(p.subCategory || p.category || "");
+      return !usedProductIds.has(String(p._id)) && !usedCategories.has(cat);
+    });
+
+    // If we have candidates, sort and pick the best one
+    if (candidates.length > 0) {
+      // Sort deterministically: color compatibility desc, style pref desc, price asc, rating desc
+      candidates.sort((a: any, b: any) => {
+        const aColorScore = colorCompatibilityScore(baseColor, a.dominantColor?.name || a.aiTags?.dominant_color_name);
+        const bColorScore = colorCompatibilityScore(baseColor, b.dominantColor?.name || b.aiTags?.dominant_color_name);
+
+        if (bColorScore !== aColorScore) return bColorScore - aColorScore;
+
+        const aStyle = applyStylePreferenceWeight(a.subCategory || a.category || "", styleVibe);
+        const bStyle = applyStylePreferenceWeight(b.subCategory || b.category || "", styleVibe);
+        if (bStyle !== aStyle) return bStyle - aStyle;
+
+        const aPrice = a.price_cents ?? Number.MAX_SAFE_INTEGER;
+        const bPrice = b.price_cents ?? Number.MAX_SAFE_INTEGER;
+        if (aPrice !== bPrice) return aPrice - bPrice;
+
+        const aRating = a.rating ?? 0;
+        const bRating = b.rating ?? 0;
+        return bRating - aRating;
+      });
+
+      const picked = candidates[0];
+      if (picked) {
+        usedProductIds.add(String(picked._id));
+        const pickedCategory = normalize(picked.subCategory || picked.category || "");
+        usedCategories.add(pickedCategory);
+        return picked;
+      }
+    }
+  }
+
+  // No accessory found in any priority group
+  return null;
+}
+
 function buildQuery(
   categories: string[],
   gender: Gender,
@@ -339,6 +475,18 @@ async function pickProductForPlan(
   usedCategories: Set<string>,
   styleVibe?: string,
 ) {
+  // Use priority-based selection for accessories
+  if (plan.role === "accessory") {
+    return await pickAccessoryWithPriority(
+      baseProduct,
+      gender,
+      usedProductIds,
+      usedCategories,
+      styleVibe,
+    );
+  }
+
+  // For non-accessory items, use the original logic
   const baseColor = baseProduct?.dominantColor?.name;
   const query = buildQuery(plan.categories, gender, baseProduct._id.toString());
   let candidates = await Product.find(query).lean();

@@ -28,14 +28,6 @@ const OFFERS: OfferConfig[] = [
     },
   },
   {
-    title: "Footwear Essentials",
-    subtitle: "Sneakers and everyday footwear that go with almost everything.",
-    filters: {
-      category: ["Footwear"],
-      maxPrice: 2499,
-    },
-  },
-  {
     title: "Dark Color Picks",
     subtitle: "Deep blacks, charcoal tones and rich night-ready outfits.",
     filters: {

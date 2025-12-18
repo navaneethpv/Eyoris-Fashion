@@ -223,17 +223,30 @@ const OUTFIT_RULES: Record<Gender, Record<string, OutfitPlan>> = {
 
 // Style vibe preferences (ordering influence, not hard filters)
 const STYLE_VIBE_CATEGORY_PREFS: Record<string, string[]> = {
+  // Existing (Backend)
   office_casual: ["Shirts", "Trousers", "Pants", "Watches", "Shoes"],
   casual: ["T-Shirts", "Tops", "Jeans", "Shorts", "Sneakers"],
   festive: ["Dresses", "Kurtis", "Earrings", "Bangles", "Necklaces", "Handbags", "Heels"],
+
+  // Frontend Mappings
+  street_casual: ["T-Shirts", "Tops", "Jeans", "Joggers", "Shorts", "Sneakers", "Caps", "Sunglasses"], // Maps to casual + street items
+  party_bold: ["Dresses", "Kurtis", "Earrings", "Bangles", "Necklaces", "Handbags", "Heels", "Party Wear"], // Maps to festive
+  office_formal: ["Shirts", "Trousers", "Suits", "Blazers", "Formal Shoes", "Watches", "Belts"], // Stricter formal
+  simple_elegant: ["Dresses", "Shirts", "Trousers", "Skirts", "Watches", "Jewelry", "Heels", "Flats"], // Classic/Neutral focus
 };
 
 // Style vibe category EXCLUSIONS (hard filters - never suggest these for certain vibes)
 const STYLE_VIBE_CATEGORY_EXCLUSIONS: Record<string, string[]> = {
+  // Existing
   office_casual: ["Shorts", "Sneakers", "Flip Flops", "Sandals"], // No casual items for office
-  office_formal: ["Shorts", "Sneakers", "Flip Flops", "Sandals", "T-Shirts"], // Strict formal
+  office_formal: ["Shorts", "Sneakers", "Flip Flops", "Sandals", "T-Shirts", "Jeans", "Leggings"], // Strict formal
   casual: [], // Casual allows everything
   festive: ["Shorts", "Jeans", "Sneakers"], // Festive = dresses/kurtis, not casual
+
+  // Frontend Mappings
+  street_casual: [], // Street style is permissible
+  party_bold: ["Shorts", "Jeans", "Sneakers", "Flip Flops", "T-Shirts"], // Festive/Parties don't usually wear gym clothes
+  simple_elegant: ["Shorts", "Joggers", "T-Shirts", "Flip Flops", "Sneakers", "Caps", "Graphic Tees"], // Avoid casual/messy items
 };
 
 // Base category context rules - what NOT to suggest based on base product

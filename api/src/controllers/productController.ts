@@ -3,11 +3,11 @@
 import { Request, Response } from "express";
 import mongoose from 'mongoose';
 import axios from "axios";
-import getColors from "get-image-colors";
 import cloudinary from "../config/cloudinary";
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
+import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
@@ -30,7 +30,7 @@ function uploadBufferToCloudinary(buffer: Buffer, folder = 'eyoris/products') {
 /**
  * Robust single-image processor.
  * Accepts { buffer?, url?, mimeType? }
- * Returns { url, dominantColor: { hex, rgb }, aiTags }
+ * Returns { url, dominantColor: { name, hex, rgb }, aiTags }
  */
 
 async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeType?: string }) {
@@ -74,28 +74,71 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
 
     // --- Step 2: Analyze the image (if we have a buffer) ---
     // These steps are best-effort and should not crash the entire process if they fail.
-    let dominantColor = { hex: '#808080', rgb: [128, 128, 128] }; // Default gray
+    let dominantColor = { name: 'Gray', hex: '#808080', rgb: [] as number[] }; // Default gray (fallback)
     let aiTags = { semanticColor: 'N/A', style_tags: [], material_tags: [] };
+    let colorDetectionStatus = 'fallback'; // Track whether color was AI-detected or fallback
 
     if (buffer) {
       try {
+        console.log(`[COLOR_DETECTION] Starting Gemini color analysis for image: ${finalUrl}`);
+        
         // Use Promise.all to run color and AI analysis concurrently for speed.
-        const [colorResult, aiResult] = await Promise.all([
-          getColors(buffer, { count: 1, type: mimeType }),
+        const [geminiColorResult, aiResult] = await Promise.all([
+          getGarmentColorFromGemini(buffer, mimeType),
           getProductTagsFromGemini(buffer, mimeType)
         ]);
 
-        if (colorResult && colorResult.length > 0) {
-          const c = colorResult[0].rgb();
-          dominantColor = { hex: colorResult[0].hex(), rgb: [c[0], c[1], c[2]] };
+        // Map Gemini color output to Product.dominantColor format
+        if (geminiColorResult && geminiColorResult.dominant_color_name && geminiColorResult.dominant_color_hex) {
+          dominantColor = {
+            name: geminiColorResult.dominant_color_name,
+            hex: geminiColorResult.dominant_color_hex,
+            rgb: [] // Empty array as per requirements
+          };
+          colorDetectionStatus = 'ai_detected';
+          console.log(`[COLOR_DETECTION] ✅ AI color detected: ${dominantColor.name} (${dominantColor.hex}) for image: ${finalUrl}`);
+        } else {
+          console.warn(`[COLOR_DETECTION] ⚠️ Gemini returned incomplete color data for image: ${finalUrl}. Using fallback gray.`);
+          console.warn(`[COLOR_DETECTION] Gemini response:`, JSON.stringify(geminiColorResult, null, 2));
         }
+        
         if (aiResult) {
           aiTags = aiResult;
+          console.log(`[COLOR_DETECTION] ✅ AI tags extracted successfully for image: ${finalUrl}`);
         }
       } catch (analysisError: any) {
-        console.warn(`[WARN] Non-critical analysis failed for image ${finalUrl}. Reason: ${analysisError.message}`);
-        // We don't re-throw here because we still have the image URL.
+        // Detailed error logging for diagnosis
+        const errorType = analysisError.constructor?.name || 'UnknownError';
+        const errorMessage = analysisError.message || 'No error message';
+        const errorStack = analysisError.stack ? `\nStack: ${analysisError.stack}` : '';
+        
+        console.error(`[COLOR_DETECTION] ❌ Gemini color detection FAILED for image: ${finalUrl}`);
+        console.error(`[COLOR_DETECTION] Error Type: ${errorType}`);
+        console.error(`[COLOR_DETECTION] Error Message: ${errorMessage}`);
+        
+        // Check for specific error types to provide actionable diagnostics
+        if (errorMessage.includes('API key') || errorMessage.includes('GEMINI_API_KEY')) {
+          console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Missing or invalid Gemini API key. Check GEMINI_API_KEY environment variable.`);
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+          console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Gemini API rate limit exceeded. Check API quota/limits.`);
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+          console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Network/timeout error. Check internet connection and Gemini API availability.`);
+        } else if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
+          console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Failed to parse Gemini response. Check API response format.`);
+        } else {
+          console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Unknown error. Full error:${errorStack}`);
+        }
+        
+        console.warn(`[COLOR_DETECTION] ⚠️ Using fallback gray color (#808080) for image: ${finalUrl}`);
+        // We don't re-throw here because we still have the image URL - image upload succeeds.
       }
+    } else {
+      console.warn(`[COLOR_DETECTION] ⚠️ No buffer available for color detection. Using fallback gray color for image: ${finalUrl}`);
+    }
+    
+    // Log final status
+    if (colorDetectionStatus === 'fallback') {
+      console.log(`[COLOR_DETECTION] 📊 Final status: FALLBACK color used (${dominantColor.name}, ${dominantColor.hex}) for image: ${finalUrl}`);
     }
 
     return { url: finalUrl, dominantColor, aiTags };
@@ -121,6 +164,21 @@ export const getProducts = async (req: Request, res: Response) => {
 
     if (category) matchQuery.category = category;
     if (q) matchQuery.$text = { $search: String(q) };
+
+    // Exclude innerwear products from browsing (but allow in search results)
+    // Only filter when there's no search query (q parameter)
+    if (!q) {
+      // Innerwear terms to exclude (case-insensitive matching)
+      const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear'];
+      const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
+      
+      // Exclude products where category, subCategory, or masterCategory matches any innerwear term
+      matchQuery.$nor = [
+        { category: { $regex: innerwearRegex } },
+        { subCategory: { $regex: innerwearRegex } },
+        { masterCategory: { $regex: innerwearRegex } }
+      ];
+    }
 
     if (minPrice || maxPrice) {
       matchQuery.price_cents = {};
@@ -206,7 +264,7 @@ export const createProduct = async (req: Request, res: Response) => {
     console.log('[createProduct] req.files length:', Array.isArray(req.files) ? (req.files as any[]).length : 0);
     console.log('[createProduct] imageUrls raw:', req.body.imageUrls);
 
-    const { name, slug, brand, category, price_cents, description, imageUrls, variants } = req.body;
+    const { name, slug, brand, category, price_cents, description, imageUrls, variants, gender, masterCategory, isFashionItem } = req.body;
 
     const uploadedFiles = (req.files as Express.Multer.File[]) || [];
     // parse variants safely
@@ -282,6 +340,19 @@ export const createProduct = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid price. Provide price_cents (integer) or price (decimal rupees).' });
     }
 
+    // Validate gender (required for outfit generation, must be one of: Men, Women, Kids)
+    const validGenders = ["Men", "Women", "Kids"];
+    if (!gender) {
+      return res.status(400).json({ 
+        message: `Gender is required. Must be one of: ${validGenders.join(", ")}` 
+      });
+    }
+    const genderTrimmed = String(gender).trim();
+    if (!validGenders.includes(genderTrimmed)) {
+      return res.status(400).json({ 
+        message: `Invalid gender "${genderTrimmed}". Must be one of: ${validGenders.join(", ")}` 
+      });
+    }
 
     const newProduct = new Product({
       name: String(name).trim(),
@@ -289,6 +360,8 @@ export const createProduct = async (req: Request, res: Response) => {
       brand: String(brand).trim(),
       category: String(category).trim(),
       subCategory: (req.body.subCategory || "").toString().trim() || undefined,
+      gender: String(gender).trim(), // Required field, validated above
+      masterCategory: masterCategory ? String(masterCategory).trim() : undefined,
       description: String(description || '').trim(),
       price: priceNumber / 100, // price in decimal (e.g., rupees)
       price_cents: priceNumber,
@@ -300,6 +373,7 @@ export const createProduct = async (req: Request, res: Response) => {
       rating: req.body.rating ? Number(req.body.rating) : parseFloat((Math.random() * (5 - 3.8) + 3.8).toFixed(1)),
       reviewsCount: req.body.reviewsCount ? Number(req.body.reviewsCount) : 0,
       isPublished: req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : true,
+      isFashionItem: isFashionItem !== undefined ? Boolean(isFashionItem) : true, // Default to true for admin-created products
     });
 
     await newProduct.save();

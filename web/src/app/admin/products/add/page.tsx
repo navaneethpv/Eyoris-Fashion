@@ -362,41 +362,41 @@ export default function AddProductPage() {
                 <div className="dropdown-container relative">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Category *</label>
                   <div className="relative">
-                    <input
-                      type="text"
+                      <input
+                        type="text"
                       value={masterCategoryInputValue}
                       onFocus={() => setIsMasterCategoryDropdownOpen(true)}
-                      onChange={(e) => {
+                        onChange={(e) => {
                         setMasterCategoryInputValue(e.target.value);
                         setIsMasterCategoryDropdownOpen(true);
-                      }}
-                      placeholder="Select category..."
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
+                        }}
+                        placeholder="Select category..."
+                        className="w-full p-2 border rounded-md"
+                        required
+                      />
                     {isMasterCategoryDropdownOpen && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                         {masterCategories
                           .filter(cat => cat.toLowerCase().includes(masterCategoryInputValue.toLowerCase()))
-                          .map((cat) => (
-                          <div 
-                            key={cat} 
-                            onMouseDown={(e) => {
+                            .map((cat) => (
+                            <div 
+                              key={cat} 
+                              onMouseDown={(e) => {
                               e.preventDefault();
                               setMasterCategoryInputValue(cat);
                               setFormData(prev => ({ ...prev, masterCategory: cat }));
                               setIsMasterCategoryDropdownOpen(false);
-                            }} 
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          >
-                            {cat}
-                          </div>
-                        ))}
+                              }} 
+                              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            >
+                              {cat}
+                            </div>
+                          ))}
                         {masterCategories.filter(cat => cat.toLowerCase().includes(masterCategoryInputValue.toLowerCase())).length === 0 && (
-                          <div className="px-4 py-2 text-gray-500">No categories found.</div>
-                        )}
-                      </div>
-                    )}
+                            <div className="px-4 py-2 text-gray-500">No categories found.</div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
 

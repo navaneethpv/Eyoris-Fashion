@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { useKeenSlider } from "keen-slider/react";
 import { Sparkles, Loader2, Zap, ChevronDown, Sparkle } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
 
@@ -78,24 +77,41 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
 
-  const [sliderRef, instanceRef] = useKeenSlider<HTMLDivElement>({
-    slides: { 
-      perView: 1.2, 
-      spacing: 16,
-      origin: "center",
-    },
-    breakpoints: {
-      "(min-width: 640px)": { 
-        slides: { 
-          perView: 2, 
-          spacing: 20,
-          origin: "center",
-        } 
-      },
-    },
-    mode: "snap",
-    rubberband: false,
-  });
+  // Native scroll with custom drag
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeft.current = scrollRef.current.scrollLeft;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX.current) * 2; // Scroll speed multiplier
+    scrollRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isDragging.current = false;
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = 'grab';
+    }
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -144,7 +160,6 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
         console.log(`Received ${data.outfitItems.length} outfit items, ${data.outfitItems.filter((item: any) => item.product).length} with products`);
         setResult(data);
       }
-      setTimeout(() => instanceRef.current?.update(), 50);
     } catch (e) {
       console.error("Fetch error:", e);
       alert("AI failed to suggest an outfit. Please check your connection and try again.");
@@ -268,106 +283,45 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
 
               {(result.outfitItems ?? []).length > 0 ? (
                 <>
-                  {/* Desktop: Grid Layout (2-3 columns) */}
-                  <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {/* Native Horizontal Scroll with Custom Drag */}
+                  <div 
+                    ref={scrollRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseLeave}
+                    className="flex overflow-x-auto gap-6 scroll-smooth scrollbar-hide snap-x snap-mandatory pb-4"
+                    style={{ cursor: 'grab', userSelect: 'none' }}
+                  >
                     {(result.outfitItems ?? []).map((item, idx) => (
                       <div
                         key={idx}
-                        className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+                        className="flex-shrink-0 w-[85vw] sm:w-[45vw] md:w-[40vw] lg:w-[32vw] xl:w-[28vw] snap-center"
                         style={{
                           animation: `slideIn 0.6s ease-out ${idx * 0.1}s both`
                         }}
                       >
-                        {/* Role Badge & AI Pick Badge */}
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-full">
-                            {item.role}
-                          </span>
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full shadow-md shadow-violet-500/30">
-                            <Sparkle className="w-3 h-3 text-white" />
-                            <span className="text-[10px] font-bold text-white tracking-wide">AI PICK</span>
-                          </div>
-                        </div>
-
-                        {item.product ? (
-                          <>
-                            <Link href={`/products/${item.product.slug}`} className="block flex-1 group">
-                              {/* Product Image */}
-                              <div className="relative overflow-hidden rounded-xl mb-5 bg-gray-50 flex items-center justify-center aspect-square">
-                                <img
-                                  src={resolveImageUrl(item.product.images)}
-                                  alt={item.product.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  onError={(e) => {
-                                    const target = e.currentTarget as HTMLImageElement;
-                                    if (target.src !== PLACEHOLDER_IMAGE) {
-                                      target.src = PLACEHOLDER_IMAGE;
-                                    }
-                                  }}
-                                />
-                              </div>
-                              
-                              {/* Product Info */}
-                              <div className="mb-5 flex-1">
-                                <p className="font-semibold text-gray-900 text-sm mb-1.5 line-clamp-2 min-h-[2.5rem] group-hover:text-violet-600 transition-colors">
-                                  {item.product.name}
-                                </p>
-                                <p className="text-xs text-gray-500 mb-3">{item.product.brand}</p>
-                                <p className="text-xl font-black text-gray-900">
-                                  ₹{(item.product.price_cents / 100).toFixed(0)}
-                                </p>
-                              </div>
-                            </Link>
-                            
-                            {/* Add to Cart Button */}
-                            <div className="mt-auto">
-                              <AddToCartButton
-                                productId={item.product._id}
-                                price={item.product.price_cents}
-                                variants={item.product.variants}
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center py-12">
-                            <p className="text-sm text-gray-400 italic">No matching item found</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Mobile/Tablet: Horizontal Scroll Carousel */}
-                  <div ref={sliderRef} className="keen-slider lg:hidden">
-                    {(result.outfitItems ?? []).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="keen-slider__slide"
-                        style={{
-                          animation: `slideIn 0.6s ease-out ${idx * 0.1}s both`
-                        }}
-                      >
-                        <div className="bg-white rounded-2xl p-5 shadow-md hover:shadow-lg transition-all duration-300 h-full flex flex-col mr-4">
+                        <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-lg shadow-violet-100/50 hover:shadow-2xl hover:shadow-violet-200/60 hover:-translate-y-2 transition-all duration-500 h-full flex flex-col mr-4 border border-transparent bg-gradient-to-br from-white via-white to-violet-50/30 before:absolute before:inset-0 before:rounded-3xl before:p-[1px] before:bg-gradient-to-br before:from-violet-200/40 before:via-pink-200/40 before:to-violet-200/40 before:-z-10">
                           {/* Role Badge & AI Pick Badge */}
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-2.5 py-1 rounded-full">
+                          <div className="flex items-center justify-between mb-5 relative z-10">
+                            <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200/50">
                               {item.role}
                             </span>
-                            <div className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full shadow-md shadow-violet-500/30">
-                              <Sparkle className="w-2.5 h-2.5 text-white" />
-                              <span className="text-[10px] font-bold text-white">AI</span>
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 rounded-full shadow-lg shadow-violet-500/40">
+                              <Sparkle className="w-3 h-3 text-white fill-white" />
+                              <span className="text-[9px] font-extrabold text-white tracking-wide">AI</span>
                             </div>
                           </div>
 
                           {item.product ? (
                             <>
-                              <Link href={`/products/${item.product.slug}`} className="block flex-1 group">
+                              <Link href={`/products/${item.product.slug}`} className="block flex-1 group/card">
                                 {/* Product Image */}
-                                <div className="relative overflow-hidden rounded-xl mb-4 bg-gray-50 flex items-center justify-center aspect-square">
+                                <div className="relative overflow-hidden rounded-2xl mb-5 bg-gradient-to-br from-gray-50 to-violet-50/20 flex items-center justify-center aspect-square shadow-inner">
                                   <img
                                     src={resolveImageUrl(item.product.images)}
                                     alt={item.product.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700 ease-out"
                                     onError={(e) => {
                                       const target = e.currentTarget as HTMLImageElement;
                                       if (target.src !== PLACEHOLDER_IMAGE) {
@@ -378,12 +332,12 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
                                 </div>
                                 
                                 {/* Product Info */}
-                                <div className="mb-4 flex-1">
-                                  <p className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 min-h-[2.5rem] group-hover:text-violet-600 transition-colors">
+                                <div className="mb-5 flex-1 space-y-2">
+                                  <p className="font-medium text-gray-900 text-base mb-1.5 line-clamp-2 min-h-[3rem] leading-snug group-hover/card:text-violet-700 transition-colors duration-300">
                                     {item.product.name}
                                   </p>
-                                  <p className="text-xs text-gray-500 mb-2">{item.product.brand}</p>
-                                  <p className="text-lg font-black text-gray-900">
+                                  <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">{item.product.brand}</p>
+                                  <p className="text-2xl font-bold text-gray-900 mt-2">
                                     ₹{(item.product.price_cents / 100).toFixed(0)}
                                   </p>
                                 </div>
@@ -464,6 +418,16 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
         
         .fade-in-animation {
           animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* Hide scrollbar while maintaining scroll functionality */
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

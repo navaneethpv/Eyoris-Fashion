@@ -170,11 +170,12 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
                   <Sparkles className="relative w-7 h-7 text-violet-600" strokeWidth={2} />
                 </div>
                 <h3 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-violet-700 via-purple-700 to-pink-700 bg-clip-text text-transparent">
-                  AI Stylist – Outfit Generator
+                  Create a Complete Look
                 </h3>
               </div>
               <p className="text-sm md:text-base text-gray-600 font-medium ml-10">
-                Instantly style this product with matching fashion picks
+                Choose one item you love.
+                Our Style Studio intelligently curates complementary pieces to complete your outfit.
               </p>
             </div>
             
@@ -196,7 +197,7 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
                 ) : (
                   <>
                     <Zap className="w-5 h-5" />
-                    <span>{result ? "Regenerate Outfit" : "Generate Outfit"}</span>
+                    <span>{result ? "Refine Style" : "Generate Look"}</span>
                   </>
                 )}
               </span>
@@ -231,8 +232,8 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
             <div className="space-y-6 fade-in-animation">
               <div className="text-center py-6">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-violet-600" />
-                <p className="text-gray-700 font-medium">Styling your outfit...</p>
-                <p className="text-sm text-gray-500 mt-1">Our AI is curating the perfect match</p>
+                <p className="text-gray-700 font-medium">Curating your look...</p>
+                <p className="text-sm text-gray-500 mt-1">Our Style Studio is designing the perfect match</p>
               </div>
               
               {/* Skeleton Cards */}
@@ -252,14 +253,17 @@ export default function OutfitGenerator({ productId, productGender }: OutfitGene
           {/* Outfit Results Display */}
           {result && !loading && (
             <div className="space-y-6 fade-in-animation">
-              <div className="flex items-center gap-3 flex-wrap mb-6">
-                <h4 className="text-xl md:text-2xl font-bold text-gray-900">{result.outfitTitle}</h4>
-                <div className="px-3 py-1.5 bg-gradient-to-r from-violet-100 to-purple-100 rounded-full shadow-sm">
-                  <span className="text-xs font-bold text-violet-700 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    AI CURATED
-                  </span>
-                </div>
+              <div className="flex flex-col gap-2 mb-6">
+                 <div className="flex items-center gap-3 flex-wrap">
+                    <h4 className="text-xl md:text-2xl font-bold text-gray-900">Your Curated Look</h4>
+                    <div className="px-3 py-1.5 bg-gradient-to-r from-violet-100 to-purple-100 rounded-full shadow-sm">
+                      <span className="text-xs font-bold text-violet-700 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {result.outfitTitle}
+                      </span>
+                    </div>
+                 </div>
+                 <p className="text-sm text-gray-500">A thoughtfully styled outfit designed to complement your choice.</p>
               </div>
 
               {(result.outfitItems ?? []).length > 0 ? (

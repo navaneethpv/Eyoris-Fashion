@@ -430,11 +430,55 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
 
 
 // ----------------- Controller: getProductBySlug -----------------
+// ----------------- Controller: getProductBySlug -----------------
 export const getProductBySlug = async (req: Request, res: Response) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug }).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+
+    // Fetch related data in parallel
+    const queries: Promise<any>[] = [];
+
+    // 1. Related Accessories (Complete the Look) - Only for Women/Girls
+    const isFemale = ['Women', 'Girls'].includes(product.gender || '');
+    if (isFemale) {
+      const accessoriesQuery = Product.find({
+        gender: product.gender,
+        category: { $in: ['Watches', 'Jewellery', 'Bangles', 'Necklaces', 'Handbags', 'Sunglasses'] },
+        _id: { $ne: product._id },
+        isPublished: true
+      })
+        .select('name slug price_cents images brand')
+        .limit(6)
+        .lean();
+      queries.push(accessoriesQuery);
+    } else {
+      queries.push(Promise.resolve([]));
+    }
+
+    // 2. Similar Products (You May Also Like)
+    const similarQuery = Product.find({
+      gender: product.gender,
+      category: product.category,
+      _id: { $ne: product._id },
+      isPublished: true
+    })
+      .select('name slug price_cents images brand')
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(10)
+      .lean();
+    queries.push(similarQuery);
+
+    const [relatedAccessories, similarProducts] = await Promise.all(queries);
+
+    // Attach to product object (Backward Compatible)
+    const enhancedProduct = {
+      ...product,
+      relatedAccessories: relatedAccessories || [],
+      similarProducts: similarProducts || []
+    };
+
+    res.json(enhancedProduct);
   } catch (error) {
     console.error("getProductBySlug error:", error);
     res.status(500).json({ message: "Server Error" });

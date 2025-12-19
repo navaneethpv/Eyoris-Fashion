@@ -10,6 +10,7 @@ import CollapsibleSection from "../../components/CollapsibleSection";
 import ProductReviews from "../../components/productReview";
 import AddToCartButton from "../../components/AddToCartButton";
 import { Star, Truck, ShieldCheck } from "lucide-react";
+import ProductSlider from "../../components/ProductSlider";
 
 // (Your interfaces extended slightly for optional fields)
 interface ImageType {
@@ -49,6 +50,10 @@ interface Product {
   // Optional extra fields that first layout uses
   fabric?: string;
   careInstructions?: string;
+
+  // Related products (Freshly fetched)
+  relatedAccessories?: any[];
+  similarProducts?: any[];
 }
 
 // --- DO NOT TOUCH: your fetching + slug logic ---
@@ -316,6 +321,25 @@ export default async function ProductDetailPage({
           <div className="mt-8">
             <OutfitGenerator productId={product._id} productGender={product.gender} />
           </div>
+
+          {/* 4. CROSS-SELL SLIDERS */}
+          {product.relatedAccessories && product.relatedAccessories.length > 0 && (
+            <div className="mt-12 border-t border-gray-100 pt-8">
+              <ProductSlider 
+                title="Complete the Look" 
+                products={product.relatedAccessories} 
+              />
+            </div>
+          )}
+
+          {product.similarProducts && product.similarProducts.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-8">
+              <ProductSlider 
+                title="You May Also Like" 
+                products={product.similarProducts} 
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>

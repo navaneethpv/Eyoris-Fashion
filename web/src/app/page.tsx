@@ -31,20 +31,21 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center">
           <div className="max-w-xl z-10">
             <span className="text-accent font-bold tracking-wider text-sm uppercase mb-2 block">
-              New Collection
+              Eyoris Style Studio
             </span>
             <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-tight mb-6">
-              VIBE WITH <br/> <span className="text-primary">COLOR.</span>
+              STYLE, <br/> <span className="text-primary">PERFECTED.</span>
             </h1>
             <p className="text-lg text-gray-600 mb-8 max-w-md">
-              Discover the new season's hottest trends. Use our AI Color Match to find your perfect fit.
+              Discover complete outfits curated intelligently for every moment. 
+              From everyday elegance to statement looks, style comes together effortlessly.
             </p>
             <div className="flex gap-4">
                <Link href="/product" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 transition">
-                Shop Now
+                Enter Style Studio
               </Link>
               <button className="bg-white text-gray-900 border border-gray-200 px-8 py-3.5 rounded-full font-bold hover:bg-gray-50 transition flex items-center gap-2">
-                 Try AI Search <ArrowRight className="w-4 h-4" />
+                 Explore Collections <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

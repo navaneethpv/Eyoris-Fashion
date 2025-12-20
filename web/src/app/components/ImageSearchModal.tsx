@@ -3,6 +3,20 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Upload, Loader2, ArrowRight, Filter, ChevronDown, Check } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const COLOR_MAP = [
+  { name: 'Red', hex: '#ef4444' },
+  { name: 'Blue', hex: '#3b82f6' },
+  { name: 'Green', hex: '#22c55e' },
+  { name: 'Yellow', hex: '#eab308' },
+  { name: 'Black', hex: '#000000' },
+  { name: 'White', hex: '#ffffff' },
+  { name: 'Pink', hex: '#ec4899' },
+  { name: 'Purple', hex: '#a855f7' },
+  { name: 'Grey', hex: '#6b7280' },
+  { name: 'Orange', hex: '#f97316' }
+];
 
 interface ImageSearchModalProps {
   isOpen: boolean;
@@ -63,10 +77,17 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         method: 'POST',
         body: formData,
       });
+      
       const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Analysis failed');
+      }
+      
       setAnalysis(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
+      alert(error.message || 'Error analyzing image. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -158,7 +179,8 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          {/* Subtle animations and neutral backgrounds improve focus on products */}
           
           {/* 1. Upload Section */}
           {!analysis && !loading && (
@@ -215,7 +237,12 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
           {/* 3. Results Section */}
           {analysis && (
-            <div className="animate-fade-in space-y-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-6 bg-gray-200 -m-6 p-6 rounded-lg"
+            >
+              {/* Subtle animations and neutral backgrounds improve focus on products */}
               {/* Analysis Summary Header */}
               <div className="flex flex-col md:flex-row gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 relative group/info">
                 <div className="flex items-center gap-4">
@@ -226,9 +253,9 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                   <div className="flex flex-col items-center">
                     <div 
                       className="w-12 h-12 rounded-lg shadow-inner border border-black/5"
-                      style={{ backgroundColor: analysis.dominantColor.hex }}
+                      style={{ backgroundColor: analysis.dominantColor?.hex || '#ccc' }}
                     />
-                    <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">{analysis.dominantColor.name}</span>
+                    <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">{analysis.dominantColor?.name || 'Unknown'}</span>
                   </div>
                 </div>
 
@@ -282,26 +309,38 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                     </button>
 
                     {/* Color Filter Dropdown */}
-                    {isFilterOpen && (
-                      <div className="absolute top-full left-0 mt-2 p-4 bg-white rounded-xl shadow-xl border border-gray-100 z-50 w-64 animate-in fade-in slide-in-from-top-2">
-                        <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Select Colors</p>
-                        <div className="flex flex-wrap gap-2">
-                          {['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Pink', 'Purple', 'Grey', 'Orange'].map(color => (
-                            <button
-                              key={color}
-                              onClick={() => toggleColorFilter(color)}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1.5 ${filters.colors.includes(color) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                            >
-                              {filters.colors.includes(color) && <Check className="w-3 h-3" />}
-                              {color}
-                            </button>
-                          ))}
-                        </div>
-                        {filters.colors.length > 0 && (
-                           <button onClick={() => setFilters({ colors: [] })} className="mt-4 text-[10px] font-bold text-red-500 uppercase hover:underline">Clear Filters</button>
-                        )}
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {isFilterOpen && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          className="absolute top-full left-0 mt-2 p-4 bg-white rounded-xl shadow-xl border border-gray-100 z-50 w-72"
+                        >
+                          <p className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Select Colors</p>
+                          <div className="flex flex-wrap gap-2">
+                            {COLOR_MAP.map(color => (
+                              <motion.button
+                                key={color.name}
+                                onClick={() => toggleColorFilter(color.name)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`w-7 h-7 rounded-sm border-2 transition-all ${
+                                  filters.colors.includes(color.name) 
+                                    ? 'border-gray-900 scale-110 shadow-md' 
+                                    : 'border-gray-300 hover:border-gray-400'
+                                }`}
+                                style={{ backgroundColor: color.hex }}
+                                title={color.name}
+                              />
+                            ))}
+                          </div>
+                          {filters.colors.length > 0 && (
+                             <button onClick={() => setFilters({ colors: [] })} className="mt-4 text-[10px] font-bold text-red-500 uppercase hover:underline">Clear Filters</button>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="flex-1 md:flex-none" />
@@ -323,52 +362,77 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
               </div>
 
               {/* Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              <motion.div 
+                layout
+                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"
+              >
                 {results.length > 0 ? (
-                  results.map((product: any) => (
-                    <Link key={product.slug} href={`/products/${product.slug}`} onClick={onClose} className="group block">
-                      <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 mb-3 shadow-sm group-hover:shadow-md transition-shadow">
-                        <Image 
-                          src={resolveImageUrl(product)} 
-                          alt={product.name} 
-                          fill 
-                          className="object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                        
-                        {/* Similarity Badge */}
-                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-primary text-[10px] font-black px-2 py-1 rounded-lg border border-primary/10 shadow-sm flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                          {product.similarity}% MATCH
-                        </div>
-
-                        {/* Color Preview */}
-                        {product.dominantColor?.hex && (
-                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full border border-white/20">
-                            <div className="w-2.5 h-2.5 rounded-full border border-white/50" style={{ backgroundColor: product.dominantColor.hex }} />
-                            <span className="text-[9px] font-bold text-white uppercase">{product.dominantColor.name || 'Unknown'}</span>
+                  <AnimatePresence mode="popLayout">
+                    {results.map((product: any, index: number) => (
+                      <motion.div
+                        key={product.slug}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ 
+                          duration: 0.35, 
+                          delay: index % 10 * 0.05,
+                          ease: "easeOut" 
+                        }}
+                      >
+                        <Link href={`/products/${product.slug}`} onClick={onClose} className="group block">
+                          <motion.div 
+                            whileHover={{ y: -4, scale: 1.02 }}
+                            className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-white mb-3 shadow-sm group-hover:shadow-lg transition-all duration-300"
+                          >
+                            <Image 
+                              src={resolveImageUrl(product)} 
+                              alt={product.name} 
+                              fill 
+                              className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                            />
+                            
+                            {/* Similarity Badge */}
+                            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-primary text-[10px] font-black px-2 py-1 rounded-lg border border-primary/10 shadow-sm flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              {product.similarity}% MATCH
+                            </div>
+    
+                            {/* Color Preview */}
+                            {product.dominantColor?.hex && (
+                              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full border border-white/20">
+                                <div className="w-2.5 h-2.5 rounded-full border border-white/50" style={{ backgroundColor: product.dominantColor.hex }} />
+                                <span className="text-[9px] font-bold text-white uppercase">{product.dominantColor.name || 'Unknown'}</span>
+                              </div>
+                            )}
+                          </motion.div>
+                          <div className="space-y-1 px-1">
+                            <h4 className="font-bold text-sm text-gray-900 truncate leading-none">{product.name}</h4>
+                            <div className="flex justify-between items-center">
+                              <p className="text-sm font-black text-primary">${(product.price || 0).toFixed(2)}</p>
+                              <p className="text-[10px] text-gray-400 font-medium">{product.brand}</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="space-y-1 px-1">
-                        <h4 className="font-bold text-sm text-gray-900 truncate leading-none">{product.name}</h4>
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm font-black text-primary">${(product.price || 0).toFixed(2)}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">{product.brand}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 ) : (
-                  <div className="col-span-full py-20 text-center space-y-4">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="col-span-full py-20 text-center space-y-4"
+                  >
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
                       <Filter className="w-8 h-8 text-gray-300" />
                     </div>
                     <p className="text-gray-500 font-medium">No matches found with current filters.</p>
                     <button onClick={() => setFilters({ colors: [] })} className="text-primary font-bold text-sm hover:underline">Clear all filters</button>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
         </div>
       </div>

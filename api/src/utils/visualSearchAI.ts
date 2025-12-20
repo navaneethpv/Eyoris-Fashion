@@ -28,8 +28,20 @@ export interface VisualAnalysisResult {
 }
 
 const ALL_CATEGORIES = [
-    "T-Shirts", "Shirts", "Jeans", "Dresses", "Jackets",
-    "Kurtis", "Sarees", "Footwear", "Accessories", "Shoes"
+    // Clothing - Tops
+    "Tshirts", "Shirts", "Tops", "Sweatshirts", "Sweaters", "Kurtas", "Kurtis",
+    // Clothing - Bottoms
+    "Jeans", "Trousers", "Shorts", "Leggings", "Track Pants",
+    // Clothing - Dresses & Full Body
+    "Dresses", "Jumpsuits", "Sarees", "Shrugs", "Jackets", "Blazers",
+    // Footwear - Specific Types (not broad "Footwear")
+    "Heels", "Flats", "Sandals", "Sports Sandals", "Sports Shoes", "Casual Shoes", "Formal Shoes", "Flip Flops",
+    // Accessories - Specific Types (not broad "Accessories")
+    "Watches", "Sunglasses", "Belts", "Caps", "Wallets", "Ties", "Scarves",
+    // Bags - Specific Types
+    "Handbags", "Backpacks", "Clutches", "Laptop Bag",
+    // Jewelry
+    "Jewellery Set", "Earrings", "Bracelet", "Bangle", "Ring"
 ];
 
 const ANALYSIS_SCHEMA = {

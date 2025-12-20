@@ -183,6 +183,7 @@ export const getProducts = async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
     const { category, sort, minPrice, maxPrice } = req.query;
     let { q } = req.query;
+    const originalQuery = q; // Save before clearing for multi-category search
 
     // --- Flipkart-style Intent-Based Search ---
     // Parse natural language search into structured filters
@@ -214,7 +215,19 @@ export const getProducts = async (req: Request, res: Response) => {
     if (finalGender) matchStage.gender = finalGender;
 
     const finalCategory = (category as string) || (req.query.articleType as string) || inferredCategory;
-    if (finalCategory) matchStage.category = finalCategory;
+
+    // Special handling for broad terms like "footwear" that span multiple categories
+    const queryLower = originalQuery && typeof originalQuery === 'string' ? originalQuery.toLowerCase() : '';
+    if (queryLower && (queryLower.includes('footwear') || queryLower.includes('chappals') || queryLower.includes('chappal'))) {
+      // Search across ALL footwear categories using $in (not $or to avoid conflicts)
+      matchStage.category = {
+        $in: ['Heels', 'Flats', 'Sandals', 'Sports Sandals', 'Sports Shoes',
+          'Casual Shoes', 'Formal Shoes', 'Flip Flops', 'Booties']
+      };
+      console.log('[SEARCH] Detected "footwear" - searching across all footwear categories');
+    } else if (finalCategory) {
+      matchStage.category = finalCategory;
+    }
 
     if (req.query.subCategory) matchStage.subCategory = req.query.subCategory;
     if (req.query.masterCategory) matchStage.masterCategory = req.query.masterCategory;

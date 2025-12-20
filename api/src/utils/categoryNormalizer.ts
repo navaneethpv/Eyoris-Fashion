@@ -111,11 +111,11 @@ const CATEGORY_ALIASES: Record<string, string> = {
     'sweatshirt': 'Sweatshirts', 'sweatshirts': 'Sweatshirts',
     'hoodie': 'Sweatshirts', 'hoodies': 'Sweatshirts',
 
-    // Footwear
-    'footwear': 'Casual Shoes',
+    // Footwear (Note: "footwear" is handled specially in search to show all shoe types)
     'heel': 'Heels', 'heels': 'Heels', 'high heel': 'Heels', 'high heels': 'Heels',
     'flat': 'Flats', 'flats': 'Flats',
     'sandal': 'Sandals', 'sandals': 'Sandals',
+    'sports sandal': 'Sports Sandals', 'sports sandals': 'Sports Sandals',
     'sneaker': 'Sports Shoes', 'sneakers': 'Sports Shoes',
     'sports shoe': 'Sports Shoes', 'sports shoes': 'Sports Shoes',
     'running shoes': 'Sports Shoes', 'running shoe': 'Sports Shoes',
@@ -124,6 +124,7 @@ const CATEGORY_ALIASES: Record<string, string> = {
     'shoe': 'Casual Shoes', 'shoes': 'Casual Shoes',
     'flip flop': 'Flip Flops', 'flipflops': 'Flip Flops', 'flipflop': 'Flip Flops',
     'slipper': 'Flip Flops', 'slippers': 'Flip Flops',
+    'chappal': 'Flip Flops', 'chappals': 'Flip Flops', 'chappels': 'Flip Flops',
 
     // Bags & Luggage
     'handbag': 'Handbags', 'handbags': 'Handbags', 'bag': 'Handbags',

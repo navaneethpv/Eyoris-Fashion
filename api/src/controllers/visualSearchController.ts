@@ -47,14 +47,33 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Category is required' });
         }
 
-        // Normalize AI-detected category to match database categories
-        const normalizedCategory = normalizeCategoryName(category);
-        console.log(`[VISUAL SEARCH] AI Category: "${category}" -> Normalized: "${normalizedCategory}"`);
+        // Resolve all search and image inputs to DB-backed articleTypes for exact matching
+        const allArticleTypes = await getAllArticleTypes();
+
+        // Try broad term resolution first (footwear, accessories, bags, jewelry)
+        let resolvedTypes = resolveBroadTerms(category, allArticleTypes);
+
+        // If no broad term match, try direct resolution
+        if (resolvedTypes.length === 0) {
+            resolvedTypes = resolveArticleTypes(category, allArticleTypes);
+        }
+
+        console.log(`[VISUAL SEARCH] AI: "${category}" → Resolved: [${resolvedTypes.join(', ')}]`);
+
+        // If no article types resolved, return empty with message
+        if (resolvedTypes.length === 0) {
+            console.warn(`[VISUAL SEARCH] No matching article types for: "${category}"`);
+            return res.json({
+                products: [],
+                totalCount: 0,
+                message: `No ${category} products found in our store`
+            });
+        }
 
         // Structural attributes are used only for ranking, not filtering
         const query: any = {
             isPublished: { $ne: false },
-            category: { $regex: new RegExp(`^${normalizedCategory}$`, 'i') }
+            category: { $in: resolvedTypes }
         };
 
         // Color and other filters are optional user refinements

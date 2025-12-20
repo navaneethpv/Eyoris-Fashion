@@ -96,7 +96,7 @@ export function resolveBroadTerms(input: string, articleTypes: string[]): string
     if (normalized.includes('accessories') || normalized.includes('accessory')) {
         return articleTypes.filter(type => {
             const typeLower = type.toLowerCase();
-            return typeLower.includes('watch') || type Lower.includes('sunglass') ||
+            return typeLower.includes('watch') || typeLower.includes('sunglass') ||
                 typeLower.includes('belt') || typeLower.includes('cap') ||
                 typeLower.includes('hat') || typeLower.includes('scarf');
         });

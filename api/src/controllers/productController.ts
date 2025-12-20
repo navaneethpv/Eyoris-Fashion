@@ -8,6 +8,7 @@ import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
+import { normalizeCategoryName, VALID_CATEGORIES } from '../utils/categoryNormalizer';
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
@@ -153,6 +154,27 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
 
 
 
+
+// Normalize user search terms to handle variations like "Tshirt", "T-shirt", "Tees"
+function normalizeSearchQuery(query: string): string {
+  return query.toLowerCase().replace(/[-\s]/g, '');
+}
+
+// Try to resolve search query to a category using the same alias logic as visual search  
+function resolveSearchCategory(query: string): string | null {
+  const normalized = normalizeSearchQuery(query);
+
+  // Try to normalize as if it's a category name
+  const resolved = normalizeCategoryName(query);
+
+  // Check if the resolved category is actually in our valid list
+  if (VALID_CATEGORIES.includes(resolved)) {
+    return resolved;
+  }
+
+  return null;
+}
+
 // ----------------- Controller: getProducts -----------------
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -262,11 +284,27 @@ export const getProducts = async (req: Request, res: Response) => {
       ];
     }
 
-    // Search Logic (Regex + Scoring)
+    // Search Logic (Regex + Scoring) - Enhanced with normalization
     let isSearch = false;
     if (q && typeof q === 'string') {
       isSearch = true;
+
+      // Try to resolve query to a category (e.g., "Tshirt" → "Tshirts")
+      const resolvedCategory = resolveSearchCategory(q);
+      console.log(`[SEARCH] Query: "${q}" → Resolved Category: "${resolvedCategory}"`);
+
+      // If we resolved a category and no explicit category filter exists, use it
+      if (resolvedCategory && !matchStage.category) {
+        matchStage.category = resolvedCategory;
+        console.log(`[SEARCH] Applied resolved category: "${resolvedCategory}"`);
+      }
+
       const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
+      // Create normalized search for better matching
+      const normalizedQ = normalizeSearchQuery(q);
+      const normalizedRegex = new RegExp(escapeRegex(normalizedQ), 'i');
+
       const exactRegex = new RegExp(`^${escapeRegex(q)}$`, 'i');
       const startsWithRegex = new RegExp(`^${escapeRegex(q)}`, 'i');
       const generalRegex = new RegExp(escapeRegex(q), 'i');

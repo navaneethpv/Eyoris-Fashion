@@ -1,6 +1,6 @@
 "use client"
-import { useState, useRef } from 'react';
-import { X, Upload, Loader2, ArrowRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Upload, Loader2, ArrowRight, Filter, ChevronDown, Check } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -9,13 +9,34 @@ interface ImageSearchModalProps {
   onClose: () => void;
 }
 
+interface AnalysisData {
+  category: string;
+  aiTags: string[];
+  dominantColor: {
+    name: string;
+    hex: string;
+    rgb: [number, number, number];
+  };
+}
+
 export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [results, setResults] = useState<any[]>([]);
-  const [queryColor, setQueryColor] = useState<any>(null);
+  const [filters, setFilters] = useState<{ colors: string[] }>({ colors: [] });
+  const [sortBy, setSortBy] = useState<string>('similarity');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch results when analysis, filters, or sortBy changes
+  useEffect(() => {
+    if (analysis) {
+      fetchResults();
+    }
+  }, [analysis, filters, sortBy]);
 
   if (!isOpen) return null;
 
@@ -24,12 +45,13 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
     if (selectedFile) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
-      setResults([]); // Reset previous results
-      setQueryColor(null);
+      setResults([]);
+      setAnalysis(null);
+      setFilters({ colors: [] });
     }
   };
 
-  const handleSearch = async () => {
+  const handleAnalyze = async () => {
     if (!file) return;
 
     setLoading(true);
@@ -37,25 +59,77 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
     formData.append('image', file);
 
     try {
-      const res = await fetch('http://localhost:4000/api/ai/image-search', {
+      const res = await fetch('http://localhost:4000/api/ai/visual-search/analyze', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
-      setResults(data.results || []);
-      setQueryColor(data.queryColor);
+      setAnalysis(data);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('Analysis failed:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const reset = () => {
+  const fetchResults = async () => {
+    if (!analysis) return;
+
+    try {
+      const res = await fetch('http://localhost:4000/api/ai/visual-search/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: analysis.category,
+          aiTags: analysis.aiTags,
+          dominantColor: analysis.dominantColor,
+          filters,
+          sortBy
+        }),
+      });
+      const data = await res.json();
+      setResults(data.results || []);
+    } catch (error) {
+      console.error('Fetching results failed:', error);
+    }
+  };
+
+  const toggleColorFilter = (color: string) => {
+    setFilters(prev => ({
+      ...prev,
+      colors: prev.colors.includes(color) 
+        ? prev.colors.filter(c => c !== color) 
+        : [...prev.colors, color]
+    }));
+  };
+
+  const resetArr = () => {
     setFile(null);
     setPreview(null);
     setResults([]);
-    setQueryColor(null);
+    setAnalysis(null);
+    setFilters({ colors: [] });
+    setSortBy('similarity');
+  };
+
+  const prefixIfRelative = (url?: string) => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    const base = process.env.NEXT_PUBLIC_API_BASE || (typeof window !== "undefined" ? window.location.origin : "http://localhost:4000");
+    return `${base.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
+  };
+
+  const resolveImageUrl = (product: any) => {
+    const imgs = product.images;
+    if (!imgs) return '';
+    if (typeof imgs === "string") return imgs.trim() ? prefixIfRelative(imgs) : '';
+    if (Array.isArray(imgs) && imgs.length > 0) {
+      const first = imgs[0];
+      if (!first) return '';
+      if (typeof first === "string") return prefixIfRelative(first);
+      return prefixIfRelative((first as any).url);
+    }
+    return '';
   };
 
   return (
@@ -67,14 +141,17 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-accent" />
-            AI Color Match
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-accent" />
+              Visual Search
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">Similarity First & Color as Optional Filter</p>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -84,7 +161,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         <div className="flex-1 overflow-y-auto p-6">
           
           {/* 1. Upload Section */}
-          {!results.length && !loading && (
+          {!analysis && !loading && (
             <div className="flex flex-col items-center justify-center h-full py-10 space-y-6">
               {preview ? (
                 <div className="relative w-64 h-64 rounded-xl overflow-hidden shadow-lg border-4 border-white">
@@ -113,14 +190,14 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
               {preview && (
                 <div className="flex gap-4">
-                  <button onClick={reset} className="px-6 py-2.5 rounded-full font-bold text-sm border border-gray-300 hover:bg-gray-50">
+                  <button onClick={resetArr} className="px-6 py-2.5 rounded-full font-bold text-sm border border-gray-300 hover:bg-gray-50">
                     Replace
                   </button>
                   <button 
-                    onClick={handleSearch}
+                    onClick={handleAnalyze}
                     className="px-8 py-2.5 rounded-full font-bold text-sm bg-primary text-white hover:bg-violet-700 shadow-lg shadow-violet-200"
                   >
-                    Find Matches
+                    Analyze Image
                   </button>
                 </div>
               )}
@@ -131,56 +208,165 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
           {loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-              <p className="text-gray-500 font-medium">Analyzing colors...</p>
+              <p className="text-gray-500 font-medium">Analyzing style & category...</p>
+              <p className="text-xs text-gray-400 mt-2">Using AI for one-time metadata extraction</p>
             </div>
           )}
 
           {/* 3. Results Section */}
-          {results.length > 0 && (
-            <div className="animate-fade-in">
-              <div className="flex items-center gap-6 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+          {analysis && (
+            <div className="animate-fade-in space-y-6">
+              {/* Analysis Summary Header */}
+              <div className="flex flex-col md:flex-row gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 relative group/info">
                 <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-white shadow-md">
                     <Image src={preview!} alt="Original" fill className="object-cover" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                  <div className="text-center">
+                  <ArrowRight className="w-5 h-5 text-gray-300" />
+                  <div className="flex flex-col items-center">
                     <div 
-                      className="w-16 h-16 rounded-lg shadow-sm border border-gray-200"
-                      style={{ backgroundColor: queryColor?.hex || '#ccc' }}
+                      className="w-12 h-12 rounded-lg shadow-inner border border-black/5"
+                      style={{ backgroundColor: analysis.dominantColor.hex }}
                     />
-                    <span className="text-[10px] font-mono text-gray-500 mt-1 block uppercase">{queryColor?.hex}</span>
+                    <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">{analysis.dominantColor.name}</span>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900">Analysis Complete</h3>
-                  <p className="text-sm text-gray-500">
-                    We found {results.length} items matching this dominant color.
-                  </p>
+
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase tracking-wider">
+                      Detected Category: {analysis.category}
+                    </span>
+                    <button onClick={resetArr} className="text-xs font-semibold text-gray-400 hover:text-primary transition ml-auto">
+                      Start Over
+                    </button>
+                  </div>
+                  <h3 className="font-bold text-gray-900">Found {results.length} Structurally Similar Items</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.aiTags.map(tag => (
+                      <span key={tag} className="text-[11px] bg-white border border-gray-200 px-2 py-1 rounded text-gray-600">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <button onClick={reset} className="text-sm font-semibold text-primary hover:underline">
-                  Start Over
-                </button>
+                
+                {/* Explainability Tollip */}
+                <div className="absolute right-4 bottom-4 md:static md:flex md:items-end">
+                   <div className="group relative">
+                      <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-400 cursor-help">?</div>
+                      <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-xl">
+                        <p className="font-bold mb-1">Explainable Search Logic:</p>
+                        <ul className="list-disc ml-3 space-y-1 text-gray-300">
+                          <li>AI extracts metadata (category, tags) once.</li>
+                          <li>Primary search uses category & tags for structural match.</li>
+                          <li>Color is optional - use filters to refine by shade.</li>
+                          <li>Distance logic used for color similarity sorting.</li>
+                        </ul>
+                      </div>
+                   </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {results.map((product: any) => (
-                  <Link key={product.slug} href={`/products/${product.slug}`} onClick={onClose} className="group block">
-                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 mb-2">
-                      <Image 
-                        src={product.images[0].url} 
-                        alt={product.name} 
-                        fill 
-                        className="object-cover group-hover:scale-105 transition-transform" 
-                      />
-                      <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full">
-                        {Math.round(product.similarity * 100)}% Match
+              {/* Controls: Filter & Sort */}
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b pb-4">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsFilterOpen(!isFilterOpen)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition border ${isFilterOpen ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-200 hover:border-primary'}`}
+                    >
+                      <Filter className="w-4 h-4" />
+                      Refine by Color
+                      {filters.colors.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-white text-primary rounded-full text-[10px]">{filters.colors.length}</span>}
+                    </button>
+
+                    {/* Color Filter Dropdown */}
+                    {isFilterOpen && (
+                      <div className="absolute top-full left-0 mt-2 p-4 bg-white rounded-xl shadow-xl border border-gray-100 z-50 w-64 animate-in fade-in slide-in-from-top-2">
+                        <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Select Colors</p>
+                        <div className="flex flex-wrap gap-2">
+                          {['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Pink', 'Purple', 'Grey', 'Orange'].map(color => (
+                            <button
+                              key={color}
+                              onClick={() => toggleColorFilter(color)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition flex items-center gap-1.5 ${filters.colors.includes(color) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                            >
+                              {filters.colors.includes(color) && <Check className="w-3 h-3" />}
+                              {color}
+                            </button>
+                          ))}
+                        </div>
+                        {filters.colors.length > 0 && (
+                           <button onClick={() => setFilters({ colors: [] })} className="mt-4 text-[10px] font-bold text-red-500 uppercase hover:underline">Clear Filters</button>
+                        )}
                       </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 md:flex-none" />
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto bg-gray-50 px-3 py-1.5 rounded-lg border">
+                  <span className="text-xs font-bold text-gray-400">SORT BY:</span>
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-transparent text-sm font-semibold text-gray-700 focus:outline-none cursor-pointer"
+                  >
+                    <option value="similarity">Structural Similarity</option>
+                    <option value="color">Color Similarity</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {results.length > 0 ? (
+                  results.map((product: any) => (
+                    <Link key={product.slug} href={`/products/${product.slug}`} onClick={onClose} className="group block">
+                      <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 mb-3 shadow-sm group-hover:shadow-md transition-shadow">
+                        <Image 
+                          src={resolveImageUrl(product)} 
+                          alt={product.name} 
+                          fill 
+                          className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                        
+                        {/* Similarity Badge */}
+                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-primary text-[10px] font-black px-2 py-1 rounded-lg border border-primary/10 shadow-sm flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          {product.similarity}% MATCH
+                        </div>
+
+                        {/* Color Preview */}
+                        {product.dominantColor?.hex && (
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full border border-white/20">
+                            <div className="w-2.5 h-2.5 rounded-full border border-white/50" style={{ backgroundColor: product.dominantColor.hex }} />
+                            <span className="text-[9px] font-bold text-white uppercase">{product.dominantColor.name || 'Unknown'}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1 px-1">
+                        <h4 className="font-bold text-sm text-gray-900 truncate leading-none">{product.name}</h4>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm font-black text-primary">${(product.price || 0).toFixed(2)}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">{product.brand}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center space-y-4">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                      <Filter className="w-8 h-8 text-gray-300" />
                     </div>
-                    <h4 className="font-medium text-sm text-gray-900 truncate">{product.name}</h4>
-                    <p className="text-xs text-gray-500">${(product.price_cents / 100).toFixed(2)}</p>
-                  </Link>
-                ))}
+                    <p className="text-gray-500 font-medium">No matches found with current filters.</p>
+                    <button onClick={() => setFilters({ colors: [] })} className="text-primary font-bold text-sm hover:underline">Clear all filters</button>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -12,8 +12,18 @@ import { generateEnhancedOutfit } from '../controllers/enhancedOutfitController'
 import axios from 'axios';
 import { Product } from '../models/Product';
 
+import { analyzeImage, getSimilarProducts } from '../controllers/visualSearchController';
+
 const router = Router();
 
+// --- VISUAL SEARCH (NEW FLOW) ---
+// STEP 2: One-time analysis
+router.post('/visual-search/analyze', upload.single('image'), analyzeImage);
+
+// STEP 3 & 4: Retrieval and Refinement
+router.post('/visual-search/results', getSimilarProducts);
+
+// --- LEGACY ---
 router.post('/image-search', upload.single('image'), searchByImageColor);
 router.get('/recommendations', getOutfitRecommendations);
 
@@ -23,28 +33,28 @@ router.post('/suggest-category', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'Image file required.' });
     }
-    
+
     try {
         // Get allowed categories and subcategories from MongoDB
         const categories = await Product.distinct("category", {
             isPublished: true,
             category: { $ne: "" },
         });
-        
+
         const subCategories = await Product.distinct("subCategory", {
             isPublished: true,
             subCategory: { $ne: "" },
         });
-        
+
         const suggestion = await getSuggestedCategoryAndSubCategoryFromGemini(
-            req.file.buffer, 
+            req.file.buffer,
             req.file.mimetype,
             categories.length > 0 ? categories : undefined,
             subCategories.length > 0 ? subCategories : undefined
         );
-        res.json({ 
+        res.json({
             category: suggestion.category,
-            subCategory: suggestion.subCategory 
+            subCategory: suggestion.subCategory
         });
     } catch (error) {
         console.error(error);
@@ -57,7 +67,7 @@ router.post('/suggest-category', upload.single('image'), async (req, res) => {
 router.post('/suggest-category-url', async (req, res) => {
     try {
         const { imageUrl } = req.body;
-        
+
         if (!imageUrl) {
             return res.status(400).json({ message: 'Image URL is required.' });
         }
@@ -76,7 +86,7 @@ router.post('/suggest-category-url', async (req, res) => {
             isPublished: true,
             category: { $ne: "" },
         });
-        
+
         const subCategories = await Product.distinct("subCategory", {
             isPublished: true,
             subCategory: { $ne: "" },
@@ -88,10 +98,10 @@ router.post('/suggest-category-url', async (req, res) => {
             categories.length > 0 ? categories : undefined,
             subCategories.length > 0 ? subCategories : undefined
         );
-        
-        res.json({ 
+
+        res.json({
             category: suggestion.category,
-            subCategory: suggestion.subCategory 
+            subCategory: suggestion.subCategory
         });
     } catch (error) {
         console.error('Image URL processing error:', error);

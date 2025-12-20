@@ -112,6 +112,7 @@ const CATEGORY_ALIASES: Record<string, string> = {
     'hoodie': 'Sweatshirts', 'hoodies': 'Sweatshirts',
 
     // Footwear
+    'footwear': 'Casual Shoes',
     'heel': 'Heels', 'heels': 'Heels', 'high heel': 'Heels', 'high heels': 'Heels',
     'flat': 'Flats', 'flats': 'Flats',
     'sandal': 'Sandals', 'sandals': 'Sandals',

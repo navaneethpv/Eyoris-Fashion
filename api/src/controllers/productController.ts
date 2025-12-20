@@ -286,11 +286,12 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // Search Logic (Regex + Scoring) - Enhanced with normalization
     let isSearch = false;
+    let resolvedCategory: string | null = null;
     if (q && typeof q === 'string') {
       isSearch = true;
 
       // Try to resolve query to a category (e.g., "Tshirt" → "Tshirts")
-      const resolvedCategory = resolveSearchCategory(q);
+      resolvedCategory = resolveSearchCategory(q);
       console.log(`[SEARCH] Query: "${q}" → Resolved Category: "${resolvedCategory}"`);
 
       // If we resolved a category and no explicit category filter exists, use it
@@ -404,12 +405,18 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     });
 
+    // Normalize search intent to match existing category logic without refactoring
+    console.log(`[SEARCH DEBUG] Page: ${page}, Query: "${q}", Category: "${matchStage.category}", Resolved: "${resolvedCategory}"`);
+    console.log(`[SEARCH DEBUG] Match Stage:`, JSON.stringify(matchStage, null, 2));
+
     // Execute Pipeline
     const result = await Product.aggregate(pipeline);
 
     // Extract results
     const data = result[0].data || [];
     const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+
+    console.log(`[SEARCH DEBUG] Results - Total: ${total}, Page: ${page}, Data Count: ${data.length}`);
 
     res.json({
       data,

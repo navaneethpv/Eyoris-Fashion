@@ -9,6 +9,7 @@ import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 import { normalizeCategoryName, VALID_CATEGORIES } from '../utils/categoryNormalizer';
+import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 

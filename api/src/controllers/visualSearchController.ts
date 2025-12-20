@@ -3,6 +3,7 @@ import { Product } from '../models/Product';
 import { analyzeImageForVisualSearch } from '../utils/visualSearchAI';
 import { calculateColorDistance, distanceToSimilarity } from '../utils/colorMath';
 import { normalizeCategoryName } from '../utils/categoryNormalizer';
+import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 
 /**
  * STEP 2: Visual Analysis (AI – One Time)

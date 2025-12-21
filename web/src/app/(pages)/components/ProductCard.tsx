@@ -153,70 +153,22 @@ export default function ProductCard({ product }: ProductCardProps) {
               {localProduct.offer_tag}
             </span>
           )}
-          {/* Wishlist Button - Ultra Unique & Attractive */}
+          {/* Wishlist Button - Instagram Style (Heart Only) */}
           {user && (
-            <div className="absolute top-2 right-2">
-              {/* Particle burst effect container */}
-              <button
-                onClick={toggleWishlist}
-                disabled={wishlistLoading}
-                className={`group relative overflow-visible`}
-                title={
-                  isWishlisted ? "Remove from wishlist" : "Add to wishlist"
-                }
-              >
-                {/* Animated rings on hover */}
-                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute inset-0 rounded-full bg-pink-400/20 animate-ping"></div>
-                  <div
-                    className="absolute inset-0 rounded-full bg-red-400/20 animate-ping"
-                    style={{ animationDelay: "150ms" }}
-                  ></div>
-                </div>
-
-                {/* Main button with unique hexagon-inspired shape */}
-                <div
-                  className={`relative p-3.5 rounded-2xl transition-all duration-300 transform hover:scale-125 hover:rotate-12 disabled:opacity-50 ${
-                    isWishlisted
-                      ? "bg-gradient-to-tr from-pink-500 via-red-500 to-rose-600 shadow-2xl shadow-pink-500/60 animate-pulse"
-                      : "bg-gradient-to-br from-white via-pink-50 to-white shadow-xl hover:shadow-2xl hover:shadow-red-300/40 border-2 border-pink-200"
-                  }`}
-                >
-                  {/* Shimmer effect overlay */}
-                  {!isWishlisted && (
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                  )}
-
-                  {/* Sparkle icons around heart */}
-                  {isWishlisted && (
-                    <>
-                      <div
-                        className="absolute -top-1 -right-1 text-yellow-300 animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      >
-                        ✨
-                      </div>
-                      <div
-                        className="absolute -bottom-1 -left-1 text-yellow-300 animate-bounce"
-                        style={{ animationDelay: "200ms" }}
-                      >
-                        ✨
-                      </div>
-                    </>
-                  )}
-
-                  {/* Heart icon */}
-                  <Heart
-                    className={`w-7 h-7 relative z-10 transition-all duration-300 ${
-                      isWishlisted
-                        ? "fill-white text-white drop-shadow-2xl scale-110 animate-bounce-once filter brightness-125"
-                        : "text-red-500 group-hover:fill-red-500 group-hover:scale-125 group-hover:rotate-12 drop-shadow-md"
-                    }`}
-                    strokeWidth={2.5}
-                  />
-                </div>
-              </button>
-            </div>
+            <button
+              onClick={toggleWishlist}
+              disabled={wishlistLoading}
+              className="absolute top-3 right-3 z-20 group transition-transform duration-200 hover:scale-125 disabled:opacity-50"
+              title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart
+                className={`w-7 h-7 transition-all duration-300 drop-shadow-lg ${
+                  isWishlisted
+                    ? "fill-red-500 text-red-500 scale-110 animate-bounce-once"
+                    : "fill-white/90 text-gray-800 stroke-[2.5] hover:fill-red-500 hover:text-red-500"
+                }`}
+              />
+            </button>
           )}
         </div>
 

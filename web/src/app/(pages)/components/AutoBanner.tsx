@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const banners = [
@@ -9,6 +10,7 @@ const banners = [
     subtitle: "Discover the hottest trends",
     description: "Up to 50% off on selected items",
     buttonText: "Shop Now",
+    link: "/product?gender=women",
     image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920&h=600&fit=crop",
   },
   {
@@ -17,6 +19,7 @@ const banners = [
     subtitle: "Fresh styles every week",
     description: "Be the first to shop the latest collections",
     buttonText: "Explore",
+    link: "/product",
     image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=600&fit=crop",
   },
   {
@@ -25,6 +28,7 @@ const banners = [
     subtitle: "Luxury fashion for everyone",
     description: "Exclusive designs at affordable prices",
     buttonText: "View Collection",
+    link: "/product?gender=men",
     image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1920&h=600&fit=crop",
   },
   {
@@ -33,6 +37,7 @@ const banners = [
     subtitle: "Don't miss out",
     description: "Extra 20% off with code: FASHION20",
     buttonText: "Shop Sale",
+    link: "/product",
     image: "https://images.unsplash.com/photo-1558769132-cb1aea88f296?w=1920&h=600&fit=crop",
   },
 ];
@@ -91,9 +96,12 @@ export default function AutoBanner() {
               <p className="text-lg md:text-xl text-white/90 mb-8 font-medium">
                 {banner.description}
               </p>
-              <button className="px-8 py-4 bg-white text-gray-900 font-bold text-lg rounded-full hover:bg-gray-100 transition-all hover:scale-105 shadow-xl">
+              <Link 
+                href={banner.link}
+                className="inline-block px-8 py-4 bg-white text-gray-900 font-bold text-lg rounded-full hover:bg-gray-100 transition-all hover:scale-105 shadow-xl"
+              >
                 {banner.buttonText}
-              </button>
+              </Link>
             </div>
           </div>
         </div>

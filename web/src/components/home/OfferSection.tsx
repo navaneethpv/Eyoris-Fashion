@@ -88,10 +88,6 @@ export default function OfferSection() {
             Curated offers for how you dress today
           </h2>
         </div>
-        <p className="hidden md:block text-xs text-gray-500 max-w-xs">
-          Jump straight into themed edits instead of scrolling endlessly through
-          categories.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">

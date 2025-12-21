@@ -1,6 +1,7 @@
 import Navbar from './(pages)/components/Navbar';
 import ProductCard from './(pages)/components/ProductCard';
 import AutoBanner from './(pages)/components/AutoBanner';
+import MostViewedSlider from './(pages)/components/MostViewedSlider';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import OfferSection from '@/components/home/OfferSection';
@@ -64,6 +65,9 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      {/* Most Viewed Section - Interactive Slider */}
+      <MostViewedSlider products={products} />
     </div>
   );
 }

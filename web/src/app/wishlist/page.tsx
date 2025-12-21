@@ -121,11 +121,11 @@ export default function WishlistPage() {
                     {/* Price */}
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-lg font-bold text-gray-900">
-                        ${(product.price_cents / 100).toFixed(2)}
+                        ₹{(product.price_cents / 100).toFixed(2)}
                       </span>
                       {product.price_before_cents && (
                         <span className="text-sm text-gray-400 line-through">
-                          ${(product.price_before_cents / 100).toFixed(2)}
+                          ₹{(product.price_before_cents / 100).toFixed(2)}
                         </span>
                       )}
                     </div>

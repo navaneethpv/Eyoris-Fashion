@@ -2,21 +2,24 @@
 import { useState, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs'; 
 import Navbar from '../components/Navbar';
-import { User, ShoppingBag, MapPin, ChevronRight, LogOut, Loader2, Link as LinkIcon, Trash2 } from 'lucide-react'; // 👈 Adjusted Lucide Icons
+import { User, ShoppingBag, MapPin, ChevronRight, LogOut, Loader2, Link as LinkIcon, Trash2, Heart } from 'lucide-react'; // 👈 Adjusted Lucide Icons
 import Link from 'next/link';
 import AccountInfo from '../components/profile/AccountInfo';
 import OrderHistory from '../components/profile/OrderHistory';
 import AddressBook from '../components/profile/AddressBook';
+import WishlistTab from '../components/profile/WishlistTab';
 // import { SignInButton } from '@clerk/nextjs';
 // Define the available tabs (components remain the same)
 const PROFILE_COMPONENTS: { [key: string]: React.ElementType } = {
   account: AccountInfo,
   orders: OrderHistory,
   addresses: AddressBook,
+  wishlist: WishlistTab,
 };
 
 const PROFILE_LINKS = [
   { id: 'orders', name: 'My Orders', description: 'View, track, or cancel orders', icon: ShoppingBag, color: 'text-orange-500' },
+  { id: 'wishlist', name: 'My Wishlist', description: 'View and manage saved products', icon: Heart, color: 'text-red-500' },
   { id: 'account', name: 'Personal Information', description: 'Edit your name, email, and password', icon: User, color: 'text-blue-500' },
   { id: 'addresses', name: 'Manage Addresses', description: 'View and update shipping addresses', icon: MapPin, color: 'text-green-500' },
 ];

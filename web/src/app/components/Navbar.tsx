@@ -4,12 +4,13 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import ImageSearchModal from './ImageSearchModal';
-import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from './SearchInput'; // 👈 CRITICAL: Import the new component
 
 export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchParams = useSearchParams();
+  const { user } = useUser();
 
   return (
     <>
@@ -75,7 +76,13 @@ export default function Navbar() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <UserButton afterSignOutUrl="/" />
+                <Link href="/profile" className="flex items-center gap-2 cursor-pointer group">
+                  <img 
+                    src={user?.imageUrl} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 group-hover:border-primary transition"
+                  />
+                </Link>
               </SignedIn>
             </div>
 

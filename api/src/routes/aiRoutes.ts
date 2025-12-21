@@ -12,13 +12,16 @@ import { generateEnhancedOutfit } from '../controllers/enhancedOutfitController'
 import axios from 'axios';
 import { Product } from '../models/Product';
 
-import { analyzeImage, getSimilarProducts } from '../controllers/visualSearchController';
+import { analyzeImage, analyzeImageFromUrl, getSimilarProducts } from '../controllers/visualSearchController';
 
 const router = Router();
 
 // --- VISUAL SEARCH (NEW FLOW) ---
 // STEP 2: One-time analysis
 router.post('/visual-search/analyze', upload.single('image'), analyzeImage);
+
+// STEP 2 (URL Variant): Analysis from image URL
+router.post('/visual-search/analyze-url', analyzeImageFromUrl);
 
 // STEP 3 & 4: Retrieval and Refinement
 router.post('/visual-search/results', getSimilarProducts);

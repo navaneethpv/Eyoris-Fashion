@@ -35,6 +35,7 @@ interface AnalysisData {
 
 export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
@@ -58,6 +59,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
+      setImageUrl(''); // Clear URL when file is selected
       setPreview(URL.createObjectURL(selectedFile));
       setResults([]);
       setAnalysis(null);
@@ -65,18 +67,46 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
     }
   };
 
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setImageUrl(url);
+    if (url.trim()) {
+      setFile(null); // Clear file when URL is entered
+      setPreview(url); // Use URL as preview
+      setResults([]);
+      setAnalysis(null);
+      setFilters({ colors: [] });
+    }
+  };
+
   const handleAnalyze = async () => {
-    if (!file) return;
+    // Check if either file or URL is provided
+    if (!file && !imageUrl.trim()) {
+      alert('Please upload an image or enter an image URL');
+      return;
+    }
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append('image', file);
 
     try {
-      const res = await fetch('http://localhost:4000/api/ai/visual-search/analyze', {
-        method: 'POST',
-        body: formData,
-      });
+      let res;
+      
+      // Use URL-based endpoint if imageUrl is provided
+      if (imageUrl.trim()) {
+        res = await fetch('http://localhost:4000/api/ai/visual-search/analyze-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: imageUrl.trim() }),
+        });
+      } else {
+        // Use existing file upload endpoint
+        const formData = new FormData();
+        formData.append('image', file!);
+        res = await fetch('http://localhost:4000/api/ai/visual-search/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+      }
       
       const data = await res.json();
       
@@ -126,6 +156,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
   const resetArr = () => {
     setFile(null);
+    setImageUrl('');
     setPreview(null);
     setResults([]);
     setAnalysis(null);
@@ -210,6 +241,35 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                 accept="image/*"
               />
 
+              {/* OR Divider + URL Input */}
+              {!preview && (
+                <>
+                  <div className="flex items-center gap-4 w-full max-w-md">
+                    <div className="h-px bg-gray-300 flex-1" />
+                    <span className="text-xs font-bold text-gray-400">OR</span>
+                    <div className="h-px bg-gray-300 flex-1" />
+                  </div>
+
+                  <div className="w-full max-w-md">
+                    <input
+                      type="text"
+                      value={imageUrl}
+                      onChange={handleUrlChange}
+                      placeholder="Paste image URL here (https://...)"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                    {imageUrl.trim() && (
+                      <button
+                        onClick={handleAnalyze}
+                        className="mt-3 w-full px-8 py-2.5 rounded-full font-bold text-sm bg-primary text-white hover:bg-violet-700 shadow-lg shadow-violet-200"
+                      >
+                        Analyze from URL
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+
               {preview && (
                 <div className="flex gap-4">
                   <button onClick={resetArr} className="px-6 py-2.5 rounded-full font-bold text-sm border border-gray-300 hover:bg-gray-50">
@@ -217,7 +277,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                   </button>
                   <button 
                     onClick={handleAnalyze}
-                    className="px-8 py-2.5 rounded-full font-bold text-sm bg-primary text-white hover:bg-violet-700 shadow-lg shadow-violet-200"
+                    className="px-8 py-2.5 rounded-full font-bold text-sm bg-violet-200 text-gray-700 hover:bg-violet-700 hover:text-white hover:cursor-pointer shadow-lg shadow-violet-200"
                   >
                     Analyze Image
                   </button>

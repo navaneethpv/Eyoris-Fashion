@@ -4,6 +4,7 @@ import { analyzeImageForVisualSearch } from '../utils/visualSearchAI';
 import { calculateColorDistance, distanceToSimilarity } from '../utils/colorMath';
 import { normalizeCategoryName } from '../utils/categoryNormalizer';
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
+import axios from 'axios';
 
 /**
  * STEP 2: Visual Analysis (AI – One Time)
@@ -24,6 +25,59 @@ export const analyzeImage = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Analysis Error:', error);
         res.status(500).json({ message: error.message || 'Error analyzing image' });
+    }
+};
+
+/**
+ * STEP 2 (URL Variant): Visual Analysis from Image URL
+ * Extracts category, semantic tags, and dominant color from an image URL.
+ * 
+ * This reuses the existing analyzeImageForVisualSearch utility after downloading the image.
+ */
+export const analyzeImageFromUrl = async (req: Request, res: Response) => {
+    try {
+        const { imageUrl } = req.body;
+
+        // Validate imageUrl
+        if (!imageUrl) {
+            return res.status(400).json({ message: 'Image URL is required' });
+        }
+
+        // Validate URL format (must be http or https)
+        if (!/^https?:\/\//i.test(imageUrl)) {
+            return res.status(400).json({ message: 'Invalid image URL. Must start with http:// or https://' });
+        }
+
+        // Download the image
+        let response;
+        try {
+            response = await axios.get(imageUrl, {
+                responseType: 'arraybuffer',
+                timeout: 15000, // 15 second timeout
+            });
+        } catch (downloadError: any) {
+            console.error('Image download error:', downloadError.message);
+            if (downloadError.code === 'ECONNABORTED') {
+                return res.status(500).json({ message: 'Image URL request timed out. Please try a different URL.' });
+            }
+            return res.status(500).json({ message: 'Unable to download image from URL. Please check the URL and try again.' });
+        }
+
+        const buffer = Buffer.from(response.data);
+        const mimeType = response.headers['content-type'] || 'image/jpeg';
+
+        // Validate it's an image
+        if (!mimeType.startsWith('image/')) {
+            return res.status(400).json({ message: 'URL does not point to an image' });
+        }
+
+        // Reuse existing visual search analysis
+        const result = await analyzeImageForVisualSearch(buffer, mimeType);
+
+        res.json(result);
+    } catch (error: any) {
+        console.error('URL Analysis Error:', error);
+        res.status(500).json({ message: error.message || 'Error analyzing image from URL' });
     }
 };
 

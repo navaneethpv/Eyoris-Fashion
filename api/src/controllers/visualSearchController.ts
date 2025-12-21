@@ -101,33 +101,17 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Category is required' });
         }
 
-        // Resolve all search and image inputs to DB-backed articleTypes for exact matching
-        const allArticleTypes = await getAllArticleTypes();
+        // ========================================
+        // STRICT CATEGORY FILTERING (EXACT MATCH ONLY)
+        // ========================================
+        // The AI-detected category must match exactly - no fuzzy matching.
+        // This ensures Tshirts returns ONLY Tshirts, not Shirts or Tops.
+        console.log(`[VISUAL SEARCH] Using STRICT filter for category: "${category}"`);
 
-        // Try broad term resolution first (footwear, accessories, bags, jewelry)
-        let resolvedTypes = resolveBroadTerms(category, allArticleTypes);
-
-        // If no broad term match, try direct resolution
-        if (resolvedTypes.length === 0) {
-            resolvedTypes = resolveArticleTypes(category, allArticleTypes);
-        }
-
-        console.log(`[VISUAL SEARCH] AI: "${category}" → Resolved: [${resolvedTypes.join(', ')}]`);
-
-        // If no article types resolved, return empty with message
-        if (resolvedTypes.length === 0) {
-            console.warn(`[VISUAL SEARCH] No matching article types for: "${category}"`);
-            return res.json({
-                products: [],
-                totalCount: 0,
-                message: `No ${category} products found in our store`
-            });
-        }
-
-        // Structural attributes are used only for ranking, not filtering
+        // Build query with STRICT category match (no fuzzy resolution)
         const query: any = {
             isPublished: { $ne: false },
-            category: { $in: resolvedTypes }
+            category: category  // EXACT match only
         };
 
         // Color and other filters are optional user refinements
@@ -148,10 +132,23 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
 
         const candidates = await Product.find(query).limit(200).lean();
 
-        console.log(`[VISUAL SEARCH] Query:`, JSON.stringify(query));
-        console.log(`[VISUAL SEARCH] Found ${candidates.length} candidates`);
+        console.log(`[VISUAL SEARCH] Strict Query:`, JSON.stringify(query));
+        console.log(`[VISUAL SEARCH] Found ${candidates.length} strict category matches`);
+
+        // ========================================
+        // EMPTY RESULT HANDLING
+        // ========================================
+        if (candidates.length === 0) {
+            console.warn(`[VISUAL SEARCH] No products found for strict category: "${category}"`);
+            return res.json({
+                results: [],
+                total: 0,
+                message: `No ${category} found matching this image`
+            });
+        }
+
         if (candidates.length > 0) {
-            console.log(`[VISUAL SEARCH] Sample product:`, {
+            console.log(`[VISUAL SEARCH] Sample strict match:`, {
                 name: candidates[0].name,
                 category: candidates[0].category
             });

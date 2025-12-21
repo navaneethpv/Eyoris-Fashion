@@ -1,7 +1,7 @@
-"use client"
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const banners = [
   {
@@ -11,7 +11,8 @@ const banners = [
     description: "Up to 50% off on selected items",
     buttonText: "Shop Now",
     link: "/product?gender=women",
-    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920&h=600&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920&h=600&fit=crop",
   },
   {
     id: 2,
@@ -20,7 +21,8 @@ const banners = [
     description: "Be the first to shop the latest collections",
     buttonText: "Explore",
     link: "/product",
-    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=600&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=600&fit=crop",
   },
   {
     id: 3,
@@ -29,7 +31,8 @@ const banners = [
     description: "Exclusive designs at affordable prices",
     buttonText: "View Collection",
     link: "/product?gender=men",
-    image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1920&h=600&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1920&h=600&fit=crop",
   },
   {
     id: 4,
@@ -38,7 +41,8 @@ const banners = [
     description: "Extra 20% off with code: FASHION20",
     buttonText: "Shop Sale",
     link: "/product",
-    image: "https://images.unsplash.com/photo-1558769132-cb1aea88f296?w=1920&h=600&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1920&h=600&fit=crop",
   },
 ];
 
@@ -73,7 +77,7 @@ export default function AutoBanner() {
         <div
           key={banner.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
         >
           {/* Background Image */}
@@ -96,7 +100,7 @@ export default function AutoBanner() {
               <p className="text-lg md:text-xl text-white/90 mb-8 font-medium">
                 {banner.description}
               </p>
-              <Link 
+              <Link
                 href={banner.link}
                 className="inline-block px-8 py-4 bg-white text-gray-900 font-bold text-lg rounded-full hover:bg-gray-100 transition-all hover:scale-105 shadow-xl"
               >
@@ -129,8 +133,8 @@ export default function AutoBanner() {
             onClick={() => goToSlide(index)}
             className={`transition-all duration-300 rounded-full ${
               index === currentSlide
-                ? 'w-12 h-3 bg-white'
-                : 'w-3 h-3 bg-white/50 hover:bg-white/75'
+                ? "w-12 h-3 bg-white"
+                : "w-3 h-3 bg-white/50 hover:bg-white/75"
             }`}
           />
         ))}

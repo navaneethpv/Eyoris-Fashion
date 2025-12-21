@@ -1,23 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import ProductCard from '../components/ProductCard';
-import ProductFilters, { SizeFilterMode } from '../components/ProductFilters';
-import Pagination from '../components/Pagination';
-
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search } from "lucide-react";
+import Navbar from "../components/Navbar";
+import ProductCard from "../components/ProductCard";
+import ProductFilters, { SizeFilterMode } from "../components/ProductFilters";
+import Pagination from "../components/Pagination";
 
 // Interface for Search Parameters coming from the URL
 interface SearchParams {
   page?: string;
-  articleType?: string;  // Primary category (e.g., Tshirts, Shirts, Jeans)
-  gender?: string;       // Filter: Men, Women, Kids
+  articleType?: string; // Primary category (e.g., Tshirts, Shirts, Jeans)
+  gender?: string; // Filter: Men, Women, Kids
   sort?: string;
   minPrice?: string;
   maxPrice?: string;
-  search?: string;       // text search (name / brand / category / color)
+  search?: string; // text search (name / brand / category / color)
   brand?: string;
   size?: string;
   color?: string;
@@ -28,38 +27,44 @@ type ProductsApiResponse = {
   meta: ApiMeta;
 };
 
-async function getProducts(searchParams: SearchParams): Promise<ProductsApiResponse> {
+async function getProducts(
+  searchParams: SearchParams
+): Promise<ProductsApiResponse> {
   const params = new URLSearchParams();
-  if (searchParams.page) params.set('page', searchParams.page);
-  // Set limit to 100 products per page (or more if gender filter is active to ensure results after client-side filtering)
-  // Set limit to 24 products per page (standard)
-  const limit = 24;
-  params.set('limit', String(limit));
-  
+  if (searchParams.page) params.set("page", searchParams.page);
+  // Set limit to 60 products per page for better browsing experience
+  const limit = 60;
+  params.set("limit", String(limit));
+
   // articleType maps to 'category' in backend
-  if (searchParams.articleType) params.set('category', searchParams.articleType);
-  
+  if (searchParams.articleType)
+    params.set("category", searchParams.articleType);
+
   // Pass gender filter to backend (Normalize to Title Case for API)
   if (searchParams.gender) {
     const rawGender = searchParams.gender.trim();
     // Convert "men" -> "Men", "women" -> "Women", "kids" -> "Kids"
-    const normalizedGender = rawGender.charAt(0).toUpperCase() + rawGender.slice(1).toLowerCase();
-    params.set('gender', normalizedGender);
+    const normalizedGender =
+      rawGender.charAt(0).toUpperCase() + rawGender.slice(1).toLowerCase();
+    params.set("gender", normalizedGender);
   }
-  
-  if (searchParams.sort) params.set('sort', searchParams.sort);
-  if (searchParams.minPrice) params.set('minPrice', searchParams.minPrice);
-  if (searchParams.maxPrice) params.set('maxPrice', searchParams.maxPrice);
+
+  if (searchParams.sort) params.set("sort", searchParams.sort);
+  if (searchParams.minPrice) params.set("minPrice", searchParams.minPrice);
+  if (searchParams.maxPrice) params.set("maxPrice", searchParams.maxPrice);
   // Brand, size, color are applied client-side (legacy legacy but okay)
   // Search is now handled server-side
 
-  if (searchParams.search) params.set('q', searchParams.search);
+  if (searchParams.search) params.set("q", searchParams.search);
 
   try {
-    const res = await fetch(`http://localhost:4000/api/products?${params.toString()}`, {
-      cache: 'no-store'
-    });
-    
+    const res = await fetch(
+      `http://localhost:4000/api/products?${params.toString()}`,
+      {
+        cache: "no-store",
+      }
+    );
+
     if (!res.ok) return { data: [], meta: { page: 1, pages: 1, total: 0 } };
     return await res.json();
   } catch (error) {
@@ -88,7 +93,7 @@ type ProductForContext = {
 };
 
 function inferSizeFilterMode(products: ProductForContext[]): SizeFilterMode {
-  if (!products || products.length === 0) return 'none';
+  if (!products || products.length === 0) return "none";
 
   const masterCategories = new Set(
     products
@@ -96,20 +101,20 @@ function inferSizeFilterMode(products: ProductForContext[]): SizeFilterMode {
       .filter((v): v is string => !!v)
   );
 
-  const hasApparel = masterCategories.has('apparel');
-  const hasFootwear = masterCategories.has('footwear');
-  const hasAccessories = masterCategories.has('accessories');
+  const hasApparel = masterCategories.has("apparel");
+  const hasFootwear = masterCategories.has("footwear");
+  const hasAccessories = masterCategories.has("accessories");
 
   if (hasAccessories && !hasApparel && !hasFootwear) {
-    return 'none';
+    return "none";
   }
 
   if (hasApparel && !hasFootwear && !hasAccessories) {
-    return 'apparel';
+    return "apparel";
   }
 
   if (hasFootwear && !hasApparel && !hasAccessories) {
-    return 'footwear';
+    return "footwear";
   }
 
   let alphaCount = 0;
@@ -134,10 +139,10 @@ function inferSizeFilterMode(products: ProductForContext[]): SizeFilterMode {
     if (alphaCount + numericCount > 30) break;
   }
 
-  if (alphaCount > 0 && numericCount === 0) return 'apparel';
-  if (numericCount > 0 && alphaCount === 0) return 'footwear';
+  if (alphaCount > 0 && numericCount === 0) return "apparel";
+  if (numericCount > 0 && alphaCount === 0) return "footwear";
 
-  return 'none';
+  return "none";
 }
 
 function applyClientFilters(
@@ -155,9 +160,9 @@ function applyClientFilters(
 
   // 1. ArticleType
   if (articleType) {
-    if (articleType.toLowerCase() === 'footwear') {
+    if (articleType.toLowerCase() === "footwear") {
       filtered = filtered.filter(
-        (p) => p.masterCategory?.trim().toLowerCase() === 'footwear'
+        (p) => p.masterCategory?.trim().toLowerCase() === "footwear"
       );
     } else {
       filtered = filtered.filter((p) => p.category?.trim() === articleType);
@@ -166,7 +171,6 @@ function applyClientFilters(
 
   // 2. Gender filter
   // 2. Gender filter (Handled by Backend)
-
 
   // 3. Search (REMOVED - Backend handles it)
 
@@ -181,16 +185,18 @@ function applyClientFilters(
   if (color) {
     filtered = filtered.filter(
       (p) =>
-        p.dominantColor?.name &&
-        p.dominantColor.name.toLowerCase() === color
+        p.dominantColor?.name && p.dominantColor.name.toLowerCase() === color
     );
   }
 
   // 6. Size
   if (size) {
     filtered = filtered.filter((p) =>
-      (p.variants || []).some((v) =>
-        String(v.size ?? '').trim().toLowerCase() === size
+      (p.variants || []).some(
+        (v) =>
+          String(v.size ?? "")
+            .trim()
+            .toLowerCase() === size
       )
     );
   }
@@ -204,9 +210,7 @@ type ApiMeta = {
   total: number;
 };
 
-type SortKey = 'price_asc' | 'price_desc' | 'new' | 'rating' | undefined;
-
-
+type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
@@ -219,16 +223,16 @@ export default function ProductsPage() {
 
   const resolvedSearchParams: SearchParams = useMemo(
     () => ({
-      page: searchParams.get('page') || undefined,
-      articleType: searchParams.get('articleType') || undefined,
-      gender: searchParams.get('gender') || undefined,
-      sort: searchParams.get('sort') || undefined,
-      minPrice: searchParams.get('minPrice') || undefined,
-      maxPrice: searchParams.get('maxPrice') || undefined,
-      search: searchParams.get('search') || undefined,
-      brand: searchParams.get('brand') || undefined,
-      size: searchParams.get('size') || undefined,
-      color: searchParams.get('color') || undefined,
+      page: searchParams.get("page") || undefined,
+      articleType: searchParams.get("articleType") || undefined,
+      gender: searchParams.get("gender") || undefined,
+      sort: searchParams.get("sort") || undefined,
+      minPrice: searchParams.get("minPrice") || undefined,
+      maxPrice: searchParams.get("maxPrice") || undefined,
+      search: searchParams.get("search") || undefined,
+      brand: searchParams.get("brand") || undefined,
+      size: searchParams.get("size") || undefined,
+      color: searchParams.get("color") || undefined,
     }),
     [searchParams]
   );
@@ -266,19 +270,15 @@ export default function ProductsPage() {
 
     if (!sortKey) return list;
 
-    if (sortKey === 'price_asc') {
-      return list.sort(
-        (a, b) => (a.price_cents ?? 0) - (b.price_cents ?? 0)
-      );
+    if (sortKey === "price_asc") {
+      return list.sort((a, b) => (a.price_cents ?? 0) - (b.price_cents ?? 0));
     }
 
-    if (sortKey === 'price_desc') {
-      return list.sort(
-        (a, b) => (b.price_cents ?? 0) - (a.price_cents ?? 0)
-      );
+    if (sortKey === "price_desc") {
+      return list.sort((a, b) => (b.price_cents ?? 0) - (a.price_cents ?? 0));
     }
 
-    if (sortKey === 'new') {
+    if (sortKey === "new") {
       return list.sort((a, b) => {
         const da = a.createdAt ? Date.parse(a.createdAt) : 0;
         const db = b.createdAt ? Date.parse(b.createdAt) : 0;
@@ -286,10 +286,8 @@ export default function ProductsPage() {
       });
     }
 
-    if (sortKey === 'rating') {
-      return list.sort(
-        (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
-      );
+    if (sortKey === "rating") {
+      return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
 
     return list;
@@ -297,7 +295,7 @@ export default function ProductsPage() {
 
   const sizeFilterMode = inferSizeFilterMode(filteredProducts);
 
-  const genders = ['Men', 'Women', 'Kids'];
+  const genders = ["Men", "Women", "Kids"];
 
   const brands = useMemo(
     () =>
@@ -324,7 +322,7 @@ export default function ProductsPage() {
   );
 
   // Derive Page Title
-  let pageTitle = 'All Products';
+  let pageTitle = "All Products";
   if (resolvedSearchParams.search) {
     pageTitle = `Results for "${resolvedSearchParams.search}"`;
   } else if (resolvedSearchParams.articleType) {
@@ -347,9 +345,9 @@ export default function ProductsPage() {
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (!value) {
-      params.delete('sort');
+      params.delete("sort");
     } else {
-      params.set('sort', value);
+      params.set("sort", value);
     }
     router.push(
       params.toString() ? `${pathname}?${params.toString()}` : pathname,
@@ -359,9 +357,16 @@ export default function ProductsPage() {
 
   const clearAllFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
-    ['gender', 'brand', 'color', 'size', 'minPrice', 'maxPrice', 'search', 'sort'].forEach(
-      (key) => params.delete(key)
-    );
+    [
+      "gender",
+      "brand",
+      "color",
+      "size",
+      "minPrice",
+      "maxPrice",
+      "search",
+      "sort",
+    ].forEach((key) => params.delete(key));
     router.push(
       params.toString() ? `${pathname}?${params.toString()}` : pathname,
       { scroll: false }
@@ -374,7 +379,6 @@ export default function ProductsPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          
           <aside className="w-full md:w-64 flex-shrink-0">
             <div className="sticky top-24">
               <div className="flex justify-between items-center mb-4">
@@ -402,21 +406,18 @@ export default function ProductsPage() {
           <div className="flex-1">
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <h1 className="text-2xl font-bold">
-                    {pageTitle}
-                  </h1>
-
+                <h1 className="text-2xl font-bold">{pageTitle}</h1>
               </div>
 
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-500">
                   {loading
-                    ? 'Loading products...'
+                    ? "Loading products..."
                     : sortedProducts.length > 0
                     ? `Showing ${sortedProducts.length} result${
-                        sortedProducts.length === 1 ? '' : 's'
+                        sortedProducts.length === 1 ? "" : "s"
                       }`
-                    : 'No products found'}
+                    : "No products found"}
                 </p>
 
                 {/* Sort Dropdown */}
@@ -426,7 +427,7 @@ export default function ProductsPage() {
                   </span>
                   <select
                     className="border border-gray-200 text-sm rounded-full px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent cursor-pointer"
-                    value={sortKey || ''}
+                    value={sortKey || ""}
                     onChange={(e) => handleSortChange(e.target.value)}
                   >
                     <option value="">Recommended</option>
@@ -461,11 +462,12 @@ export default function ProductsPage() {
                       key={p._id}
                       product={{
                         _id: p._id,
-                        slug: (p.slug as string) || '',
-                        name: (p.name as string) || '',
-                        brand: (p.brand as string) || '',
+                        slug: (p.slug as string) || "",
+                        name: (p.name as string) || "",
+                        brand: (p.brand as string) || "",
                         price_cents: p.price_cents ?? 0,
-                        price_before_cents: p.price_before_cents ?? p.price_cents ?? 0,
+                        price_before_cents:
+                          p.price_before_cents ?? p.price_cents ?? 0,
                         images: p.images ?? [],
                         offer_tag: p.offer_tag ?? undefined,
                       }}
@@ -480,7 +482,8 @@ export default function ProductsPage() {
                   No products found
                 </h3>
                 <p className="mt-2 text-gray-500">
-                  We couldn&apos;t find anything that matches your current filters.
+                  We couldn&apos;t find anything that matches your current
+                  filters.
                 </p>
                 <button
                   type="button"

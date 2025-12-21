@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Heart, ShoppingBag, User, Mail } from 'lucide-react';
+import Link from "next/link";
+import { Heart, ShoppingBag, User, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -9,41 +9,62 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-tr from-primary to-accent rounded-lg"></div>
-              <span className="text-2xl font-bold text-white">Eyoris Fashion</span>
-            </div>
-            <p className="text-gray-400 mb-4 max-w-md">
-              Discover your perfect style with AI-powered fashion recommendations. 
-              From everyday elegance to statement looks, style comes together effortlessly.
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xl">
+                  E
+                </span>
+              </div>
+              <span className="text-2xl font-black tracking-tight text-gray-200">
+                Eyoris <span className="font-light text-gray-100">Fashion</span>
+              </span>
+            </Link>
+            <p className="text-gray-400 mb-4 max-w-md mt-5">
+              Discover your perfect style with AI-powered fashion
+              recommendations. From everyday elegance to statement looks, style
+              comes together effortlessly.
             </p>
             <div className="flex items-center gap-4">
               <Mail className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-400">contact@eyorisfashion.com</span>
+              <span className="text-sm text-gray-400">
+                contact@eyorisfashion.com
+              </span>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-bold mb-4 uppercase tracking-wide">Shop</h3>
+            <h3 className="text-white font-bold mb-4 uppercase tracking-wide">
+              Shop
+            </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/product?gender=men" className="hover:text-white transition">
+                <Link
+                  href="/product?gender=men"
+                  className="hover:text-white transition"
+                >
                   Men's Fashion
                 </Link>
               </li>
               <li>
-                <Link href="/product?gender=women" className="hover:text-white transition">
+                <Link
+                  href="/product?gender=women"
+                  className="hover:text-white transition"
+                >
                   Women's Fashion
                 </Link>
               </li>
               <li>
-                <Link href="/product?gender=kids" className="hover:text-white transition">
+                <Link
+                  href="/product?gender=kids"
+                  className="hover:text-white transition"
+                >
                   Kids' Fashion
                 </Link>
               </li>
               <li>
-                <Link href="/products" className="hover:text-white transition">
+                <Link href="/product" className="hover:text-white transition">
                   All Products
                 </Link>
               </li>
@@ -52,22 +73,33 @@ export default function Footer() {
 
           {/* Account Links */}
           <div>
-            <h3 className="text-white font-bold mb-4 uppercase tracking-wide">Account</h3>
+            <h3 className="text-white font-bold mb-4 uppercase tracking-wide">
+              Account
+            </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/profile" className="flex items-center gap-2 hover:text-white transition">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 hover:text-white transition"
+                >
                   <User className="w-4 h-4" />
                   My Profile
                 </Link>
               </li>
               <li>
-                <Link href="/wishlist" className="flex items-center gap-2 hover:text-white transition">
+                <Link
+                  href="/wishlist"
+                  className="flex items-center gap-2 hover:text-white transition"
+                >
                   <Heart className="w-4 h-4" />
                   Wishlist
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className="flex items-center gap-2 hover:text-white transition">
+                <Link
+                  href="/cart"
+                  className="flex items-center gap-2 hover:text-white transition"
+                >
                   <ShoppingBag className="w-4 h-4" />
                   Shopping Bag
                 </Link>

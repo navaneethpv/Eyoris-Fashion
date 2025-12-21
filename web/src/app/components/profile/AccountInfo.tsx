@@ -139,17 +139,17 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
                 <button
                   onClick={handleSaveName}
                   disabled={isSavingName}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-violet-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg text-base font-bold hover:bg-violet-700 transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSavingName ? (
                     <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Saving...
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-base">Saving...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-3 h-3" />
-                      Save
+                      <Check className="w-5 h-5" />
+                      <span className="text-base">Save Changes</span>
                     </>
                   )}
                 </button>

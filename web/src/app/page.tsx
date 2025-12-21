@@ -1,5 +1,5 @@
-import Navbar from './components/Navbar';
-import ProductCard from './components/ProductCard';
+import Navbar from './(pages)/components/Navbar';
+import ProductCard from './(pages)/components/ProductCard';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import OfferSection from '@/components/home/OfferSection';

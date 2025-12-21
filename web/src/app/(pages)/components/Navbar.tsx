@@ -16,10 +16,15 @@ export default function Navbar() {
     <>
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-8">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-1">
-            <div className="w-8 h-8 bg-gradient-to-tr from-primary to-accent rounded-lg"></div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">Eyoris</span>
+          {/* Logo - Clean & Modern */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
+              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xl">E</span>
+            </div>
+            <span className="text-2xl font-black tracking-tight text-gray-900">
+              Eyoris <span className="font-light text-gray-600">Fashion</span>
+            </span>
           </Link>
 
           {/* Links (Same as before) */}

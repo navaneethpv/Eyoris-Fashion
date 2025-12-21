@@ -4,7 +4,7 @@ import { Loader2, ArrowLeft, Trash2, Save, X, Plus, Upload, Image as ImageIcon, 
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
-import { useCategorySuggest } from '../../../../../hooks/useCategorySuggest';
+import { useCategorySuggest } from '../../../../../../hooks/useCategorySuggest';
 
 interface Variant {
     size: string;

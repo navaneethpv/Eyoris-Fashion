@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs'; // Import this
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import Navbar from './(pages)/components/Navbar';
+import Footer from './(pages)/components/Footer';
 // import "keen-slider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });

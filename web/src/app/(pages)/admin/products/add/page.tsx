@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Zap } from 'lucide-react';
 import Image from 'next/image';
-import { useCategorySuggest } from '../../../../hooks/useCategorySuggest';
+import { useCategorySuggest } from '../../../../../hooks/useCategorySuggest';
 
 // --- Type Definitions ---
 interface ImageInput {

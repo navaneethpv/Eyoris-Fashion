@@ -5,14 +5,14 @@ import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
 import OfferSection from "@/components/home/OfferSection";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 // Fetch data directly from backend
 async function getTrendingProducts() {
   try {
     const res = await fetch(
-      "http://localhost:4000/api/products?limit=8&sort=price_desc",
-      {
-        cache: "no-store",
-      }
+      `${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=8&sort=price_desc`
     );
     if (!res.ok) throw new Error("Failed to fetch");
     const json = await res.json();

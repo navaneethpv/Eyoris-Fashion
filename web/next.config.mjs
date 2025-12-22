@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "export",
   images: {
     // Disable built-in optimization so external images from any domain work without explicit domains
     unoptimized: true,

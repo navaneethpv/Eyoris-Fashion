@@ -158,11 +158,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button
               onClick={toggleWishlist}
               disabled={wishlistLoading}
-              className="absolute top-3 right-3 z-20 group transition-transform duration-200 hover:scale-125 disabled:opacity-50"
+              className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 group transition-transform duration-200 hover:scale-125 disabled:opacity-50"
               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart
-                className={`w-7 h-7 transition-all duration-300 drop-shadow-lg ${
+                className={`w-6 h-6 sm:w-7 sm:h-7 transition-all duration-300 drop-shadow-lg ${
                   isWishlisted
                     ? "fill-red-500 text-red-500 scale-110 animate-bounce-once"
                     : "fill-white/90 text-gray-800 stroke-[2.5] hover:fill-red-500 hover:text-red-500"
@@ -172,18 +172,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        <div className="p-4">
-          <h3 className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">
+        <div className="p-3 sm:p-4">
+          <h3 className="text-xs sm:text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">
             {localProduct.name}
           </h3>
           <p className="text-xs text-gray-500">{localProduct.brand}</p>
 
           <div className="mt-2 flex items-baseline">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-base sm:text-lg font-bold text-gray-900">
               ₹{((localProduct.price_cents ?? 0) / 100).toFixed(0)}
             </span>
             {localProduct.price_before_cents ? (
-              <span className="ml-2 text-sm text-gray-400 line-through">
+              <span className="ml-2 text-xs sm:text-sm text-gray-400 line-through">
                 ₹{((localProduct.price_before_cents ?? 0) / 100).toFixed(0)}
               </span>
             ) : null}

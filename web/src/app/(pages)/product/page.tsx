@@ -59,13 +59,16 @@ async function getProducts(
 
   if (searchParams.search) params.set("q", searchParams.search);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  if (!API_URL) {
+    console.error("NEXT_PUBLIC_API_URL is not configured");
+    return { data: [], meta: { page: 1, pages: 1, total: 0 } };
+  }
+
   try {
-    const res = await fetch(
-      `http://localhost:4000/api/products?${params.toString()}`,
-      {
-        cache: "no-store",
-      }
-    );
+    const res = await fetch(`${API_URL}/api/products?${params.toString()}`, {
+      cache: "no-store",
+    });
 
     if (!res.ok) return { data: [], meta: { page: 1, pages: 1, total: 0 } };
     return await res.json();
@@ -505,14 +508,16 @@ function ProductPageContent() {
 
 export default function ProductPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex justify-center items-center h-[60vh]">
-          <div className="text-gray-500">Loading products...</div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <Navbar />
+          <div className="flex justify-center items-center h-[60vh]">
+            <div className="text-gray-500">Loading products...</div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ProductPageContent />
     </Suspense>
   );

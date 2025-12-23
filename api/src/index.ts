@@ -38,7 +38,7 @@ const corsOptions = {
 
 
 app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));// MUST be immediately after
+// app.options(/.*/, cors(corsOptions));// MUST be immediately after
 app.use(express.json());
 app.use(morgan("dev"));
 

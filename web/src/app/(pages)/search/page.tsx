@@ -6,7 +6,6 @@ import { ArrowLeft, Camera, Search, X } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "../components/ProductCard";
 import ImageSearchModal from "../components/ImageSearchModal";
-import { useDebounce } from "use-debounce";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -18,7 +17,6 @@ function SearchPageContent() {
 
     const initialQuery = searchParams.get("q") || searchParams.get("search") || "";
     const [query, setQuery] = useState(initialQuery);
-    const [debouncedQuery] = useDebounce(query, 500);
 
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -37,16 +35,12 @@ function SearchPageContent() {
         }
     }, [searchParams]);
 
-    // Redirect to product page on search
-    useEffect(() => {
-        if (!debouncedQuery.trim()) return;
-
-        // Use standard navigation instead of internal state
+    const handleSearch = () => {
+        if (!query.trim()) return;
         const params = new URLSearchParams();
-        params.set("q", debouncedQuery);
+        params.set("q", query.trim());
         router.push(`/product?${params.toString()}`);
-
-    }, [debouncedQuery, router]);
+    };
 
     const handleClear = () => {
         setQuery("");
@@ -64,21 +58,25 @@ function SearchPageContent() {
                 </Link>
 
                 <div className="flex-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
-                    </div>
+                    <button
+                        onClick={handleSearch}
+                        className="absolute inset-y-0 left-0 pl-3 flex items-center cursor-pointer hover:text-primary transition-colors group"
+                    >
+                        <Search className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                    </button>
                     <input
                         ref={inputRef}
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                         placeholder="Search for clothes..."
                         className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-xl text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
                     />
                     {query && (
                         <button
                             onClick={handleClear}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                         >
                             <X className="h-4 w-4" />
                         </button>

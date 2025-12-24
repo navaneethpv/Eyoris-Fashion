@@ -159,9 +159,12 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       className="flex-1 max-w-lg hidden md:flex relative group z-50"
     >
       <form onSubmit={handleSubmit} className="w-full relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400 group-focus-within:text-black transition-colors" />
-        </div>
+        <button
+          type="submit"
+          className="absolute inset-y-0 left-0 pl-3 flex items-center cursor-pointer group"
+        >
+          <Search className="h-4 w-4 text-gray-400 group-hover:text-black transition-colors" />
+        </button>
         <input
           type="text"
           value={query}

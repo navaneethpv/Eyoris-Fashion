@@ -196,8 +196,20 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 // PATCH /api/orders/:id/order-status (Admin - Update shipment status only)
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { orderStatus } = req.body;
+    console.log("params:", req.params);
+    console.log("body:", req.body);
+
+    const id = req.params.id ?? req.params.orderId;
+
+    const rawStatus =
+      req.body.orderStatus ??
+      req.body.status ??
+      req.body.value;
+
+    const orderStatus =
+      typeof rawStatus === 'string'
+        ? rawStatus.toLowerCase()
+        : rawStatus;
 
     const validOrderStatuses = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'];
     if (!validOrderStatuses.includes(orderStatus)) {

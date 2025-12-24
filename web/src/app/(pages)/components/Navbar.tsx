@@ -2,7 +2,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Search } from "lucide-react";
 import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput"; // 👈 CRITICAL: Import the new component
@@ -33,31 +33,28 @@ function NavbarContent() {
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
             <Link
               href="/product?gender=men"
-              className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get("gender")?.toLowerCase() === "men"
-                  ? "text-primary border-primary"
-                  : "border-transparent hover:border-primary"
-              }`}
+              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "men"
+                ? "text-primary border-primary"
+                : "border-transparent hover:border-primary"
+                }`}
             >
               Men
             </Link>
             <Link
               href="/product?gender=women"
-              className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get("gender")?.toLowerCase() === "women"
-                  ? "text-primary border-primary"
-                  : "border-transparent hover:border-primary"
-              }`}
+              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "women"
+                ? "text-primary border-primary"
+                : "border-transparent hover:border-primary"
+                }`}
             >
               Women
             </Link>
             <Link
               href="/product?gender=kids"
-              className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get("gender")?.toLowerCase() === "kids"
-                  ? "text-primary border-primary"
-                  : "border-transparent hover:border-primary"
-              }`}
+              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "kids"
+                ? "text-primary border-primary"
+                : "border-transparent hover:border-primary"
+                }`}
             >
               Kids
             </Link>
@@ -73,6 +70,10 @@ function NavbarContent() {
 
           {/* Icons & Auth (Same as before) */}
           <div className="flex items-center gap-6">
+            {/* Mobile Search Icon */}
+            <Link href="/search" className="md:hidden text-gray-600 hover:text-black">
+              <Search className="w-5 h-5" />
+            </Link>
             <div className="flex items-center">
               <SignedOut>
                 <SignInButton mode="modal">

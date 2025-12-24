@@ -184,10 +184,10 @@ export default async function ProductDetailPage({
 
   const discount = product.price_before_cents
     ? Math.round(
-        ((product.price_before_cents - product.price_cents) /
-          product.price_before_cents) *
-          100
-      )
+      ((product.price_before_cents - product.price_cents) /
+        product.price_before_cents) *
+      100
+    )
     : 0;
 
   return (

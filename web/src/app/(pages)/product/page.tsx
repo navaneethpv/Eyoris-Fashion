@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 // Interface for Search Parameters coming from the URL
 interface SearchParams {
+  [key: string]: string | undefined;
   page?: string;
   articleType?: string; // Primary category (e.g., Tshirts, Shirts, Jeans)
   gender?: string; // Filter: Men, Women, Kids

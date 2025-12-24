@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check } from 'lucide-react';
 
-export type FilterValues = Record<string, string>;
+export type FilterValues = Record<string, string | undefined>;
 export type SizeFilterMode = 'apparel' | 'footwear' | 'none';
 
 interface ProductFiltersProps {
@@ -245,8 +245,8 @@ export default function ProductFilters({
               key={opt.value}
               onClick={() => onChange('sort', opt.value)}
               className={`px-3 py-2 text-sm rounded-lg border transition-all ${(values.sort || 'newest') === opt.value
-                  ? 'bg-black text-white border-black'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
                 }`}
             >
               {opt.label}

@@ -17,14 +17,14 @@ function NavbarContent() {
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-8">
           {/* Logo - Clean & Modern */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <div className="relative">
-              <div className="w-10 h-10 bg-linear-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
-              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xl">
+              <div className="w-8 h-8 bg-linear-to-br from-violet-600 to-purple-600 rounded-lg opacity-90 group-hover:opacity-100 transition-opacity"></div>
+              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-lg">
                 E
               </span>
             </div>
-            <span className="text-2xl font-black tracking-tight text-gray-900">
+            <span className="text-xl font-black tracking-tight text-gray-900">
               Eyoris <span className="font-light text-gray-600">Fashion</span>
             </span>
           </Link>
@@ -90,7 +90,7 @@ function NavbarContent() {
                   <img
                     src={user?.imageUrl}
                     alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 group-hover:border-primary transition"
+                    className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 group-hover:border-primary transition"
                   />
                 </Link>
               </SignedIn>

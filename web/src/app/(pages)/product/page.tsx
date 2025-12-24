@@ -19,6 +19,7 @@ interface SearchParams {
   minPrice?: string;
   maxPrice?: string;
   search?: string; // text search (name / brand / category / color)
+  q?: string; // limit to 'q' to match standard search param convention
   brand?: string;
   size?: string;
   color?: string;
@@ -56,8 +57,8 @@ async function getProducts(
   if (searchParams.maxPrice) params.set("maxPrice", searchParams.maxPrice);
   // Brand, size, color are applied client-side (legacy legacy but okay)
   // Search is now handled server-side
-
-  if (searchParams.search) params.set("q", searchParams.search);
+  const query = searchParams.q || searchParams.search;
+  if (query) params.set("q", query);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   if (!API_URL) {
@@ -235,6 +236,7 @@ function ProductPageContent() {
       minPrice: searchParams.get("minPrice") || undefined,
       maxPrice: searchParams.get("maxPrice") || undefined,
       search: searchParams.get("search") || undefined,
+      q: searchParams.get("q") || undefined,
       brand: searchParams.get("brand") || undefined,
       size: searchParams.get("size") || undefined,
       color: searchParams.get("color") || undefined,
@@ -328,8 +330,10 @@ function ProductPageContent() {
 
   // Derive Page Title
   let pageTitle = "All Products";
-  if (resolvedSearchParams.search) {
-    pageTitle = `Results for "${resolvedSearchParams.search}"`;
+  const currentSearch = resolvedSearchParams.q || resolvedSearchParams.search;
+
+  if (currentSearch) {
+    pageTitle = `Results for "${currentSearch}"`;
   } else if (resolvedSearchParams.articleType) {
     pageTitle = resolvedSearchParams.articleType;
     if (resolvedSearchParams.gender) {
@@ -345,6 +349,7 @@ function ProductPageContent() {
     !!resolvedSearchParams.minPrice ||
     !!resolvedSearchParams.maxPrice ||
     !!resolvedSearchParams.search ||
+    !!resolvedSearchParams.q ||
     !!resolvedSearchParams.sort;
 
   const handleSortChange = (value: string) => {
@@ -370,6 +375,7 @@ function ProductPageContent() {
       "minPrice",
       "maxPrice",
       "search",
+      "q",
       "sort",
     ].forEach((key) => params.delete(key));
     router.push(
@@ -419,10 +425,9 @@ function ProductPageContent() {
                   {loading
                     ? "Loading products..."
                     : sortedProducts.length > 0
-                    ? `Showing ${sortedProducts.length} result${
-                        sortedProducts.length === 1 ? "" : "s"
+                      ? `Showing ${sortedProducts.length} result${sortedProducts.length === 1 ? "" : "s"
                       }`
-                    : "No products found"}
+                      : "No products found"}
                 </p>
 
                 {/* Sort Dropdown */}

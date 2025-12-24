@@ -20,7 +20,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
   const router = useRouter();
 
   // Initialize with URL search param if present
-  const [query, setQuery] = useState(searchParams.get("search") || "");
+  const [query, setQuery] = useState(searchParams.get("q") || searchParams.get("search") || "");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -28,7 +28,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
 
   // Sync with URL
   useEffect(() => {
-    setQuery(searchParams.get("search") || "");
+    setQuery(searchParams.get("q") || searchParams.get("search") || "");
   }, [searchParams]);
 
   // Close dropdown when clicking outside
@@ -80,10 +80,9 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
 
   const handleSearch = (value: string) => {
     if (!value.trim()) return;
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("search", value);
-    // Reset page to 1 on new search
-    params.set("page", "1");
+    // Navigate to product page with q param
+    const params = new URLSearchParams();
+    params.set("q", value);
     router.push(`/product?${params.toString()}`);
     setShowDropdown(false);
     setSuggestions([]);
@@ -212,9 +211,8 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
             <div
               key={index}
               onClick={() => handleSelect(item)}
-              className={`px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors ${
-                index === focusedIndex ? "bg-gray-50" : "hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors ${index === focusedIndex ? "bg-gray-50" : "hover:bg-gray-50"
+                }`}
             >
               <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded">
                 {renderIcon(item)}

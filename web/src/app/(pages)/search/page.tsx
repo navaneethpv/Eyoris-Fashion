@@ -37,41 +37,15 @@ function SearchPageContent() {
         }
     }, [searchParams]);
 
-    // Fetch products when debounced query changes
+    // Redirect to product page on search
     useEffect(() => {
-        if (!debouncedQuery.trim()) {
-            setProducts([]);
-            return;
-        }
+        if (!debouncedQuery.trim()) return;
 
-        // Update URL without reloading
+        // Use standard navigation instead of internal state
         const params = new URLSearchParams();
         params.set("q", debouncedQuery);
-        router.replace(`/search?${params.toString()}`);
+        router.push(`/product?${params.toString()}`);
 
-        const fetchProducts = async () => {
-            setLoading(true);
-            try {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL;
-                if (!API_URL) return;
-
-                // Use the same API endpoint as the main product listing
-                const res = await fetch(
-                    `${API_URL}/api/products?q=${encodeURIComponent(debouncedQuery)}&limit=20`
-                );
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setProducts(data.data || []);
-                }
-            } catch (error) {
-                console.error("Search failed:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
     }, [debouncedQuery, router]);
 
     const handleClear = () => {
@@ -121,44 +95,10 @@ function SearchPageContent() {
 
             {/* Content */}
             <main className="px-4 py-6">
-                {!query && (
-                    <div className="flex flex-col items-center justify-center mt-20 text-center opacity-50">
-                        <Search className="w-16 h-16 text-gray-200 mb-4" />
-                        <p className="text-gray-500 font-medium">Type to search for products</p>
-                    </div>
-                )}
-
-                {loading && (
-                    <div className="text-center py-10 text-gray-500 text-sm animate-pulse">
-                        Searching...
-                    </div>
-                )}
-
-                {!loading && query && products.length === 0 && (
-                    <div className="text-center py-20 bg-gray-50 rounded-xl mx-4">
-                        <p className="text-gray-500">No results found for "{query}"</p>
-                    </div>
-                )}
-
-                {products.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                        {products.map((p) => (
-                            <ProductCard
-                                key={p._id || p.id}
-                                product={{
-                                    _id: p._id,
-                                    slug: p.slug || "",
-                                    name: p.name || "",
-                                    brand: p.brand || "",
-                                    price_cents: p.price_cents ?? 0,
-                                    price_before_cents: p.price_before_cents ?? p.price_cents ?? 0,
-                                    images: p.images ?? [],
-                                    offer_tag: p.offer_tag,
-                                }}
-                            />
-                        ))}
-                    </div>
-                )}
+                <div className="flex flex-col items-center justify-center mt-20 text-center opacity-50">
+                    <Search className="w-16 h-16 text-gray-200 mb-4" />
+                    <p className="text-gray-500 font-medium">Type to search for products...</p>
+                </div>
             </main>
 
             <ImageSearchModal

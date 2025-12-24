@@ -453,12 +453,7 @@ function ProductPageContent() {
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-bold">{pageTitle}</h1>
                   {/* Mobile/Tablet Filter Trigger */}
-                  <button
-                    onClick={() => setIsFilterOpen(true)}
-                    className="md:hidden p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-                  >
-                    <SlidersHorizontal className="w-5 h-5 text-gray-800" />
-                  </button>
+                  {/* Mobile/Tablet Filter Trigger removed as per user request */}
                 </div>
               </div>
 

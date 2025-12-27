@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
+import { clerkMiddleware } from "@clerk/express";
 import { connectDB } from "./config/db";
 import cartRoutes from "./routes/cartRoutes";
 import productRoutes from "./routes/productRoutes";
@@ -41,6 +42,9 @@ app.use(cors(corsOptions));
 // app.options(/.*/, cors(corsOptions));// MUST be immediately after
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Clerk middleware - MUST be before routes
+app.use(clerkMiddleware());
 
 // Mount Routes
 app.use("/api/products", productRoutes);

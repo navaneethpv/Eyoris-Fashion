@@ -18,7 +18,7 @@ const OrderSchema = new mongoose.Schema({
   // Legacy status field for backward compatibility
   status: {
     type: String,
-    enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned'],
     default: 'pending'
   },
 
@@ -31,7 +31,7 @@ const OrderSchema = new mongoose.Schema({
 
   orderStatus: {
     type: String,
-    enum: ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    enum: ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned'],
     default: 'placed'
   },
 
@@ -52,7 +52,18 @@ const OrderSchema = new mongoose.Schema({
     state: { type: String, required: true },
     zip: { type: String, required: true },
     country: { type: String, default: 'US' }
-  }
+  },
+
+  // Cancel order fields
+  cancellationReason: { type: String },
+  cancelledAt: { type: Date },
+
+  // Return order fields
+  returnReason: { type: String },
+  returnRequestedAt: { type: Date },
+  returnApprovedAt: { type: Date },
+  returnRejectedAt: { type: Date },
+  deliveredAt: { type: Date }
 }, { timestamps: true });
 
 export const Order = mongoose.model('Order', OrderSchema);

@@ -124,7 +124,7 @@ export default function OrderActionModal({
                                 disabled={loading}
                                 placeholder="Please provide a reason for this action..."
                                 rows={4}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed resize-none text-sm"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed resize-none text-sm text-black"
                             />
                         </div>
 
@@ -149,7 +149,7 @@ export default function OrderActionModal({
                         <button
                             onClick={handleConfirm}
                             disabled={loading || !reason.trim()}
-                            className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[120px] justify-center"
+                            className="px-5 py-2 text-sm font-semibold text-black bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[120px] justify-center"
                         >
                             {loading ? (
                                 <>

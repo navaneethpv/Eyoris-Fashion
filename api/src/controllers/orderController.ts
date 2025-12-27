@@ -493,6 +493,7 @@ export const approveReturn = async (req: Request, res: Response) => {
     if (approved) {
       order.orderStatus = 'returned';
       order.status = 'returned';
+      order.paymentStatus = 'refunded';
       order.returnApprovedAt = new Date();
     } else {
       // Reject return, revert to delivered

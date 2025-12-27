@@ -1,13 +1,14 @@
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Truck, Check, X, Loader2, ChevronDown, ChevronUp, FileText, Download, Package, CreditCard, Clock, MapPin } from 'lucide-react';
+import { Eye, Truck, Check, X, Loader2, ChevronDown, ChevronUp, FileText, Download, Package, CreditCard, Clock, MapPin, CheckCircle } from 'lucide-react';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [printingOrder, setPrintingOrder] = useState<string | null>(null);
+  const [approvingReturn, setApprovingReturn] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -86,6 +87,27 @@ export default function OrdersPage() {
       alert("Failed to generate invoice");
     } finally {
       setPrintingOrder(null);
+    }
+  };
+
+  const handleApproveReturn = async (orderId: string) => {
+    setApprovingReturn(orderId);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${orderId}/return/approve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: true })
+      });
+
+      if (res.ok) {
+        fetchOrders();
+      } else {
+        alert('Failed to approve return');
+      }
+    } catch (error) {
+      alert('Failed to approve return');
+    } finally {
+      setApprovingReturn(null);
     }
   };
 
@@ -279,6 +301,27 @@ export default function OrdersPage() {
                               <FileText className="w-4 h-4" />
                             )}
                           </motion.button>
+
+                          {/* Approve Return Button */}
+                          {order.orderStatus === 'return_requested' && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveReturn(order._id);
+                              }}
+                              disabled={approvingReturn === order._id}
+                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors disabled:opacity-50"
+                              title="Approve Return"
+                            >
+                              {approvingReturn === order._id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-4 h-4" />
+                              )}
+                            </motion.button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>

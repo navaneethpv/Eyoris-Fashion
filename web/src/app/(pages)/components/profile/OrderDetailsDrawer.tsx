@@ -143,16 +143,19 @@ export default function OrderDetailsDrawer({
                 return "bg-red-50 text-red-700 border-red-200";
             case "return_requested":
                 return "bg-orange-50 text-orange-700 border-orange-200";
+            case "returned":
+                return "bg-emerald-50 text-emerald-700 border-emerald-200";
             default:
                 return "bg-gray-50 text-gray-700 border-gray-200";
         }
     };
 
     const timelineSteps = [
-        { label: "Placed", status: "paid", icon: Package, date: order.createdAt },
-        { label: "Confirmed", status: "paid", icon: CheckCircle2, date: order.createdAt },
+        { label: "Placed", status: "placed", icon: Package, date: order.createdAt },
+        { label: "Confirmed", status: "confirmed", icon: CheckCircle2, date: order.createdAt },
         { label: "Shipped", status: "shipped", icon: Truck, date: null },
         { label: "Delivered", status: "delivered", icon: Home, date: null },
+        { label: "Returned", status: "returned", icon: RotateCcw, date: order.returnApprovedAt },
     ];
 
     const currentStatusIndex = timelineSteps.findIndex(
@@ -193,6 +196,14 @@ export default function OrderDetailsDrawer({
 
                     {/* Scrollable Content */}
                     <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                        {/* Refund Badge */}
+                        {(order.orderStatus === "returned" || order.paymentStatus === "refunded") && (
+                            <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                <span className="text-sm font-semibold text-emerald-700">Refund Initiated</span>
+                            </div>
+                        )}
+
                         {/* Status Badge */}
                         <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-gray-600">Status</span>

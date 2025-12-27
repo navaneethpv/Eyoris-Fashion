@@ -9,7 +9,7 @@ import { UserButton } from '@clerk/nextjs';
 import clsx from 'clsx';
 
 // 👇 REPLACE THIS WITH YOUR ACTUAL EMAIL ADDRESS
-const ADMIN_EMAIL = "navaneethpv450@gmail.com"; 
+const ADMIN_EMAIL = "navaneethpv450@gmail.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -20,10 +20,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (isLoaded) {
       const email = user?.primaryEmailAddress?.emailAddress;
-      
+
       if (!user || email !== ADMIN_EMAIL) {
         // If not logged in OR email doesn't match, kick them out
-        router.push('/'); 
+        router.push('/');
       }
     }
   }, [isLoaded, user, router]);
@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Double check to prevent flash of content
   if (user?.primaryEmailAddress?.emailAddress !== ADMIN_EMAIL) {
-    return null; 
+    return null;
   }
 
   const menu = [
@@ -60,8 +60,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                  isActive 
-                    ? "bg-purple-50 text-purple-600" 
+                  isActive
+                    ? "bg-purple-50 text-purple-600"
                     : "text-gray-600 hover:bg-gray-50 hover:text-black"
                 )}
               >
@@ -84,13 +84,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 md:ml-64 flex flex-col">
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-end px-8 sticky top-0 z-20">
-             <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                   <p className="text-sm font-bold">{user.fullName}</p>
-                   <p className="text-xs text-green-600 font-bold">Administrator</p>
-                </div>
-                <UserButton />
-             </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-bold">{user.fullName}</p>
+              <p className="text-xs text-green-600 font-bold">Administrator</p>
+            </div>
+            <UserButton />
+          </div>
         </header>
 
         <main className="p-8">

@@ -10,7 +10,7 @@ interface OrderHistoryProps {
 }
 
 export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -26,8 +26,14 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
 
     const fetchOrders = async () => {
       try {
+        const token = await getToken();
         const res = await fetch(
-          `${baseUrl}/api/orders?userId=${userId}`
+          `${baseUrl}/api/orders?userId=${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         const data = await res.json();
         setOrders(data);
@@ -38,7 +44,8 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
       }
     };
     fetchOrders();
-  }, [userId]);
+  }, [userId, getToken, baseUrl]);
+
 
   const handleOrderUpdate = (updatedOrder: any) => {
     // Update the order in the orders list
@@ -82,6 +89,10 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         return "bg-green-50 text-green-700 border-green-200";
       case "cancelled":
         return "bg-red-50 text-red-700 border-red-200";
+      case "return_requested":
+        return "bg-orange-50 text-orange-700 border-orange-200";
+      case "returned":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -133,6 +144,14 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium mb-2">
                     <Package className="w-3.5 h-3.5" />
                     +{order.items.length - 1} more item{order.items.length - 1 > 1 ? 's' : ''}
+                  </div>
+                )}
+
+                {/* Refund Badge */}
+                {(order.orderStatus === "returned" || order.paymentStatus === "refunded") && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-md text-xs font-semibold text-emerald-700 mb-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    Refund Initiated
                   </div>
                 )}
 

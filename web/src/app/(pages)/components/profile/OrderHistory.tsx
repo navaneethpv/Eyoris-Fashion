@@ -40,6 +40,17 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
     fetchOrders();
   }, [userId]);
 
+  const handleOrderUpdate = (updatedOrder: any) => {
+    // Update the order in the orders list
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order._id === updatedOrder._id ? updatedOrder : order
+      )
+    );
+    // Update the selected order to reflect changes in the drawer
+    setSelectedOrder(updatedOrder);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -175,6 +186,7 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOrderUpdate={handleOrderUpdate}
       />
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import Navbar from "../components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { Trash2, Loader2, ArrowRight } from "lucide-react";
 
 export default function CartPage() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,19 +16,36 @@ export default function CartPage() {
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
+
+  // Helper to get auth headers
+  const authHeaders = async () => {
+    const token = await getToken();
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   // Fetch Cart
   const fetchCart = async () => {
     if (!user) return;
     try {
       const res = await fetch(
-        `${baseUrl}/api/cart?userId=${user.id}`
+        `${baseUrl}/api/cart?userId=${user.id}`,
+        {
+          headers: await authHeaders(),
+        }
       );
+
+
+      if (!res.ok) throw new Error("Failed to fetch cart");
+
       const data = await res.json();
       // normalize so cart.items is always an array
       setCart({ ...data, items: data?.items ?? [] });
     } catch (err) {
-      console.error(err);
+      console.error("fetchCart error:", err);
     } finally {
       setLoading(false);
     }
@@ -46,7 +64,7 @@ export default function CartPage() {
 
       await fetch(`${baseUrl}/api/cart`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({ userId: user.id, productId, variant }),
       });
     } catch (err) {
@@ -82,7 +100,7 @@ export default function CartPage() {
 
       const res = await fetch(`${baseUrl}/api/cart/quantity`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId: user.id,
           productId,

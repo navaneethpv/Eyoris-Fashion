@@ -6,7 +6,7 @@ export default function Page() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <div className="flex items-center justify-center py-20">
-        <SignIn afterSignInUrl="/cart" />
+        <SignIn />
       </div>
     </div>
   );

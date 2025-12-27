@@ -252,16 +252,24 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       });
     }
 
+    // Prepare update object
+    const updateData: any = {
+      orderStatus,
+      // Update legacy status for backward compatibility
+      status: orderStatus === 'cancelled' ? 'cancelled' :
+        orderStatus === 'shipped' ? 'shipped' :
+          orderStatus === 'delivered' ? 'delivered' : 'paid'
+    };
+
+    // Set deliveredAt timestamp when order is delivered
+    if (orderStatus === 'delivered' && !order.deliveredAt) {
+      updateData.deliveredAt = new Date();
+    }
+
     // Update order status (shipment status)
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
-      {
-        orderStatus,
-        // Update legacy status for backward compatibility
-        status: orderStatus === 'cancelled' ? 'cancelled' :
-          orderStatus === 'shipped' ? 'shipped' :
-            orderStatus === 'delivered' ? 'delivered' : 'paid'
-      },
+      updateData,
       { new: true }
     );
 

@@ -438,6 +438,41 @@ export default function OrdersPage() {
                                       </div>
                                     </div>
                                   </div>
+
+                                  {/* Cancellation Details - Only show for cancelled orders */}
+                                  {order.orderStatus === 'cancelled' && (
+                                    <div className="bg-red-50 rounded-xl border-2 border-red-200 p-6 shadow-sm">
+                                      <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center">
+                                        <X className="w-5 h-5 mr-2 text-red-600" />
+                                        🚫 Order Cancelled
+                                      </h3>
+
+                                      <div className="space-y-3">
+                                        <div>
+                                          <span className="text-sm font-semibold text-red-900 block mb-1">Reason:</span>
+                                          <p className="text-sm text-red-800 bg-white/50 p-3 rounded-lg border border-red-200">
+                                            "{order.cancellationReason || 'No reason provided'}"
+                                          </p>
+                                        </div>
+
+                                        {order.cancelledAt && (
+                                          <div className="flex items-center justify-between pt-2 border-t border-red-200">
+                                            <span className="text-sm font-semibold text-red-900">Cancelled on:</span>
+                                            <span className="text-sm font-medium text-red-900 flex items-center">
+                                              <Clock className="w-4 h-4 mr-1" />
+                                              {new Date(order.cancelledAt).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </motion.div>

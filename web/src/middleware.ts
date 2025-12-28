@@ -9,8 +9,9 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) {
-    // ⭐ Clerk handles everything internally (cookies, timing, edge)
-    auth.protect();
+    auth.protect({
+      unauthenticatedUrl: "/sign-in",
+    });
   }
 });
 

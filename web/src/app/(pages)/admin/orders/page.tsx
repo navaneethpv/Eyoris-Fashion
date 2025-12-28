@@ -11,7 +11,7 @@ export default function OrdersPage() {
   // REMOVED: const [approvingReturn, setApprovingReturn] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
   const fetchOrders = () => {
     fetch(`${API_URL}/api/orders/all`)

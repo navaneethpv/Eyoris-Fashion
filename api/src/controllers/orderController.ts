@@ -366,9 +366,59 @@ export const getMonthlySales = async (req: Request, res: Response) => {
   }
 };
 
-// REMOVED: Cancel Order functionality
-// To be re-implemented from scratch
-// export const cancelOrder = async (req: Request, res: Response) => { ... }
+
+// POST /api/orders/:id/cancel (User - Cancel own order)
+export const cancelOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { cancellationReason } = req.body;
+
+    // 1. Authentication check
+    const userId = (req as any).auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // 2. Validate cancellation reason
+    if (!cancellationReason || typeof cancellationReason !== 'string' || cancellationReason.trim().length === 0) {
+      return res.status(400).json({ message: 'Cancellation reason is required' });
+    }
+
+    // 3. Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // 4. Ownership verification
+    if (order.userId !== userId) {
+      return res.status(403).json({ message: 'You can only cancel your own orders' });
+    }
+
+    // 5. Status validation - can only cancel if "placed" or "confirmed"
+    if (order.orderStatus !== 'placed' && order.orderStatus !== 'confirmed') {
+      return res.status(400).json({
+        message: `Cannot cancel order with status "${order.orderStatus}". Orders can only be cancelled when in "placed" or "confirmed" status.`,
+        currentStatus: order.orderStatus
+      });
+    }
+
+    // 6. Update order with cancellation details
+    order.orderStatus = 'cancelled';
+    order.cancelledAt = new Date();
+    order.cancellationReason = cancellationReason.trim();
+
+    // Update legacy status field for backward compatibility
+    order.status = 'cancelled';
+
+    const updatedOrder = await order.save();
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Cancel Order Error:', error);
+    res.status(500).json({ message: 'Failed to cancel order' });
+  }
+};
 
 // REMOVED: Request Return functionality
 // To be re-implemented from scratch
@@ -377,3 +427,4 @@ export const getMonthlySales = async (req: Request, res: Response) => {
 // REMOVED: Approve Return functionality
 // To be re-implemented from scratch
 // export const approveReturn = async (req: Request, res: Response) => { ... }
+

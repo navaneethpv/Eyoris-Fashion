@@ -5,12 +5,15 @@ import Navbar from "../components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Loader2, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 export default function CartPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -162,30 +165,12 @@ export default function CartPage() {
   // safe items reference for rendering
   const items = cart?.items ?? [];
 
-  if (!isLoaded || loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex justify-center items-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="text-center py-20">
-          <h2 className="text-2xl font-bold">Please Sign In</h2>
-          <p className="text-gray-500 mt-2">
-            You need an account to view your bag.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, user, router]);
 
   // Helper to safely resolve image URL
   const resolveImageUrl = (product: any) => {

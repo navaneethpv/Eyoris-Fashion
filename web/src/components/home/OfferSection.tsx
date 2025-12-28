@@ -47,22 +47,12 @@ const OFFERS: OfferConfig[] = [
 function buildQueryString(filters: OfferFilters): string {
   const params = new URLSearchParams();
 
-  if (filters.gender) {
-    params.set("gender", filters.gender);
-  }
-
-  if (filters.category && filters.category.length > 0) {
-    // Use articleType (category in DB = articleType like Tshirts, Shirts)
-    params.set("articleType", filters.category[0]);
-  }
-
-  if (typeof filters.maxPrice === "number") {
+  if (filters.gender) params.set("gender", filters.gender);
+  if (filters.category?.length) params.set("articleType", filters.category[0]);
+  if (typeof filters.maxPrice === "number")
     params.set("maxPrice", String(filters.maxPrice));
-  }
-
-  if (filters.colors && filters.colors.length > 0) {
+  if (filters.colors?.length)
     params.set("colors", filters.colors.join(","));
-  }
 
   return params.toString();
 }
@@ -72,36 +62,54 @@ export default function OfferSection() {
 
   const handleOfferClick = (filters: OfferFilters) => {
     const query = buildQueryString(filters);
-    // Current shop/products page lives at /product – keep URL simple for now
-    const path = query ? `/product?${query}` : "/product";
-    router.push(path);
+    router.push(query ? `/product?${query}` : "/product");
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-10 md:py-14">
-      <div className="flex items-end justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase mb-1">
-            Shop by mood
-          </p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
-            Curated offers for how you dress today
-          </h2>
-        </div>
+    <section className="max-w-7xl mx-auto px-6 py-20 bg-white">
+      {/* HEADER */}
+      <div className="mb-16">
+        <p className="text-xs uppercase tracking-[4px] text-gray-500 mb-2">
+          Shop by mood
+        </p>
+        <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
+          Curated offers for how you dress today
+        </h2>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-        {OFFERS.map((offer) => (
-          <OfferCard
+      {/* GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {OFFERS.map((offer, index) => (
+          <div
             key={offer.title}
-            title={offer.title}
-            subtitle={offer.subtitle}
-            onClick={() => handleOfferClick(offer.filters)}
-          />
+            className="opacity-0 animate-fade-up"
+            style={{ animationDelay: `${index * 80}ms` }}
+          >
+            <OfferCard
+              title={offer.title}
+              subtitle={offer.subtitle}
+              onClick={() => handleOfferClick(offer.filters)}
+            />
+          </div>
         ))}
       </div>
+
+      {/* ANIMATION */}
+      <style jsx>{`
+        @keyframes fade-up {
+          from {
+            opacity: 0;
+            transform: translateY(14px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-up {
+          animation: fade-up 0.6s ease-out forwards;
+        }
+      `}</style>
     </section>
   );
 }
-
-

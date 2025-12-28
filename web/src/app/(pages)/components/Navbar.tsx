@@ -1,119 +1,105 @@
 "use client";
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShoppingBag, Search } from "lucide-react";
+import { ShoppingBag, Search, Heart } from "lucide-react";
 import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
-import SearchInput from "./SearchInput"; // 👈 CRITICAL: Import the new component
+import SearchInput from "./SearchInput";
 
 function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchParams = useSearchParams();
   const { user } = useUser();
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm h-20">
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-8">
-          {/* Logo - Clean & Modern */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <div className="w-8 h-8 bg-linear-to-br from-violet-600 to-purple-600 rounded-lg opacity-90 group-hover:opacity-100 transition-opacity"></div>
-              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-lg">
-                E
-              </span>
-            </div>
-            <span className="text-xl font-black tracking-tight text-gray-900">
-              Eyoris <span className="font-light text-gray-600">Fashion</span>
-            </span>
+      {/* ================= TOP BAR ================= */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between">
+
+          {/* LEFT – BRAND */}
+          <Link
+            href="/"
+            className="text-2xl font-semibold tracking-[5px] text-black"
+          >
+            EYORIS FASHION
           </Link>
 
-          {/* Links (Same as before) */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            <Link
-              href="/product?gender=men"
-              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "men"
-                ? "text-primary border-primary"
-                : "border-transparent hover:border-primary"
-                }`}
-            >
-              Men
-            </Link>
-            <Link
-              href="/product?gender=women"
-              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "women"
-                ? "text-primary border-primary"
-                : "border-transparent hover:border-primary"
-                }`}
-            >
-              Women
-            </Link>
-            <Link
-              href="/product?gender=kids"
-              className={`transition-colors border-b-2 hover:text-primary ${searchParams.get("gender")?.toLowerCase() === "kids"
-                ? "text-primary border-primary"
-                : "border-transparent hover:border-primary"
-                }`}
-            >
-              Kids
-            </Link>
-            <style jsx>{`
-              /* Ensure the border doesn't cause layout shift by reserving space or using absolute positioning if needed, 
-                 but border-b-2 transparent is robust enough. */
-            `}</style>
-          </div>
-
-          {/* Search Bar (REPLACED) */}
-          {/* 👈 Pass the modal function to the new component */}
-          <SearchInput onCameraClick={() => setIsSearchOpen(true)} />
-
-          {/* Icons & Auth (Same as before) */}
+          {/* RIGHT – SEARCH + ICONS */}
           <div className="flex items-center gap-6">
-            {/* Mobile Search Icon */}
-            <Link href="/search" className="md:hidden text-gray-600 hover:text-black">
-              <Search className="w-5 h-5" />
-            </Link>
-            <div className="flex items-center">
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="text-sm font-bold text-gray-700 hover:text-primary">
-                    Sign In
-                  </button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <img
-                    src={user?.imageUrl}
-                    alt="Profile"
-                    className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 group-hover:border-primary transition"
-                  />
-                </Link>
-              </SignedIn>
+
+            {/* Search */}
+            <div className="hidden md:flex items-center">
+              <SearchInput onCameraClick={() => setIsSearchOpen(true)} />
             </div>
 
-            {/* Cart Link */}
-            <Link
-              href="/cart"
-              className="flex flex-col items-center cursor-pointer group"
-            >
-              <div className="relative">
-                <ShoppingBag className="h-5 w-5 text-gray-600 group-hover:text-black" />
-                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">
-                  2
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">
-                Bag
+            {/* Wishlist */}
+            <Link href="/wishlist" className="relative group">
+              <Heart className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
+              <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
+                0
               </span>
             </Link>
+
+            {/* Cart */}
+            <Link href="/cart" className="relative group">
+              <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
+              <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
+                2
+              </span>
+            </Link>
+
+            {/* Profile */}
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="text-sm font-medium text-gray-700 hover:text-black">
+                  Sign In
+                </button>
+              </SignInButton>
+            </SignedOut>
+
+            <SignedIn>
+              <Link href="/profile">
+                <img
+                  src={user?.imageUrl}
+                  alt="Profile"
+                  className="w-9 h-9 rounded-full border border-gray-300 object-cover hover:border-black transition"
+                />
+              </Link>
+            </SignedIn>
           </div>
         </div>
+
+{/* ================= CATEGORY BAR ================= */}
+<div className="bg-black">
+  <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
+
+    {/* CLOTHES */}
+    <MegaMenu title="Clothes" />
+
+    {/* SHOES */}
+    <MegaMenu title="Shoes" />
+
+    {/* SHIRTS */}
+    <MegaMenu title="Shirts" />
+
+    {/* JEANS */}
+    <MegaMenu title="Jeans" />
+
+    {/* BELT */}
+    <MegaMenu title="Belt" />
+
+    {/* WATCH */}
+    <MegaMenu title="Watch" />
+
+    {/* NEWS */}
+    <MegaMenu title="News" />
+
+  </div>
+</div>
+
       </nav>
+      
+
       <ImageSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
@@ -121,16 +107,106 @@ function NavbarContent() {
     </>
   );
 }
+function MegaMenu({ title }: { title: string }) {
+  return (
+    <div className="relative group">
+      {/* Top link */}
+      <Link
+        href={`/product?category=${title.toLowerCase()}`}
+        className="relative pb-1 after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 group-hover:after:w-full"
+      >
+        {title}
+      </Link>
+
+      {/* Dropdown */}
+      <div
+        className="
+          absolute left-1/2 -translate-x-1/2 top-full mt-6
+          w-[900px] bg-white text-black
+          opacity-0 invisible translate-y-4
+          group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+          transition-all duration-300 ease-out
+          shadow-2xl border border-gray-100
+        "
+      >
+        <div className="grid grid-cols-3 gap-14 px-16 py-12 text-sm">
+
+          {/* MEN */}
+          <MenuColumn
+            title="Men"
+            items={[
+              "Formal Shirts",
+              "Formal Trousers",
+              "Hat",
+              "Loungewear",
+              "Formal Accessories",
+            ]}
+          />
+
+          {/* WOMEN */}
+          <MenuColumn
+            title="Women"
+            items={[
+              "Jackets & Coats",
+              "Shirts",
+              "Jumpers & Knitwear",
+              "Pyjamas & Nightwear",
+              "Jeans",
+            ]}
+          />
+
+          {/* KIDS */}
+          <MenuColumn
+            title="Kids"
+            items={[
+              "All Winter Wear",
+              "Sweatshirts & Hoodies",
+              "Coats & Jackets",
+              "Trousers & Pants",
+              "Shorts & Skirts",
+            ]}
+          />
+
+        </div>
+      </div>
+    </div>
+  );
+}
+function MenuColumn({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <div>
+      <h4 className="font-semibold mb-5 tracking-wide">{title}</h4>
+      <ul className="space-y-3 text-gray-600">
+        {items.map((item) => (
+          <li key={item}>
+            <Link
+              href={`/product?subcategory=${item.replace(/\s+/g, "-").toLowerCase()}`}
+              className="inline-block transition-all duration-200 hover:text-black hover:translate-x-1"
+            >
+              {item}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Navbar() {
   return (
-    <Suspense fallback={
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm h-20">
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-center">
-          <div className="text-gray-500">Loading...</div>
-        </div>
-      </nav>
-    }>
+    <Suspense
+      fallback={
+        <nav className="h-[76px] flex items-center justify-center border-b">
+          Loading...
+        </nav>
+      }
+    >
       <NavbarContent />
     </Suspense>
   );

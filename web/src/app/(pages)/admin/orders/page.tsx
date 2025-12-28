@@ -109,6 +109,7 @@ export default function OrdersPage() {
       case 'Shipped': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'Delivered': return 'bg-green-100 text-green-700 border-green-200';
       case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Return Requested': return 'bg-orange-100 text-orange-700 border-orange-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
@@ -461,6 +462,41 @@ export default function OrdersPage() {
                                             <span className="text-sm font-medium text-red-900 flex items-center">
                                               <Clock className="w-4 h-4 mr-1" />
                                               {new Date(order.cancelledAt).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Return Request Details - Only show for return_requested orders */}
+                                  {order.orderStatus === 'return_requested' && (
+                                    <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-6 shadow-sm">
+                                      <h3 className="text-lg font-bold text-orange-900 mb-4 flex items-center">
+                                        <Package className="w-5 h-5 mr-2 text-orange-600" />
+                                        📦 Return Requested
+                                      </h3>
+
+                                      <div className="space-y-3">
+                                        <div>
+                                          <span className="text-sm font-semibold text-orange-900 block mb-1">Reason:</span>
+                                          <p className="text-sm text-orange-800 bg-white/50 p-3 rounded-lg border border-orange-200">
+                                            "{order.returnReason || 'No reason provided'}"
+                                          </p>
+                                        </div>
+
+                                        {order.returnRequestedAt && (
+                                          <div className="flex items-center justify-between pt-2 border-t border-orange-200">
+                                            <span className="text-sm font-semibold text-orange-900">Requested on:</span>
+                                            <span className="text-sm font-medium text-orange-900 flex items-center">
+                                              <Clock className="w-4 h-4 mr-1" />
+                                              {new Date(order.returnRequestedAt).toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: 'short',
                                                 day: 'numeric',

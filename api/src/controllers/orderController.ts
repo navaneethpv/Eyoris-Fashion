@@ -420,11 +420,63 @@ export const cancelOrder = async (req: Request, res: Response) => {
   }
 };
 
-// REMOVED: Request Return functionality
-// To be re-implemented from scratch
-// export const requestReturn = async (req: Request, res: Response) => { ... }
+
+// POST /api/orders/:id/return (User - Request return for own order)
+export const requestReturn = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { returnReason } = req.body;
+
+    // 1. Authentication check
+    const userId = (req as any).auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // 2. Validate return reason
+    if (!returnReason || typeof returnReason !== 'string' || returnReason.trim().length === 0) {
+      return res.status(400).json({ message: 'Return reason is required' });
+    }
+
+    // 3. Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // 4. Ownership verification
+    if (order.userId !== userId) {
+      return res.status(403).json({ message: 'You can only request returns for your own orders' });
+    }
+
+    // 5. Status validation - can only request return if "delivered"
+    if (order.orderStatus !== 'delivered') {
+      return res.status(400).json({
+        message: `Cannot request return for order with status "${order.orderStatus}". Returns can only be requested for delivered orders.`,
+        currentStatus: order.orderStatus
+      });
+    }
+
+    // 6. Update order with return request details
+    order.orderStatus = 'return_requested';
+    order.returnRequestedAt = new Date();
+    order.returnReason = returnReason.trim();
+
+    // Update legacy status field for backward compatibility
+    order.status = 'return_requested';
+
+    const updatedOrder = await order.save();
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Request Return Error:', error);
+    res.status(500).json({ message: 'Failed to request return' });
+  }
+};
 
 // REMOVED: Approve Return functionality
 // To be re-implemented from scratch
+// export const approveReturn = async (req: Request, res: Response) => { ... }
+
 // export const approveReturn = async (req: Request, res: Response) => { ... }
 

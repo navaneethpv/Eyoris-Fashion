@@ -6,8 +6,9 @@ import {
   getAllOrders,
   updateOrderStatus,
   updatePaymentStatus,
-  cancelOrder
-  // REMOVED: requestReturn, approveReturn
+  cancelOrder,
+  requestReturn
+  // REMOVED: approveReturn
 } from '../controllers/orderController';
 import { requireAuth } from '../middleware/auth';
 
@@ -28,10 +29,13 @@ router.patch('/:id/status', updateOrderStatus);
 // PHASE 1: Cancel Order (User)
 router.post('/:id/cancel', requireAuth, cancelOrder);
 
-// REMOVED: Return routes
+// PHASE 2: Request Return (User)
+router.post('/:id/return', requireAuth, requestReturn);
+
+// REMOVED: Return approval route
 // To be re-implemented from scratch
-// router.post('/:id/return', requireAuth, requestReturn);
 // router.patch('/:id/return/approve', approveReturn);
 
 export default router;
+
 

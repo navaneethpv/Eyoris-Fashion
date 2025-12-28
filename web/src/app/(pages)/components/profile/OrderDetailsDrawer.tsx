@@ -23,8 +23,14 @@ export default function OrderDetailsDrawer({
     // Cancel Order State
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancellationReason, setCancellationReason] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const [isCancelSubmitting, setIsCancelSubmitting] = useState(false);
+    const [cancelError, setCancelError] = useState("");
+
+    // Return Request State
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState("");
+    const [isReturnSubmitting, setIsReturnSubmitting] = useState(false);
+    const [returnError, setReturnError] = useState("");
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -61,12 +67,12 @@ export default function OrderDetailsDrawer({
 
     const handleCancelOrder = async () => {
         if (!cancellationReason.trim()) {
-            setError("Please provide a reason for cancellation");
+            setCancelError("Please provide a reason for cancellation");
             return;
         }
 
-        setIsSubmitting(true);
-        setError("");
+        setIsCancelSubmitting(true);
+        setCancelError("");
 
         try {
             const token = await getToken();
@@ -95,23 +101,82 @@ export default function OrderDetailsDrawer({
             setShowCancelModal(false);
             setCancellationReason("");
         } catch (err: any) {
-            setError(err.message || "Failed to cancel order");
+            setCancelError(err.message || "Failed to cancel order");
         } finally {
-            setIsSubmitting(false);
+            setIsCancelSubmitting(false);
         }
     };
 
     const openCancelModal = () => {
         setShowCancelModal(true);
-        setError("");
+        setCancelError("");
         setCancellationReason("");
     };
 
     const closeCancelModal = () => {
-        if (!isSubmitting) {
+        if (!isCancelSubmitting) {
             setShowCancelModal(false);
             setCancellationReason("");
-            setError("");
+            setCancelError("");
+        }
+    };
+
+    // Return Request Logic
+    const canReturn = order.orderStatus === "delivered";
+
+    const handleRequestReturn = async () => {
+        if (!returnReason.trim()) {
+            setReturnError("Please provide a reason for return");
+            return;
+        }
+
+        setIsReturnSubmitting(true);
+        setReturnError("");
+
+        try {
+            const token = await getToken();
+            const response = await fetch(`${baseUrl}/api/orders/${order._id}/return`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ returnReason: returnReason.trim() }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || "Failed to request return");
+            }
+
+            const updatedOrder = await response.json();
+
+            // Update parent component
+            if (onOrderUpdate) {
+                onOrderUpdate(updatedOrder);
+            }
+
+            // Close modal and reset state
+            setShowReturnModal(false);
+            setReturnReason("");
+        } catch (err: any) {
+            setReturnError(err.message || "Failed to request return");
+        } finally {
+            setIsReturnSubmitting(false);
+        }
+    };
+
+    const openReturnModal = () => {
+        setShowReturnModal(true);
+        setReturnError("");
+        setReturnReason("");
+    };
+
+    const closeReturnModal = () => {
+        if (!isReturnSubmitting) {
+            setShowReturnModal(false);
+            setReturnReason("");
+            setReturnError("");
         }
     };
 
@@ -372,16 +437,28 @@ export default function OrderDetailsDrawer({
                             </div>
                         </div>
 
-                        {/* Cancel Order Button */}
-                        {canCancel && (
+                        {/* Action Buttons - Cancel or Return */}
+                        {(canCancel || canReturn) && (
                             <div className="space-y-3">
                                 <h3 className="text-sm font-semibold text-gray-900">Actions</h3>
-                                <button
-                                    onClick={openCancelModal}
-                                    className="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg transition-colors border border-red-200 hover:border-red-300"
-                                >
-                                    Cancel Order
-                                </button>
+
+                                {canCancel && (
+                                    <button
+                                        onClick={openCancelModal}
+                                        className="w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                                    >
+                                        Cancel Order
+                                    </button>
+                                )}
+
+                                {canReturn && (
+                                    <button
+                                        onClick={openReturnModal}
+                                        className="w-full px-4 py-3 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold rounded-lg transition-colors border border-orange-200 hover:border-orange-300"
+                                    >
+                                        Request Return
+                                    </button>
+                                )}
                             </div>
                         )}
 
@@ -414,13 +491,13 @@ export default function OrderDetailsDrawer({
                             onChange={(e) => setCancellationReason(e.target.value)}
                             placeholder="e.g., Changed my mind, Found a better price, etc."
                             rows={4}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-sm"
-                            disabled={isSubmitting}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-gray-700 focus:border-transparent resize-none text-sm placeholder:text-gray-400"
+                            disabled={isCancelSubmitting}
                         />
 
-                        {error && (
+                        {cancelError && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                                {error}
+                                {cancelError}
                             </div>
                         )}
 
@@ -428,16 +505,60 @@ export default function OrderDetailsDrawer({
                             <button
                                 onClick={closeCancelModal}
                                 className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors"
-                                disabled={isSubmitting}
+                                disabled={isCancelSubmitting}
                             >
                                 Keep Order
                             </button>
                             <button
                                 onClick={handleCancelOrder}
                                 className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={isSubmitting || !cancellationReason.trim()}
+                                disabled={isCancelSubmitting || !cancellationReason.trim()}
                             >
-                                {isSubmitting ? "Cancelling..." : "Cancel Order"}
+                                {isCancelSubmitting ? "Cancelling..." : "Cancel Order"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Return Request Modal */}
+            {showReturnModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+                        <h3 className="text-xl font-bold text-gray-900">Request Return</h3>
+                        <p className="text-sm text-gray-600">
+                            Please provide a reason for returning this order.
+                        </p>
+
+                        <textarea
+                            value={returnReason}
+                            onChange={(e) => setReturnReason(e.target.value)}
+                            placeholder="e.g., Product defective, Wrong size, etc."
+                            rows={4}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-700 focus:border-transparent resize-none text-sm placeholder:text-gray-400"
+                            disabled={isReturnSubmitting}
+                        />
+
+                        {returnError && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                                {returnError}
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={closeReturnModal}
+                                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors"
+                                disabled={isReturnSubmitting}
+                            >
+                                Keep Order
+                            </button>
+                            <button
+                                onClick={handleRequestReturn}
+                                className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isReturnSubmitting || !returnReason.trim()}
+                            >
+                                {isReturnSubmitting ? "Submitting..." : "Request Return"}
                             </button>
                         </div>
                     </div>

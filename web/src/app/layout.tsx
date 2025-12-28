@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from '@clerk/nextjs'; // Import this
-import Navbar from './(pages)/components/Navbar';
-import Footer from './(pages)/components/Footer';
-// import "keen-slider";
+import { ClerkProvider } from "@clerk/nextjs";
+import Footer from "./(pages)/components/Footer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -15,18 +13,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    // Wrap with ClerkProvider
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning={true}>
-        <body className={`${inter.className} flex flex-col min-h-screen`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <ClerkProvider>
           {children}
           <Footer />
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

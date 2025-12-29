@@ -19,11 +19,13 @@ function NavbarContent() {
         <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between">
 
           {/* LEFT – BRAND */}
-          <Link
-            href="/"
-            className="text-2xl font-semibold tracking-[5px] text-black"
-          >
-            EYORIS FASHION
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+              <span className="text-white font-extrabold text-xl">E</span>
+            </div>
+            <span className="text-2xl font-extrabold tracking-wide text-black">
+              Eyoris <span className="font-semibold text-gray-500">Fashion</span>
+            </span>
           </Link>
 
           {/* RIGHT – SEARCH + ICONS */}
@@ -138,6 +140,7 @@ function MegaMenu({ title }: { title: string }) {
 
           {/* MEN */}
           <MenuColumn
+            category={title}
             title="Men"
             items={[
               "Formal Shirts",
@@ -150,6 +153,7 @@ function MegaMenu({ title }: { title: string }) {
 
           {/* WOMEN */}
           <MenuColumn
+            category={title}
             title="Women"
             items={[
               "Jackets & Coats",
@@ -162,6 +166,7 @@ function MegaMenu({ title }: { title: string }) {
 
           {/* KIDS */}
           <MenuColumn
+            category={title}
             title="Kids"
             items={[
               "All Winter Wear",
@@ -178,20 +183,24 @@ function MegaMenu({ title }: { title: string }) {
   );
 }
 function MenuColumn({
+  category,
   title,
   items,
 }: {
+  category: string;
   title: string;
   items: string[];
 }) {
   return (
     <div>
-      <h4 className="font-semibold mb-5 tracking-wide">{title}</h4>
+      <Link href={`/product?category=${category.toLowerCase()}&gender=${title.toLowerCase()}`}>
+        <h4 className="font-semibold mb-5 tracking-wide hover:text-gray-600 transition">{title}</h4>
+      </Link>
       <ul className="space-y-3 text-gray-600">
         {items.map((item) => (
           <li key={item}>
             <Link
-              href={`/product?subcategory=${item.replace(/\s+/g, "-").toLowerCase()}`}
+              href={`/product?category=${category.toLowerCase()}&subcategory=${item.replace(/\s+/g, "-").toLowerCase()}&gender=${title.toLowerCase()}`}
               className="inline-block transition-all duration-200 hover:text-black hover:translate-x-1"
             >
               {item}

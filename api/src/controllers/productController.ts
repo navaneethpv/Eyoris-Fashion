@@ -8,8 +8,10 @@ import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
-import { normalizeCategoryName, VALID_CATEGORIES } from '../utils/categoryNormalizer';
+
+import { normalizeCategoryName as normalizeAIIntent, VALID_CATEGORIES as AI_VALID_CATEGORIES } from '../utils/categoryNormalizer';
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
+import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
@@ -166,7 +168,7 @@ function resolveSearchCategory(query: string): string | null {
   const normalized = normalizeSearchQuery(query);
 
   // Try to normalize as if it's a category name
-  const resolved = normalizeCategoryName(query);
+  const resolved = normalizeAIIntent(query);
 
   // Check if the resolved category is actually in our valid list
   if (resolved && VALID_CATEGORIES.includes(resolved)) {
@@ -212,27 +214,47 @@ export const getProducts = async (req: Request, res: Response) => {
     const matchStage: any = { isPublished: true };
 
     // Apply Filters (Manual overrides Inferred)
-    const finalGender = (req.query.gender as string) || inferredGender;
-    if (finalGender) matchStage.gender = finalGender;
-
-    const finalCategory = (category as string) || (req.query.articleType as string) || inferredCategory;
-
-    // Special handling for broad terms like "footwear" that span multiple categories
-    const queryLower = originalQuery && typeof originalQuery === 'string' ? originalQuery.toLowerCase() : '';
-    if (queryLower && (queryLower.includes('footwear') || queryLower.includes('chappals') || queryLower.includes('chappal'))) {
-      // Search across ALL footwear categories using $in (not $or to avoid conflicts)
-      matchStage.category = {
-        $in: ['Heels', 'Flats', 'Sandals', 'Sports Sandals', 'Sports Shoes',
-          'Casual Shoes', 'Formal Shoes', 'Flip Flops', 'Booties']
-      };
-      console.log('[SEARCH] Detected "footwear" - searching across all footwear categories');
-    } else if (finalCategory) {
-      matchStage.category = finalCategory;
+    // Normalize Gender: "men" -> "Men" (Case Insensitive Match)
+    const rawGender = (req.query.gender as string) || inferredGender;
+    if (rawGender) {
+      matchStage.gender = new RegExp(`^${rawGender}$`, 'i');
     }
 
-    if (req.query.subCategory) matchStage.subCategory = req.query.subCategory;
-    if (req.query.masterCategory) matchStage.masterCategory = req.query.masterCategory;
-    if (req.query.brand) matchStage.brand = req.query.brand;
+    // Normalize Category: "clothes" -> "Clothes"
+    let finalCategory = (category as string) || (req.query.articleType as string) || inferredCategory;
+    if (finalCategory) {
+      // Check if its a special footwear case first
+      const queryLower = originalQuery && typeof originalQuery === 'string' ? originalQuery.toLowerCase() : '';
+      if (queryLower && (queryLower.includes('footwear') || queryLower.includes('chappals') || queryLower.includes('chappal'))) {
+        // Search across ALL footwear categories
+        matchStage.category = {
+          $in: ['Heels', 'Flats', 'Sandals', 'Sports Sandals', 'Sports Shoes',
+            'Casual Shoes', 'Formal Shoes', 'Flip Flops', 'Booties']
+        };
+        console.log('[SEARCH] Detected "footwear" - searching across all footwear categories');
+      } else {
+        // Use helper to canonicalize if possible
+        const normalized = normalizeCategoryInput(finalCategory);
+        // If normalized found, use it (Exact Match), otherwise fallback to Regex for robustness
+        if (normalized && VALID_CATEGORIES.includes(normalized)) {
+          matchStage.category = normalized;
+        } else {
+          matchStage.category = new RegExp(`^${finalCategory}$`, 'i');
+        }
+      }
+    }
+
+    // Normalize SubCategory: "formal-shirts" -> "Formal Shirts" (Regex match handle)
+    if (req.query.subCategory) {
+      const sub = req.query.subCategory as string;
+      // Treat hyphens as spaces for URL friendly params
+      const subClean = sub.replace(/-/g, ' ').trim();
+      // Case insensitive match
+      matchStage.subCategory = new RegExp(`^${subClean}$`, 'i');
+    }
+
+    if (req.query.masterCategory) matchStage.masterCategory = new RegExp(`^${req.query.masterCategory}$`, 'i');
+    if (req.query.brand) matchStage.brand = new RegExp(`^${req.query.brand}$`, 'i');
     if (req.query.size) matchStage.sizes = req.query.size;
     // articleType is handled via finalCategory above
 
@@ -668,12 +690,42 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
+    // --- CATEGORY VALIDATION ---
+    const normalizedCategory = normalizeCategoryInput(String(category));
+    if (!VALID_CATEGORIES.includes(normalizedCategory)) {
+      return res.status(400).json({
+        message: `Invalid category "${category}". Must be one of: ${VALID_CATEGORIES.join(", ")}`
+      });
+    }
+
+    let normalizedSubCategory = "";
+    if (req.body.subCategory) {
+      // Simple trim
+      normalizedSubCategory = normalizeSubCategoryInput(req.body.subCategory);
+
+      // Check if subcategory belongs to main category
+      const allowedSubs = VALID_SUBCATEGORIES[normalizedCategory] || [];
+      // If the category has defined subcategories, enforce them?
+      // OR just warn? User requirement: "subCategory MUST belong to the category"
+      // Let's enforce strict case-insensitive match if list exists
+      if (allowedSubs.length > 0) {
+        const match = allowedSubs.find(s => s.toLowerCase() === normalizedSubCategory.toLowerCase());
+        if (!match) {
+          return res.status(400).json({
+            message: `Invalid subCategory "${req.body.subCategory}" for category "${normalizedCategory}". Valid options: ${allowedSubs.join(", ")}`
+          });
+        }
+        normalizedSubCategory = match; // Use canonical casing
+      }
+    }
+    // ---------------------------
+
     const newProduct = new Product({
       name: String(name).trim(),
       slug: String(slug).trim(),
       brand: String(brand).trim(),
-      category: String(category).trim(),
-      subCategory: (req.body.subCategory || "").toString().trim() || undefined,
+      category: normalizedCategory,
+      subCategory: normalizedSubCategory || undefined,
       gender: String(gender).trim(), // Required field, validated above
       masterCategory: masterCategory ? String(masterCategory).trim() : undefined,
       description: String(description || '').trim(),
@@ -751,6 +803,40 @@ export const updateProduct = async (req: Request, res: Response) => {
         // Also check price_before_cents logic if needed, but let's stick to fixing the main price first.
       }
     }
+
+    // --- VALIDATION FOR UPDATE ---
+    if (updateData.category) {
+      const normCat = normalizeCategoryInput(updateData.category);
+      if (!VALID_CATEGORIES.includes(normCat)) {
+        return res.status(400).json({ message: `Invalid category: ${updateData.category}` });
+      }
+      updateData.category = normCat;
+
+      // If updating category but NOT subcategory, we might end up with invalid state.
+      // Ideally, we should check against the *new* category if subCategory is also being updated.
+      // If subCategory NOT in updateData, it keeps old value (which might be invalid for new category).
+      // For strictness, if category changes, client SHOULD send subCategory too or we accept it might be mismatched temporarily.
+      // But let's check if subCategory IS provided:
+    }
+
+    if (updateData.subCategory) {
+      // If we have a category in update, use it. Else... strictly we need to fetch product to know parent category?
+      // For efficiency, assume client sends consistent data.
+      // If category is in updateData, validate against it.
+      if (updateData.category) {
+        const cat = updateData.category; // already normalized above
+        const sub = normalizeSubCategoryInput(updateData.subCategory);
+        const allowed = VALID_SUBCATEGORIES[cat] || [];
+        if (allowed.length > 0) {
+          const match = allowed.find(s => s.toLowerCase() === sub.toLowerCase());
+          if (!match) return res.status(400).json({ message: `Invalid subCategory for ${cat}` });
+          updateData.subCategory = match;
+        } else {
+          updateData.subCategory = sub;
+        }
+      }
+    }
+    // ----------------------------
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,

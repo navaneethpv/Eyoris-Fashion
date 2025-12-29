@@ -21,29 +21,44 @@ export default function OfferCard({ title, subtitle, onClick }: OfferCardProps) 
     <button
       type="button"
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-left p-4 sm:p-5 md:p-6 text-white shadow-sm hover:shadow-xl transition-all duration-200 border border-white/5 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-100"
+      className="
+        group relative overflow-hidden rounded-2xl
+        bg-[#0f0f0f] text-left text-white
+        p-5 sm:p-6
+        border border-white/10
+        transition-all duration-300
+        hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40
+      "
     >
-      <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_top,rgba(244,244,245,0.18),transparent_55%),radial-gradient(circle_at_bottom,rgba(148,163,184,0.35),transparent_55%)]" />
+      {/* SUBTLE GRADIENT GLOW */}
+      <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_60%),radial-gradient(circle_at_bottom,rgba(255,255,255,0.06),transparent_55%)]" />
 
-      <div className="relative flex flex-col gap-2">
-        <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-[0.7rem] font-medium tracking-wide uppercase text-slate-200">
+      <div className="relative flex flex-col gap-3">
+        {/* BADGE */}
+        <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/10 px-3 py-1 text-[0.65rem] font-medium uppercase tracking-widest text-gray-200">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
           Limited Time
         </div>
 
-        <h3 className="text-sm sm:text-base md:text-lg font-semibold tracking-tight">
+        {/* TITLE */}
+        <h3 className="text-sm sm:text-base font-semibold tracking-tight text-white">
           {title}
         </h3>
-        <p className="text-[0.7rem] sm:text-xs text-slate-200/80 line-clamp-2">
+
+        {/* SUBTITLE */}
+        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
           {subtitle}
         </p>
 
-        <div className="mt-4 flex items-center justify-between text-[0.7rem] sm:text-xs text-slate-100/90">
-          <span className="inline-flex items-center gap-1">
+        {/* FOOTER */}
+        <div className="mt-6 flex items-center justify-between text-xs text-gray-300">
+          <span className="inline-flex items-center gap-1 transition group-hover:text-white">
             View curated styles
-            <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
-          <span className="rounded-full bg-white/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider">
+
+          <span className="rounded-full border border-white/20 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-widest text-white">
             Shop Now
           </span>
         </div>
@@ -51,5 +66,3 @@ export default function OfferCard({ title, subtitle, onClick }: OfferCardProps) 
     </button>
   );
 }
-
-

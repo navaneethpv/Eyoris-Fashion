@@ -3,104 +3,90 @@ import { Heart, ShoppingBag, User, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10 md:py-12">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
-          {/* Brand Section */}
-          <div className="col-span-1 sm:col-span-2">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                <span className="absolute inset-0 flex items-center justify-center text-white font-black text-lg sm:text-xl">
-                  E
-                </span>
+    <footer className="bg-[#0b0b0b] text-gray-400 mt-auto">
+      <div className="max-w-7xl mx-auto px-6 py-14">
+
+        {/* ================= MAIN GRID ================= */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+
+          {/* BRAND */}
+          <div className="md:col-span-2">
+            <Link href="/" className="inline-flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+                <span className="text-white font-extrabold text-xl">E</span>
               </div>
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-gray-200">
-                Eyoris <span className="font-light text-gray-100">Fashion</span>
+              <span className="text-2xl font-semibold tracking-wide text-white">
+                Eyoris <span className="font-light text-gray-300">Fashion</span>
               </span>
             </Link>
-            <p className="text-sm sm:text-base text-gray-400 mb-4 max-w-md mt-5">
-              Discover your perfect style with AI-powered fashion
-              recommendations. From everyday elegance to statement looks, style
-              comes together effortlessly.
+
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-gray-400">
+              Discover your perfect style with <span className="text-white">AI-powered fashion</span> recommendations.
+              From everyday elegance to statement looks, style comes together effortlessly.
             </p>
-            <div className="flex items-center gap-4">
-              <Mail className="w-5 h-5 text-gray-400" />
-              <span className="text-xs sm:text-sm text-gray-400">
+
+            <div className="mt-6 flex items-center gap-3 text-sm">
+              <Mail className="w-4 h-4 text-gray-400" />
+              <span className="hover:text-white transition">
                 contact@eyorisfashion.com
               </span>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* SHOP */}
           <div>
-            <h3 className="text-white font-bold mb-3 sm:mb-4 uppercase tracking-wide text-sm sm:text-base">
+            <h4 className="text-white font-semibold tracking-widest uppercase text-sm mb-5">
               Shop
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/product?gender=men"
-                  className="hover:text-white transition"
-                >
-                  Men's Fashion
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/product?gender=women"
-                  className="hover:text-white transition"
-                >
-                  Women's Fashion
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/product?gender=kids"
-                  className="hover:text-white transition"
-                >
-                  Kids' Fashion
-                </Link>
-              </li>
-              <li>
-                <Link href="/product" className="hover:text-white transition">
-                  All Products
-                </Link>
-              </li>
+            </h4>
+            <ul className="space-y-3 text-sm">
+              {[
+                ["Men's Fashion", "/product?gender=men"],
+                ["Women's Fashion", "/product?gender=women"],
+                ["Kids' Fashion", "/product?gender=kids"],
+                ["All Products", "/product"],
+              ].map(([label, href]) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className="relative inline-block hover:text-white transition after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Account Links */}
+          {/* ACCOUNT */}
           <div>
-            <h3 className="text-white font-bold mb-4 uppercase tracking-wide">
+            <h4 className="text-white font-semibold tracking-widest uppercase text-sm mb-5">
               Account
-            </h3>
-            <ul className="space-y-2">
+            </h4>
+            <ul className="space-y-4 text-sm">
               <li>
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 hover:text-white transition"
+                  className="flex items-center gap-3 hover:text-white transition group"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-4 h-4 group-hover:scale-110 transition" />
                   My Profile
                 </Link>
               </li>
               <li>
                 <Link
                   href="/wishlist"
-                  className="flex items-center gap-2 hover:text-white transition"
+                  className="flex items-center gap-3 hover:text-white transition group"
                 >
-                  <Heart className="w-4 h-4" />
+                  <Heart className="w-4 h-4 group-hover:scale-110 transition" />
                   Wishlist
                 </Link>
               </li>
               <li>
                 <Link
                   href="/cart"
-                  className="flex items-center gap-2 hover:text-white transition"
+                  className="flex items-center gap-3 hover:text-white transition group"
                 >
-                  <ShoppingBag className="w-4 h-4" />
+                  <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition" />
                   Shopping Bag
                 </Link>
               </li>
@@ -108,26 +94,23 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-800 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Copyright */}
-            <p className="text-sm text-gray-500">
-              © 2025 Eyoris Fashion. All rights reserved.
-            </p>
+        {/* ================= BOTTOM BAR ================= */}
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-6 text-sm">
 
-            {/* Additional Links */}
-            <div className="flex gap-6 text-sm">
-              <Link href="/privacy" className="hover:text-white transition">
-                Privacy Policy
+          <p className="text-gray-500">
+            © 2025 <span className="text-white">Eyoris Fashion</span>. All rights reserved.
+          </p>
+
+          <div className="flex gap-8">
+            {["Privacy Policy", "Terms of Service", "Contact Us"].map((item) => (
+              <Link
+                key={item}
+                href={`/${item.toLowerCase().replace(/\s+/g, "")}`}
+                className="relative hover:text-white transition after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
+              >
+                {item}
               </Link>
-              <Link href="/terms" className="hover:text-white transition">
-                Terms of Service
-              </Link>
-              <Link href="/contact" className="hover:text-white transition">
-                Contact Us
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
       </div>

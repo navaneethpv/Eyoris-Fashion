@@ -1,3 +1,4 @@
+"use client";
 import Navbar from "./(pages)/components/Navbar";
 import ProductCard from "./(pages)/components/ProductCard";
 import AutoBanner from "./(pages)/components/AutoBanner";
@@ -27,54 +28,87 @@ export default async function Home() {
   const products = await getTrendingProducts();
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
       <Navbar />
 
-      {/* Auto-Rotating Banner */}
+      {/* HERO */}
       <AutoBanner />
 
-      {/* Curated Offer / Campaign Section */}
+      {/* OFFERS (Dark / Premium) */}
       <OfferSection />
 
-      {/* Trending Section */}
-      <section className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex justify-between items-end mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">Trending Now</h2>
+      {/* TRENDING PRODUCTS */}
+      <section className="max-w-7xl mx-auto px-6 py-24">
+        {/* HEADER */}
+        <div className="flex items-end justify-between mb-16">
+          <div>
+            <p className="text-xs uppercase tracking-[4px] text-gray-500 mb-2">
+              Discover
+            </p>
+            <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
+              Trending Now
+            </h2>
+          </div>
+
           <Link
             href="/product"
-            className="text-primary font-semibold hover:underline"
+            className="text-sm font-medium text-gray-700 hover:text-black transition flex items-center gap-2"
           >
-            View All
+            View All <span className="text-lg">→</span>
           </Link>
         </div>
 
+        {/* GRID */}
         {products.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-8 gap-4">
-            {products.map((p: any) => (
-              <ProductCard
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-12 gap-y-16">
+            {products.map((p: any, index: number) => (
+              <div
                 key={p._id || p.id}
-                product={{
-                  _id: p._id,
-                  slug: p.slug,
-                  name: p.name,
-                  price_cents: p.price_cents,
-                  price_before_cents: p.price_before_cents,
-                  images: p.images,
-                  brand: p.brand,
-                  offer_tag: p.offer_tag,
-                }}
-              />
+                className="opacity-0 animate-fade-up"
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <ProductCard
+                  product={{
+                    _id: p._id,
+                    slug: p.slug,
+                    name: p.name,
+                    price_cents: p.price_cents,
+                    price_before_cents: p.price_before_cents,
+                    images: p.images,
+                    brand: p.brand,
+                    offer_tag: p.offer_tag,
+                  }}
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="p-10 text-center text-gray-500 bg-gray-50 rounded-xl">
-            Backend is sleeping. Please run `npm run dev` in /api folder.
+          <div className="py-24 text-center text-gray-500 border border-dashed border-gray-300">
+            Backend is sleeping. Please run <code>npm run dev</code> in{" "}
+            <code>/api</code> folder.
           </div>
         )}
       </section>
 
-      {/* Most Viewed Section - Interactive Slider */}
+      {/* MOST VIEWED SLIDER */}
       <MostViewedSlider products={products} />
+
+      {/* PAGE ANIMATION */}
+      <style jsx>{`
+        @keyframes fade-up {
+          from {
+            opacity: 0;
+            transform: translateY(18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-up {
+          animation: fade-up 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }

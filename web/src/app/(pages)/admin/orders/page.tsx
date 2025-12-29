@@ -90,8 +90,29 @@ export default function OrdersPage() {
     }
   };
 
-  // REMOVED: handleApproveReturn function
-  // const handleApproveReturn = async (orderId: string) => { ... };
+  const handleApproveReturn = async (orderId: string) => {
+    if (!confirm('Are you sure you want to approve this return? This will mark the order as Returned and payment as Refunded.')) return;
+
+    // setApprovingReturn(orderId); // If you want loading state
+    setUpdatingId(orderId); // Reuse updating state for loader
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${orderId}/return/approve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (res.ok) {
+        fetchOrders();
+      } else {
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        alert(`Failed to approve return: ${errorData.message}`);
+      }
+    } catch (error) {
+      alert("Failed to approve return");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const getPaymentStatusColor = (paymentStatus: string) => {
     switch (paymentStatus) {
@@ -286,8 +307,25 @@ export default function OrdersPage() {
 
                           </motion.button>
 
-                          {/* REMOVED: Approve Return Button */}
-                          {/* Previously showed button when order.orderStatus === 'return_requested' */}
+                          {/* Approve Return Button */}
+                          {order.orderStatus === 'return_requested' && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveReturn(order._id);
+                              }}
+                              className="px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-bold rounded-lg border border-orange-200 transition-colors flex items-center"
+                            >
+                              {updatingId === order._id ? (
+                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              ) : (
+                                <Package className="w-3 h-3 mr-1" />
+                              )}
+                              Approve Return
+                            </motion.button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>

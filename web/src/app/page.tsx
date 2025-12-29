@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import Navbar from "./(pages)/components/Navbar";
 import ProductCard from "./(pages)/components/ProductCard";
 import AutoBanner from "./(pages)/components/AutoBanner";
@@ -6,26 +7,29 @@ import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
 import OfferSection from "@/components/home/OfferSection";
 
-// Force dynamic rendering for this route
-export const dynamic = "force-dynamic";
+export default function Home() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-// Fetch data directly from backend
-async function getTrendingProducts() {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=8&sort=price_desc`
-    );
-    if (!res.ok) throw new Error("Failed to fetch");
-    const json = await res.json();
-    return json.data;
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
+  useEffect(() => {
+    async function getTrendingProducts() {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=8&sort=price_desc`
+        );
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json = await res.json();
+        setProducts(json.data || []);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-export default async function Home() {
-  const products = await getTrendingProducts();
+    getTrendingProducts();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
@@ -59,7 +63,11 @@ export default async function Home() {
         </div>
 
         {/* GRID */}
-        {products.length > 0 ? (
+        {loading ? (
+          <div className="py-24 text-center text-gray-500">
+            Loading products...
+          </div>
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-12 gap-y-16">
             {products.map((p: any, index: number) => (
               <div
@@ -84,8 +92,8 @@ export default async function Home() {
           </div>
         ) : (
           <div className="py-24 text-center text-gray-500 border border-dashed border-gray-300">
-            Backend is sleeping. Please run <code>npm run dev</code> in{" "}
-            <code>/api</code> folder.
+            No products found. Please ensure the API server is running at{" "}
+            <code>http://localhost:4000</code>.
           </div>
         )}
       </section>

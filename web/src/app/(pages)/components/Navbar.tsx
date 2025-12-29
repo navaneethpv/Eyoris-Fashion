@@ -5,10 +5,31 @@ import { ShoppingBag, Search, Heart } from "lucide-react";
 import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
+import { useCartCount } from "@/hooks/useCartCount";
+
+import { useSearchParams } from "next/navigation";
+
+const NAV_ITEMS = [
+  { name: "MEN", href: "/product?gender=men", type: "gender", value: "men" },
+  { name: "WOMEN", href: "/product?gender=women", type: "gender", value: "women" },
+  { name: "KIDS", href: "/product?gender=kids", type: "gender", value: "kids" },
+  { name: "SHIRTS", href: "/product?q=shirts", type: "query", value: "shirts" },
+  { name: "JEANS", href: "/product?q=jeans", type: "query", value: "jeans" },
+  { name: "SHOES", href: "/product?q=shoes", type: "query", value: "shoes" },
+  { name: "WATCH", href: "/product?q=watch", type: "query", value: "watch" },
+];
 
 function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user } = useUser();
+  const cartCount = useCartCount();
+  const searchParams = useSearchParams();
+
+  const isActive = (item: typeof NAV_ITEMS[0]) => {
+    if (item.type === "gender") return searchParams.get("gender") === item.value;
+    if (item.type === "query") return searchParams.get("q") === item.value;
+    return false;
+  };
 
   return (
     <>
@@ -17,11 +38,13 @@ function NavbarContent() {
         <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between">
 
           {/* LEFT – BRAND */}
-          <Link
-            href="/"
-            className="text-2xl font-semibold tracking-[5px] text-black"
-          >
-            EYORIS FASHION
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+              <span className="text-white font-extrabold text-xl">E</span>
+            </div>
+            <span className="text-2xl font-extrabold tracking-wide text-black">
+              Eyoris <span className="font-semibold text-gray-500">Fashion</span>
+            </span>
           </Link>
 
           {/* RIGHT – SEARCH + ICONS */}
@@ -47,7 +70,7 @@ function NavbarContent() {
             <Link href="/cart" className="relative group">
               <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
               <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
-                2
+                {cartCount}
               </span>
             </Link>
 
@@ -72,34 +95,31 @@ function NavbarContent() {
           </div>
         </div>
 
-        {/* ================= CATEGORY BAR ================= */}
-        <div className="bg-black">
-          <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
-
-            {/* CLOTHES */}
-            <MegaMenu title="Clothes" />
-
-            {/* SHOES */}
-            <MegaMenu title="Shoes" />
-
-            {/* SHIRTS */}
-            <MegaMenu title="Shirts" />
-
-            {/* JEANS */}
-            <MegaMenu title="Jeans" />
-
-            {/* BELT */}
-            <MegaMenu title="Belt" />
-
-            {/* WATCH */}
-            <MegaMenu title="Watch" />
-
-            {/* NEWS */}
-            <MegaMenu title="News" />
-
+        {/* ================= CATEGORY HUB (Pill Style) ================= */}
+        <div className="border-t border-gray-100 bg-gray-100 shadow-sm">
+          <div className="max-w-7xl mx-auto py-2 px-4">
+            <div className="flex items-center justify-start lg:justify-center gap-3 overflow-x-auto scrollbar-hide py-2 px-1">
+              {NAV_ITEMS.map((item) => {
+                const active = isActive(item);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`
+                      relative px-5 py-2.5 rounded-full text-sm font-semibold tracking-wider transition-all duration-300 whitespace-nowrap
+                      ${active
+                        ? "bg-black text-white shadow-md scale-[1.02]"
+                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-black hover:scale-[1.02]"
+                      }
+                    `}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
-
       </nav>
 
 
@@ -108,96 +128,6 @@ function NavbarContent() {
         onClose={() => setIsSearchOpen(false)}
       />
     </>
-  );
-}
-function MegaMenu({ title }: { title: string }) {
-  return (
-    <div className="relative group">
-      {/* Top link */}
-      <Link
-        href={`/product?category=${title.toLowerCase()}`}
-        className="relative pb-1 after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 group-hover:after:w-full"
-      >
-        {title}
-      </Link>
-
-      {/* Dropdown */}
-      <div
-        className="
-          absolute left-1/2 -translate-x-1/2 top-full mt-6
-          w-[900px] bg-white text-black
-          opacity-0 invisible translate-y-4
-          group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-          transition-all duration-300 ease-out
-          shadow-2xl border border-gray-100
-        "
-      >
-        <div className="grid grid-cols-3 gap-14 px-16 py-12 text-sm">
-
-          {/* MEN */}
-          <MenuColumn
-            title="Men"
-            items={[
-              "Formal Shirts",
-              "Formal Trousers",
-              "Hat",
-              "Loungewear",
-              "Formal Accessories",
-            ]}
-          />
-
-          {/* WOMEN */}
-          <MenuColumn
-            title="Women"
-            items={[
-              "Jackets & Coats",
-              "Shirts",
-              "Jumpers & Knitwear",
-              "Pyjamas & Nightwear",
-              "Jeans",
-            ]}
-          />
-
-          {/* KIDS */}
-          <MenuColumn
-            title="Kids"
-            items={[
-              "All Winter Wear",
-              "Sweatshirts & Hoodies",
-              "Coats & Jackets",
-              "Trousers & Pants",
-              "Shorts & Skirts",
-            ]}
-          />
-
-        </div>
-      </div>
-    </div>
-  );
-}
-function MenuColumn({
-  title,
-  items,
-}: {
-  title: string;
-  items: string[];
-}) {
-  return (
-    <div>
-      <h4 className="font-semibold mb-5 tracking-wide">{title}</h4>
-      <ul className="space-y-3 text-gray-600">
-        {items.map((item) => (
-          <li key={item}>
-            <Link
-              href={`/product?subcategory=${item.replace(/\s+/g, "-").toLowerCase()}`}
-              className="inline-block transition-all duration-200 hover:text-black hover:translate-x-1"
-            >
-              {item}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

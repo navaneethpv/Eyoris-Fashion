@@ -70,6 +70,7 @@ export default function CartPage() {
         headers: await authHeaders(),
         body: JSON.stringify({ userId: user.id, productId, variant }),
       });
+      window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
       console.error(err);
       fetchCart(); // Revert on error
@@ -144,6 +145,7 @@ export default function CartPage() {
           });
           return { ...data, items: mergedItems };
         });
+        window.dispatchEvent(new Event("cart-updated"));
         return;
       }
 

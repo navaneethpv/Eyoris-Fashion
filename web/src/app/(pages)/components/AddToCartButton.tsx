@@ -5,9 +5,9 @@ import { ShoppingBag, Loader2, Check, X, AlertTriangle, Ruler, Heart } from 'luc
 import { useRouter } from 'next/navigation';
 
 interface Variant {
-    size: string;
-    stock: number;
-    // other fields ignored for this component
+  size: string;
+  stock: number;
+  // other fields ignored for this component
 }
 
 interface AddToCartButtonProps {
@@ -20,7 +20,7 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -33,12 +33,12 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
   const isLowStock = availableStock > 0 && availableStock <= 10;
   const isAnySizeInStock = variants.some(v => v.stock > 0);
   // --- END STOCK LOGIC ---
- 
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
 
   const handleAddToCart = async () => {
     // 1. Auth Check
@@ -50,8 +50,8 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
 
     // 2. Validation
     if (!selectedSize || availableStock <= 0) {
-        alert("Please select an available size.");
-        return;
+      alert("Please select an available size.");
+      return;
     }
 
     setLoading(true);
@@ -71,6 +71,7 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
 
       if (res.ok) {
         setSuccess(true);
+        window.dispatchEvent(new Event("cart-updated"));
         router.refresh();
         setTimeout(() => setSuccess(false), 2000);
       } else {
@@ -90,7 +91,7 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
       <div className="mb-8">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-bold text-gray-900 uppercase">Select Size</h3>
-          <button 
+          <button
             // Mock Size Guide Modal function call
             onClick={() => alert("Showing Size Guide Modal")}
             className="text-xs font-medium hover:underline flex items-center"
@@ -105,13 +106,12 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
               key={i}
               onClick={() => setSelectedSize(v.size)}
               disabled={v.stock <= 0} // 🛑 DISABLE: If stock is 0
-              className={`w-12 h-12 rounded-lg border flex items-center justify-center font-bold text-sm transition ${
-                v.stock <= 0 
-                ? 'border-gray-100 text-gray-400 line-through cursor-not-allowed' // Out of Stock Style
-                : selectedSize === v.size 
-                  ? 'border-black bg-black text-white' 
-                  : 'border-gray-200 text-gray-900 hover:border-black'
-              }`}
+              className={`w-12 h-12 rounded-lg border flex items-center justify-center font-bold text-sm transition ${v.stock <= 0
+                  ? 'border-gray-100 text-gray-400 line-through cursor-not-allowed' // Out of Stock Style
+                  : selectedSize === v.size
+                    ? 'border-black bg-black text-white'
+                    : 'border-gray-200 text-gray-900 hover:border-black'
+                }`}
             >
               {v.size}
             </button>
@@ -133,27 +133,26 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
           </span>
         )}
         {availableStock > 10 && selectedSize && (
-            <span className="text-sm font-bold text-green-600">
-                In Stock
-            </span>
+          <span className="text-sm font-bold text-green-600">
+            In Stock
+          </span>
         )}
         {!isAnySizeInStock && (
-             <span className="text-lg font-bold text-red-600">
-                Product is completely Out of Stock.
-             </span>
+          <span className="text-lg font-bold text-red-600">
+            Product is completely Out of Stock.
+          </span>
         )}
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-4">
-        <button 
+        <button
           onClick={handleAddToCart}
           disabled={!selectedSize || availableStock <= 0 || loading || success} // 🛑 DISABLE: If no size/out of stock/saving
-          className={`flex-1 h-14 rounded-xl font-bold text-lg transition shadow-xl flex items-center justify-center gap-2 ${
-            success 
-              ? 'bg-green-600 text-white shadow-green-200' 
+          className={`flex-1 h-14 rounded-xl font-bold text-lg transition shadow-xl flex items-center justify-center gap-2 ${success
+              ? 'bg-green-600 text-white shadow-green-200'
               : 'bg-gray-900 text-white hover:bg-black shadow-gray-200'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -163,7 +162,7 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
             </>
           ) : (
             <>
-               <ShoppingBag className="w-5 h-5" /> Add to Bag
+              <ShoppingBag className="w-5 h-5" /> Add to Bag
             </>
           )}
         </button>

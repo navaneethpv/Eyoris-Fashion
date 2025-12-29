@@ -5,10 +5,12 @@ import { ShoppingBag, Search, Heart } from "lucide-react";
 import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
+import { useCartCount } from "@/hooks/useCartCount";
 
 function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user } = useUser();
+  const cartCount = useCartCount();
 
   return (
     <>
@@ -47,7 +49,7 @@ function NavbarContent() {
             <Link href="/cart" className="relative group">
               <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
               <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
-                2
+                {cartCount}
               </span>
             </Link>
 

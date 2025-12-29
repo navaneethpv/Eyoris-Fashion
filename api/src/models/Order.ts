@@ -63,6 +63,7 @@ const OrderSchema = new mongoose.Schema({
   returnRequestedAt: { type: Date },
   returnApprovedAt: { type: Date },
   returnRejectedAt: { type: Date },
+  returnedAt: { type: Date },
   deliveredAt: { type: Date }
 }, { timestamps: true });
 

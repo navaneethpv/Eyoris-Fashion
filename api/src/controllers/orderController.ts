@@ -474,9 +474,39 @@ export const requestReturn = async (req: Request, res: Response) => {
   }
 };
 
-// REMOVED: Approve Return functionality
-// To be re-implemented from scratch
-// export const approveReturn = async (req: Request, res: Response) => { ... }
+// PATCH /api/orders/:id/return/approve (Admin - Approve return request)
+export const approveReturn = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
 
-// export const approveReturn = async (req: Request, res: Response) => { ... }
+    // 1. Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // 2. Status validation - ensure it matches "return_requested"
+    if (order.orderStatus !== 'return_requested') {
+      return res.status(400).json({
+        message: `Cannot approve return for order with status "${order.orderStatus}". Order must be in "return_requested" status.`,
+        currentStatus: order.orderStatus
+      });
+    }
+
+    // 3. Update status
+    order.orderStatus = 'returned';
+    order.paymentStatus = 'refunded'; // Assume full refund for now
+    order.returnedAt = new Date();
+
+    // Update legacy status field for backward compatibility
+    order.status = 'returned';
+
+    const updatedOrder = await order.save();
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Approve Return Error:', error);
+    res.status(500).json({ message: 'Failed to approve return' });
+  }
+};
 

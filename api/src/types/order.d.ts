@@ -38,14 +38,14 @@ export interface CreateOrderResponse {
   userId: string;
   items: OrderItem[];
   total_cents: number;
-  
+
   // Legacy status field for backward compatibility
   status: LegacyStatus;
-  
+
   // New separated status fields
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
-  
+
   paymentInfo: {
     id: string;
     status: string;
@@ -104,4 +104,7 @@ export interface OrderStatusUpdateResponse {
   shippingAddress: ShippingAddress;
   createdAt: string;
   updatedAt: string;
+  returnedAt?: string | Date;
+  cancelledAt?: string | Date;
+  deliveredAt?: string | Date;
 }

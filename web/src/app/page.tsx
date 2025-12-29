@@ -11,11 +11,17 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+  const baseUrl = base.replace(/\/$/, "");
+
   useEffect(() => {
     async function getTrendingProducts() {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=8&sort=price_desc`
+          `${baseUrl}/api/products?limit=8&sort=price_desc`
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const json = await res.json();

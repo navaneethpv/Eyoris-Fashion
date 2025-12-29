@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import morgan from "morgan";
 import { clerkMiddleware } from "@clerk/express";
 import { connectDB } from "./config/db";
-
 import cartRoutes from "./routes/cartRoutes";
 import productRoutes from "./routes/productRoutes";
 import aiRoutes from "./routes/aiRoutes";
@@ -18,34 +17,49 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://eyoris-fashion.vercel.app",
-    ],
-    credentials: true,
-  })
-);
+// CORS Configuration - Allow only specific origins
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://eyoris-fashion.vercel.app",
+];
 
+const corsOptions = {
+  origin: (origin: string | undefined, callback: any) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200,
+};
+
+
+app.use(cors(corsOptions));
+// app.options(/.*/, cors(corsOptions));// MUST be immediately after
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Public routes
+// Clerk middleware - MUST be before routes
+app.use(clerkMiddleware());
+
+// Mount Routes
 app.use("/api/products", productRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/reviews", reviewRoutes);
-
-// Protected routes
-app.use("/api/cart", clerkMiddleware(), cartRoutes);
-app.use("/api/orders", clerkMiddleware(), orderRoutes);
-app.use("/api/admin", clerkMiddleware(), adminRoutes);
-app.use("/api/wishlist", clerkMiddleware(), wishlistRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 app.get("/", (req, res) => {
   res.send("Eyoris Fashion API is running...");
 });
 
+// Start server after DB connection
 const startServer = async () => {
   try {
     await connectDB();

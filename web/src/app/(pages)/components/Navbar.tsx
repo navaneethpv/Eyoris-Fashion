@@ -86,7 +86,6 @@ function NavbarContent() {
             <NavLink title="JEANS" href="/product?q=jeans" />
             <NavLink title="SHOES" href="/product?q=shoes" />
             <NavLink title="WATCH" href="/product?q=watch" />
-            <NavLink title="NEWS" href="/product" />
           </div>
         </div>
 

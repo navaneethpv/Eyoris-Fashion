@@ -133,6 +133,7 @@ export default function OutfitGenerator({
 
       // Convert Set to Array for API
       const excludeIds = Array.from(excludedIdsRef.current);
+      console.log("[OUTFIT DEBUG] Frontend Sending Exclusions:", excludeIds);
 
       const res = await fetch(`${API_URL}/api/outfit/simple`, {
         method: "POST",
@@ -165,9 +166,11 @@ export default function OutfitGenerator({
         // Update exclusion memory with new items
         items.forEach((item: any) => {
           if (item.product && item.product._id) {
+            console.log("[OUTFIT DEBUG] Adding to exclusion:", item.product._id);
             excludedIdsRef.current.add(item.product._id);
           }
         });
+        console.log("[OUTFIT DEBUG] Updated Exclusion Set Size:", excludedIdsRef.current.size);
       }
     } catch (e) {
       console.error("Fetch error:", e);

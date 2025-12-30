@@ -68,11 +68,13 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
         // We assume excludeIds is an array of strings.
         const exclusionList: any[] = [];
         if (Array.isArray(excludeIds) && excludeIds.length > 0) {
+            console.log("[OUTFIT DEBUG] Received Exclude IDs:", excludeIds.length);
             excludeIds.forEach((id: string) => {
                 if (mongoose.Types.ObjectId.isValid(id)) {
                     exclusionList.push(new mongoose.Types.ObjectId(id));
                 }
             });
+            console.log("[OUTFIT DEBUG] Valid ObjectIds for Exclusion:", exclusionList.length);
         }
 
         // Strict gender matching if available
@@ -144,6 +146,7 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
 
             // If no product found and we had exclusions, try without exclusions (fallback)
             if (!product && exclusionList.length > 0) {
+                console.log(`[OUTFIT DEBUG] Fallback triggered for role: ${role}`);
                 // Fallback: ignore recent exclusions, but still exclude baseProduct (handled in getProductForRole default logic)
                 product = await getProductForRole(role, false);
             }

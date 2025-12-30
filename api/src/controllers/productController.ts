@@ -1007,3 +1007,37 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
     res.status(500).json({ message: "AI category failed" });
   }
 };
+
+
+// ----------------- Controller: getHomeProducts (Dynamic) -----------------
+export const getHomeProducts = async (req: Request, res: Response) => {
+  try {
+    // 1. Trending (Random 12)
+    const trending = await Product.aggregate([
+      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $sample: { size: 12 } }
+    ]);
+
+    // 2. Most Viewed (Random 10)
+    const mostViewed = await Product.aggregate([
+      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $sample: { size: 10 } }
+    ]);
+
+    // 3. Offers (Random 8)
+    const offers = await Product.aggregate([
+      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $sample: { size: 8 } }
+    ]);
+
+    res.json({
+      trending,
+      mostViewed,
+      offers
+    });
+
+  } catch (error) {
+    console.error("getHomeProducts error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};

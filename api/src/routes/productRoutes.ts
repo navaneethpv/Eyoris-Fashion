@@ -12,7 +12,8 @@ import {
   updateProduct,
   getSearchSuggestions,
   createReview, // Assuming you have review routes here
-  getReviews
+  getReviews,
+  getHomeProducts
 } from '../controllers/productController';
 import { upload } from '../config/multer'; // Assuming multer is configured for file uploads
 import { getSubCategories, getSubcategoriesByCategory, getCategories } from "../controllers/productController";
@@ -25,6 +26,7 @@ const router = express.Router();
 
 
 // --- Public Routes ---
+router.get('/home', getHomeProducts); // Dynamic Home Page
 router.get('/suggestions', getSearchSuggestions); // Must be before /:id
 router.get('/', getProducts);
 router.get('/slug/:slug', getProductBySlug);

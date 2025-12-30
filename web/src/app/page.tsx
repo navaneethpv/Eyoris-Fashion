@@ -8,7 +8,11 @@ import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
 
 export default function Home() {
-  const [products, setProducts] = useState([]);
+  const [homeData, setHomeData] = useState<{ trending: any[], mostViewed: any[], offers: any[] }>({
+    trending: [],
+    mostViewed: [],
+    offers: []
+  });
   const [loading, setLoading] = useState(true);
 
   const base =
@@ -18,23 +22,25 @@ export default function Home() {
   const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
-    async function getTrendingProducts() {
+    async function getHomeData() {
       try {
-        const res = await fetch(
-          `${baseUrl}/api/products?limit=8&sort=price_desc`
-        );
-        if (!res.ok) throw new Error("Failed to fetch");
+        const res = await fetch(`${baseUrl}/api/products/home`);
+        if (!res.ok) throw new Error("Failed to fetch home data");
         const json = await res.json();
-        setProducts(json.data || []);
+
+        setHomeData({
+          trending: json.trending || [],
+          mostViewed: json.mostViewed || [],
+          offers: json.offers || []
+        });
       } catch (err) {
-        console.error("Failed to fetch products:", err);
-        setProducts([]);
+        console.error("Failed to fetch home products:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    getTrendingProducts();
+    getHomeData();
   }, []);
 
   return (
@@ -45,7 +51,7 @@ export default function Home() {
       <AutoBanner />
 
       {/* NEW: OFFER CAROUSEL */}
-      <OfferCarousel />
+      <OfferCarousel products={homeData.offers} />
 
       {/* TRENDING PRODUCTS */}
       <section className="max-w-7xl mx-auto px-6 py-24">
@@ -73,18 +79,17 @@ export default function Home() {
           <div className="py-24 text-center text-gray-500">
             Loading products...
           </div>
-        ) : products.length > 0 ? (
-          <TrendingSlider products={products} />
+        ) : homeData.trending.length > 0 ? (
+          <TrendingSlider products={homeData.trending} />
         ) : (
-          <div className="py-24 text-center text-gray-500 border border-dashed border-gray-300">
-            No products found. Please ensure the API server is running at{" "}
-            <code>http://localhost:4000</code>.
+          <div className="py-24 text-center "> {/* Cleaned up empty state */}
+            {/* Silent fallback or simple message */}
           </div>
         )}
       </section>
 
       {/* MOST VIEWED SLIDER */}
-      <MostViewedSlider products={products} />
+      <MostViewedSlider products={homeData.mostViewed} />
 
       {/* PAGE ANIMATION */}
       <style jsx>{`

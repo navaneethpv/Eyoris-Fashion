@@ -532,7 +532,7 @@ function ProductPageContent() {
           <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 flex gap-12">
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-64 flex-shrink-0 pt-2 sticky top-32 h-[calc(100vh-8rem)] overflow-y-auto pr-4 thin-scrollbar">
+            <aside className="hidden md:block w-64 flex-shrink-0 pt-2 sticky px-4 top-32 h-[calc(100vh-8rem)] overflow-y-auto pr-4 thin-scrollbar">
               <div className="flex justify-between items-baseline mb-8">
                 <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Refine</span>
                 {hasActiveFiltersOrSort && (

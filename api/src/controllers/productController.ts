@@ -254,8 +254,25 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     if (req.query.masterCategory) matchStage.masterCategory = new RegExp(`^${req.query.masterCategory}$`, 'i');
-    if (req.query.brand) matchStage.brand = new RegExp(`^${req.query.brand}$`, 'i');
-    if (req.query.size) matchStage.sizes = req.query.size;
+
+    // Multi-Select: Brand
+    if (req.query.brand) {
+      const brands = (req.query.brand as string).split(',').map(b => new RegExp(`^${b.trim()}$`, 'i'));
+      matchStage.brand = { $in: brands };
+    }
+
+    // Multi-Select: Size
+    if (req.query.size) {
+      const sizes = (req.query.size as string).split(',').map(s => new RegExp(`^${s.trim()}$`, 'i'));
+      matchStage["variants.size"] = { $in: sizes };
+    }
+
+    // Multi-Select: Color
+    if (req.query.color) {
+      const colors = (req.query.color as string).split(',').map(c => new RegExp(`^${c.trim()}$`, 'i'));
+      matchStage["dominantColor.name"] = { $in: colors };
+    }
+
     // articleType is handled via finalCategory above
 
     if (minPrice || maxPrice) {

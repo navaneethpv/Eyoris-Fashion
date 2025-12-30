@@ -63,7 +63,12 @@ async function getProducts(
   if (searchParams.sort) params.set("sort", searchParams.sort);
   if (searchParams.minPrice) params.set("minPrice", searchParams.minPrice);
   if (searchParams.maxPrice) params.set("maxPrice", searchParams.maxPrice);
-  // Brand, size, color are applied client-side (legacy legacy but okay)
+
+  // Pass filters to backend for accurate pagination
+  if (searchParams.brand) params.set("brand", searchParams.brand);
+  if (searchParams.size) params.set("size", searchParams.size);
+  if (searchParams.color) params.set("color", searchParams.color);
+
   // Search is now handled server-side
   const query = searchParams.q || searchParams.search;
   if (query) params.set("q", query);

@@ -27,12 +27,13 @@ export default function AddToCartButton({ variants = [], productId, price, compa
   const [success, setSuccess] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("");
 
+  const [showSizeError, setShowSizeError] = useState(false);
+
   // --- STOCK LOGIC ---
   const selectedVariant = Array.isArray(variants) ? variants.find(v => v.size === selectedSize) : undefined;
   const availableStock = selectedVariant ? (selectedVariant.stock ?? 0) : 0;
   const isOutOfStock = !!selectedSize && availableStock <= 0;
   const isLowStock = availableStock > 0 && availableStock <= 10;
-  const isAnySizeInStock = variants.some(v => v.stock > 0);
   // --- END STOCK LOGIC ---
 
   const base =
@@ -49,13 +50,23 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       return;
     }
 
+    const hasVariants = variants.length > 0;
+
     // 2. Validation
-    if (!selectedSize || availableStock <= 0) {
-      alert("Please select an available size.");
+    // Case A: Product HAS variants but none selected
+    if (hasVariants && !selectedSize) {
+      setShowSizeError(true);
+      return;
+    }
+
+    // Case B: Size selected but OOS
+    if (hasVariants && selectedSize && availableStock <= 0) {
+      alert("Selected size is out of stock.");
       return;
     }
 
     setLoading(true);
+    setShowSizeError(false);
 
     try {
       // 3. API Call
@@ -65,7 +76,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
         body: JSON.stringify({
           userId: user.id,
           productId: productId,
-          variant: selectedSize, // Use selectedSize as variantSku
+          variant: hasVariants ? selectedSize : "One Size", // Default to "One Size" if no variants
           quantity: 1
         })
       });
@@ -93,7 +104,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
     }
     setWishlistLoading(true);
     try {
-      // 1. Try Add
+      // ... same logic ...
       const res = await fetch(`${baseUrl}/api/wishlist/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,9 +113,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
 
       if (res.ok) {
         window.dispatchEvent(new Event("wishlist-updated"));
-        // Optional: show toast/alert
       } else if (res.status === 400) {
-        // 2. If duplicate, Try Remove
         const resDel = await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -131,7 +140,6 @@ export default function AddToCartButton({ variants = [], productId, price, compa
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
           ) : (
             <button
-              // Mock Size Guide Modal function call
               onClick={() => alert("Showing Size Guide Modal")}
               className="text-xs font-medium hover:underline flex items-center"
               style={{ color: 'rgba(13, 13, 13, 1)' }}
@@ -139,13 +147,15 @@ export default function AddToCartButton({ variants = [], productId, price, compa
               <Ruler className="w-3 h-3 mr-1" /> Size Guide
             </button>
           )}
-
         </div>
         <div className="flex flex-wrap gap-2">
           {variants.map((v: Variant, i: number) => (
             <button
               key={i}
-              onClick={() => setSelectedSize(v.size)}
+              onClick={() => {
+                setSelectedSize(v.size);
+                setShowSizeError(false);
+              }}
               disabled={v.stock <= 0}
               className={`rounded-lg border flex items-center justify-center font-bold transition 
                 ${compact ? "w-8 h-8 text-xs" : "w-12 h-12 text-sm"}
@@ -161,6 +171,13 @@ export default function AddToCartButton({ variants = [], productId, price, compa
           ))}
           {variants.length === 0 && <span className="text-xs text-gray-500">One Size</span>}
         </div>
+        {/* Size Selection Error */}
+        {showSizeError && (
+          <div className={`text-red-600 font-bold flex items-center mt-2 animate-in slide-in-from-top-1 ${compact ? "text-[10px]" : "text-xs"}`}>
+            <AlertTriangle className={`mr-1 ${compact ? "w-3 h-3" : "w-4 h-4"}`} />
+            Please select a size
+          </div>
+        )}
       </div>
 
       {/* 🛑 STOCK MESSAGE 🛑 */}
@@ -181,7 +198,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       <div className="flex gap-2">
         <button
           onClick={handleAddToCart}
-          disabled={!selectedSize || availableStock <= 0 || loading || success}
+          disabled={loading || success}
           className={`flex-1 rounded-lg font-bold transition shadow-sm flex items-center justify-center gap-2 
             ${compact ? "h-9 text-xs" : "h-14 text-lg shadow-xl"}
             ${success

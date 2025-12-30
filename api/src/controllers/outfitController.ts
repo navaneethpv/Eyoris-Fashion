@@ -42,7 +42,7 @@ const getProductRole = (product: IProduct): string => {
     }
 
     // Accessories
-    if (cat === 'watch' || cat === 'belt' || sub.includes('watch') || sub.includes('belt') || sub.includes('bag') || sub.includes('wallet') || sub.includes('hat') || sub.includes('cap') || sub.includes('accessory')) {
+    if (cat === 'watch' || cat === 'belt' || sub.includes('watch') || sub.includes('belt') || sub.includes('bag') || sub.includes('wallet') || sub.includes('hat') || sub.includes('cap') || sub.includes('accessory') || sub.includes('sunglass') || sub.includes('eyewear') || sub.includes('shade') || sub.includes('jewel') || sub.includes('earring') || sub.includes('brace') || sub.includes('neck')) {
         return ROLES.ACCESSORY;
     }
 
@@ -96,7 +96,7 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
             { role: ROLES.TOP, limit: 3 },
             { role: ROLES.BOTTOM, limit: 3 },
             { role: ROLES.FOOTWEAR, limit: 2 },
-            { role: ROLES.ACCESSORY, limit: 4 }
+            { role: ROLES.ACCESSORY, limit: 7 }
         ];
 
         const suggestions: any[] = [];
@@ -123,13 +123,13 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                 case ROLES.ACCESSORY:
                     const g = (gender || '').toLowerCase();
                     if (g === 'men') {
-                        const r = /watch|belt|wallet|cap|sunglass|bracelet|earring/i;
+                        const r = /watch|belt|wallet|cap|sunglass|eyewear|shade|bracelet|earring/i;
                         roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else if (g === 'women') {
-                        const r = /earring|bracelet|bangle|necklace|handbag|clutch|watch|sunglass/i;
+                        const r = /earring|bracelet|bangle|necklace|handbag|clutch|watch|sunglass|eyewear|shade|jewel/i;
                         roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else if (g === 'kids') {
-                        const r = /cap|watch|bag|backpack/i;
+                        const r = /cap|watch|bag|backpack|sunglass|eyewear/i;
                         roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else {
                         const r = /accessory|watch|bag/i;

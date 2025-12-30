@@ -180,7 +180,9 @@ export default function ProductCard({ product, isPremium = false }: ProductCardP
             <button
               onClick={toggleWishlist}
               disabled={wishlistLoading}
-              className={`absolute z-20 group/heart transition-transform duration-200 hover:scale-125 disabled:opacity-50 ${isPremium ? "top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40" : "top-2 right-2 sm:top-3 sm:right-3"
+              className={`absolute z-20 group/heart transition-all duration-300 disabled:opacity-50 ${isPremium
+                ? "top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                : "top-2 right-2 sm:top-3 sm:right-3 hover:scale-110"
                 }`}
               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >

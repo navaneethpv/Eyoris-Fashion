@@ -4,15 +4,32 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "./ProductCard";
 import Link from "next/link";
 
-interface MostViewedSliderProps {
-  products: any[];
-}
-
-export default function MostViewedSlider({ products }: MostViewedSliderProps) {
+export default function MostViewedSlider() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Local state for fetched products
+  const [mostViewedProducts, setProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchMostViewed() {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const url = `${base.replace(/\/$/, "")}/api/products/most-viewed`;
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch most viewed:", err);
+      }
+    }
+    fetchMostViewed();
+  }, []);
 
   // Auto-scroll logic
   useEffect(() => {
@@ -65,7 +82,7 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
     }
   };
 
-  if (!products || products.length === 0) return null;
+  if (mostViewedProducts.length === 0) return null;
 
   return (
     <section className="py-20 bg-gradient-to-b from-purple-50/50 to-white relative overflow-hidden">
@@ -120,7 +137,7 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
             }`}
           style={{ scrollbarWidth: 'none' }}
         >
-          {products.slice(0, 10).map((p, i) => (
+          {mostViewedProducts.map((p, i) => (
             <div
               key={p._id || i}
               className="snap-center shrink-0 w-[75vw] sm:w-[320px] md:w-[360px]"

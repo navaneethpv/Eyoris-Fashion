@@ -557,7 +557,11 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
 // ----------------- Controller: getProductBySlug -----------------
 export const getProductBySlug = async (req: Request, res: Response) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug }).lean();
+    const product = await Product.findOneAndUpdate(
+      { slug: req.params.slug },
+      { $inc: { views: 1 } }, // Increment view count
+      { new: true }
+    ).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     // Fetch related data in parallel
@@ -1060,6 +1064,25 @@ export const getHomeProducts = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error("getHomeProducts error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+// ----------------- Controller: getMostViewedProducts -----------------
+export const getMostViewedProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await Product.find({
+      isPublished: true,
+      stock: { $gt: 0 }
+    })
+      .sort({ views: -1 }) // Sort by views descending
+      .limit(10)          // Top 10
+      .select('name slug price_cents price_before_cents images brand offer_tag'); // Optimize select
+
+    res.json(products);
+  } catch (error) {
+    console.error("getMostViewedProducts error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };

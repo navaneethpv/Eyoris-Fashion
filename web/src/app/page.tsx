@@ -8,9 +8,8 @@ import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
 
 export default function Home() {
-  const [homeData, setHomeData] = useState<{ trending: any[], mostViewed: any[], offers: any[] }>({
+  const [homeData, setHomeData] = useState<{ trending: any[], offers: any[] }>({
     trending: [],
-    mostViewed: [],
     offers: []
   });
   const [loading, setLoading] = useState(true);
@@ -30,7 +29,6 @@ export default function Home() {
 
         setHomeData({
           trending: json.trending || [],
-          mostViewed: json.mostViewed || [],
           offers: json.offers || []
         });
       } catch (err) {
@@ -89,7 +87,8 @@ export default function Home() {
       </section>
 
       {/* MOST VIEWED SLIDER */}
-      <MostViewedSlider products={homeData.mostViewed} />
+      {/* MOST VIEWED SLIDER */}
+      <MostViewedSlider />
 
       {/* PAGE ANIMATION */}
       <style jsx>{`

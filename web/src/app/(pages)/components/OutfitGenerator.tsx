@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Sparkles, Loader2, Zap, ChevronDown, Sparkle, RefreshCw } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
+import Modal from "./Modal";
 
 interface OutfitItem {
   role: string;
@@ -86,6 +87,7 @@ export default function OutfitGenerator({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
+  const [showBlockModal, setShowBlockModal] = useState(false);
 
   // Native scroll with custom drag
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -123,7 +125,7 @@ export default function OutfitGenerator({
     }
   };
 
-  // Exclusion Memory using useRef (persists across re-renders but resets on reload)
+  // Exclusion Memory
   const excludedIdsRef = useRef<Set<string>>(new Set());
 
   // Non-Fashion Block List
@@ -147,7 +149,7 @@ export default function OutfitGenerator({
     const isBlocked = NON_FASHION_KEYWORDS.some((keyword) => searchString.includes(keyword));
 
     if (isBlocked) {
-      alert("Outfit suggestions are available only for fashion products.");
+      setShowBlockModal(true);
       return;
     }
 
@@ -448,6 +450,29 @@ export default function OutfitGenerator({
           animation: gradient 3s ease infinite;
         }
       `}</style>
+
+      {/* Block Logic Modal */}
+      <Modal
+        isOpen={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        title="Outfit Not Available"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 leading-relaxed text-sm">
+            Outfit suggestions are available only for fashion items like clothing, footwear, and accessories.
+            <br /><br />
+            Since this is a non-fashion item (e.g., cosmetic or skincare), our style AI cannot generate a look for it.
+          </p>
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => setShowBlockModal(false)}
+              className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 transition shadow-lg"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

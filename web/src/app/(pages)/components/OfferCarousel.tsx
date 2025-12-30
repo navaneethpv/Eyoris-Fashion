@@ -33,8 +33,8 @@ const originalOffers = [
     },
 ];
 
-// 3 Sets for infinite looping (Prev | Current | Next)
-const offers = [...originalOffers, ...originalOffers, ...originalOffers];
+// 5 Sets for infinite looping (buffer on both sides)
+const offers = [...originalOffers, ...originalOffers, ...originalOffers, ...originalOffers, ...originalOffers];
 
 export default function OfferCarousel() {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,12 +47,11 @@ export default function OfferCarousel() {
 
         let animationFrameId: number;
 
-        // Initial scroll position: Start at the middle set
-        // We do this inside a timeout to ensure layout is ready or check if scrollLeft is 0
+        // Initial scroll position: Start at the middle set (Set 3 of 5)
         const initScroll = () => {
-            const oneSetWidth = scrollContainer.scrollWidth / 3;
+            const oneSetWidth = scrollContainer.scrollWidth / 5;
             if (scrollContainer.scrollLeft < 10) {
-                scrollContainer.scrollLeft = oneSetWidth;
+                scrollContainer.scrollLeft = oneSetWidth * 2;
             }
         };
         // Run init on mount
@@ -60,19 +59,30 @@ export default function OfferCarousel() {
 
         const animate = () => {
             if (!isPaused) {
-                scrollContainer.scrollLeft += 0.8; // Speed of auto-scroll
+                scrollContainer.scrollLeft += 1.5; // Speed of auto-scroll
             }
 
             // Infinite loop check
-            const oneSetWidth = scrollContainer.scrollWidth / 3;
+            const oneSetWidth = scrollContainer.scrollWidth / 5;
 
-            // If scrolled past the second set (into the third), jump back to first
-            if (scrollContainer.scrollLeft >= oneSetWidth * 2) {
-                scrollContainer.scrollLeft = oneSetWidth;
+            // If scrolled past the 3rd set (into the 4th start), jump back to 2nd set (middle - 1)
+            // Ideally jump to logically equivalent position.
+            // Center is Set 3 (index 2).
+            // Jump from Set 4 (index 3) to Set 3 (index 2)? No, jump to Set 3.
+
+            // Logic:
+            // [0] [1] [2] [3] [4]
+            // We start at [2].
+            // If we hit Start of [4], jump to Start of [3]?
+            // No, strictly:
+            // If scrollLeft >= oneSetWidth * 3 (Start of Set 4) -> jump to oneSetWidth * 2 (Start of Set 3)
+            // If scrollLeft <= oneSetWidth (Start of Set 2) -> jump to oneSetWidth * 2 (Start of Set 3)
+
+            if (scrollContainer.scrollLeft >= oneSetWidth * 3) {
+                scrollContainer.scrollLeft = scrollContainer.scrollLeft - oneSetWidth;
             }
-            // If scrolled backward past the first set (into "zero"), jump forward to second
-            else if (scrollContainer.scrollLeft <= 0) {
-                scrollContainer.scrollLeft = oneSetWidth;
+            else if (scrollContainer.scrollLeft <= oneSetWidth) {
+                scrollContainer.scrollLeft = scrollContainer.scrollLeft + oneSetWidth;
             }
 
             animationFrameId = requestAnimationFrame(animate);
@@ -102,15 +112,44 @@ export default function OfferCarousel() {
 
             {/* Carousel Container */}
             <div
-                className="w-full overflow-hidden"
+                className="w-full relative group"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
                 onTouchStart={() => setIsPaused(true)}
                 onTouchEnd={() => setIsPaused(false)}
             >
+                {/* Left Gradient Mask */}
+                <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Right Gradient Mask */}
+                <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Navigation Buttons */}
+                <button
+                    onClick={() => {
+                        if (scrollRef.current) {
+                            scrollRef.current.scrollBy({ left: -400, behavior: 'smooth' });
+                        }
+                    }}
+                    className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-lg text-gray-900 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white inset-y-0 my-auto"
+                >
+                    <ChevronRight className="w-6 h-6 rotate-180" />
+                </button>
+
+                <button
+                    onClick={() => {
+                        if (scrollRef.current) {
+                            scrollRef.current.scrollBy({ left: 400, behavior: 'smooth' });
+                        }
+                    }}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-lg text-gray-900 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white inset-y-0 my-auto"
+                >
+                    <ChevronRight className="w-6 h-6" />
+                </button>
+
                 <div
                     ref={scrollRef}
-                    className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-12 px-6 no-scrollbar"
+                    className={`flex gap-6 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? 'snap-x snap-mandatory' : ''}`}
                     style={{
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none'

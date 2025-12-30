@@ -123,7 +123,7 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                 case ROLES.ACCESSORY:
                     const g = (gender || '').toLowerCase();
                     if (g === 'men') {
-                        const r = /watch|belt|wallet|cap|sunglass/i;
+                        const r = /watch|belt|wallet|cap|sunglass|bracelet|earring/i;
                         roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else if (g === 'women') {
                         const r = /earring|bracelet|bangle|necklace|handbag|clutch|watch|sunglass/i;
@@ -159,15 +159,54 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                 queryWithExclusion._id = { $nin: [...currentExclusionList, baseProduct._id] };
             }
 
-            return await Product.aggregate([
+            const isAccessory = targetRole === ROLES.ACCESSORY;
+            // Fetch more samples for accessories to allow for deduplication by type
+            const sampleSize = isAccessory ? limit * 6 : limit;
+
+            let results = await Product.aggregate([
                 { $match: queryWithExclusion },
-                { $sample: { size: limit } },
+                { $sample: { size: sampleSize } },
                 {
                     $project: {
                         name: 1, slug: 1, price_cents: 1, brand: 1, category: 1, subCategory: 1, images: { $slice: ["$images", 1] }, variants: 1
                     }
                 }
             ]);
+
+            // Post-processing for Accessories: unique types
+            if (isAccessory && results.length > 0) {
+                const uniqueResults: any[] = [];
+                const seenTypes = new Set<string>();
+
+                // Helper to classify
+                const getType = (p: any) => {
+                    const s = (p.subCategory || '').toLowerCase() + ' ' + (p.name || '').toLowerCase();
+                    if (s.match(/watch/)) return 'watch';
+                    if (s.match(/belt/)) return 'belt';
+                    if (s.match(/wallet|purse/)) return 'wallet';
+                    if (s.match(/bag|backpack/)) return 'bag';
+                    if (s.match(/clutch/)) return 'clutch';
+                    if (s.match(/sunglass/)) return 'sunglass';
+                    if (s.match(/cap|hat/)) return 'cap';
+                    if (s.match(/earring/)) return 'earring';
+                    if (s.match(/neck/)) return 'necklace';
+                    if (s.match(/brace|bangle/)) return 'bracelet';
+                    if (s.match(/shoe|flat|heel/)) return 'shoes'; // rare
+                    return 'other_' + p._id; // treat others as unique by ID
+                };
+
+                for (const item of results) {
+                    const type = getType(item);
+                    if (!seenTypes.has(type)) {
+                        seenTypes.add(type);
+                        uniqueResults.push(item);
+                    }
+                    if (uniqueResults.length >= limit) break;
+                }
+                results = uniqueResults;
+            }
+
+            return results;
         };
 
         // fill roles

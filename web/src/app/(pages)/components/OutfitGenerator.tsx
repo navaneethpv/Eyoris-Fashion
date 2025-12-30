@@ -119,15 +119,48 @@ export default function OutfitGenerator({
     setLoading(true);
     setResult(null);
 
-    // MOCK: Simulate API delay and return safe no-op response
-    setTimeout(() => {
-      setResult({
-        outfitTitle: "Style Studio",
-        outfitItems: [],
-        overallStyleExplanation: "Outfit generation is temporarily unavailable.",
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      if (!API_URL) {
+        throw new Error("NEXT_PUBLIC_API_URL is not configured");
+      }
+
+      const res = await fetch(`${API_URL}/api/outfit/simple`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
       });
+
+      if (!res.ok) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ message: "Unknown error" }));
+        console.error("API Error:", res.status, errorData);
+        alert(
+          `Failed to generate outfit: ${errorData.message || "Server error"}`
+        );
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Outfit API Response:", data);
+
+      if (!data || typeof data !== "object") {
+        console.warn("Invalid response format:", data);
+        setResult(null);
+      } else {
+        data.outfitItems = data.outfitItems ?? [];
+        setResult(data);
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
+      alert(
+        "AI failed to suggest an outfit. Please check your connection and try again."
+      );
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

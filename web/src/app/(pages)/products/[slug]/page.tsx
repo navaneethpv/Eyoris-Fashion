@@ -198,21 +198,24 @@ export default async function ProductDetailPage({
 
       <main className="max-w-7xl mx-auto px-4 py-12 md:py-20">
         {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
+        {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
           {/* Left Column: Gallery (7 cols) */}
-          <div className="lg:col-span-7 self-start sticky top-24">
-            {/* Uses your product.images directly */}
+          <div className="lg:col-span-7 self-start scroll-y">
+            {/* Uses updated Gallery component which matches snippet structure */}
             <Gallery images={product.images} name={product.name} />
           </div>
 
           {/* Right Column: Details (5 cols) */}
           <div className="lg:col-span-5 flex flex-col h-full pt-2">
-            {/* Brand + Title + Rating */}
+
+            {/* 1. Brand & Rating Badge */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-3">
                 <h1 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">
-                  {product.brand}
+                  {product.brand || "Eyoris Basics"}
                 </h1>
+
                 {typeof product.rating === "number" && (
                   <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
                     <Star className="w-3.5 h-3.5 fill-current text-gray-900" />
@@ -231,7 +234,7 @@ export default async function ProductDetailPage({
               </h2>
             </div>
 
-            {/* Price */}
+            {/* 2. Price Section */}
             <div className="mb-10 p-6 rounded-2xl bg-gray-50 border border-gray-100/50">
               <div className="flex items-baseline gap-4 mb-2">
                 <span className="text-4xl font-bold text-gray-900 tracking-tight">
@@ -243,21 +246,19 @@ export default async function ProductDetailPage({
                   </span>
                 )}
               </div>
-
               <div className="flex items-center gap-3">
                 {discount > 0 && (
                   <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase tracking-wide">
                     Save {discount}%
                   </span>
                 )}
-                <span className="text-xs text-gray-400 font-medium">
-                  Inclusive of all taxes
-                </span>
+                <span className="text-xs text-gray-400 font-medium">Inclusive of all taxes</span>
               </div>
             </div>
 
-            {/* Sizes & Add Button */}
+            {/* 3. Sizes & Add To Cart (Encapsulated) */}
             <div className="mb-8">
+              {/* AddToCartButton handles the "Select Size" header, buttons, and Add/Heart actions */}
               <AddToCartButton
                 productId={product._id}
                 price={product.price_cents}
@@ -265,7 +266,7 @@ export default async function ProductDetailPage({
               />
             </div>
 
-            {/* Delivery & Trust */}
+            {/* 4. Delivery & Trust Icons */}
             <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-10">
               <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
                 <div className="p-2 bg-gray-50 rounded-full">

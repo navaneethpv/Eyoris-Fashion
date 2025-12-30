@@ -57,10 +57,10 @@ export default function Gallery({ images, name }: GalleryProps) {
               type="button"
               aria-label={`Thumbnail ${i}`}
               className={`
-                relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl transition-all duration-300
+                relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-1 shadow-lg transition-all duration-300
                 ${isSelected
-                  ? "ring-2 ring-black ring-offset-2 scale-105 opacity-100"
-                  : "opacity-70 hover:opacity-100 hover:scale-105"
+                  ? "scale-105 opacity-100 ring-1 ring-gray-200"
+                  : "opacity-70 hover:opacity-100 hover:scale-105 border-transparent"
                 }
               `}
               onClick={() => setSelectedIndex(i)}

@@ -40,11 +40,11 @@ function NavbarContent() {
         <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between">
 
           {/* LEFT – BRAND */}
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
-              <span className="text-white font-extrabold text-xl">E</span>
+          <Link href="/" className="inline-flex items-center gap-2 md:gap-3 group">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+              <span className="text-white font-extrabold text-lg md:text-xl">E</span>
             </div>
-            <span className="text-2xl font-extrabold tracking-wide text-black">
+            <span className="text-lg md:text-2xl font-extrabold tracking-wide text-black">
               Eyoris <span className="font-semibold text-gray-500">Fashion</span>
             </span>
           </Link>

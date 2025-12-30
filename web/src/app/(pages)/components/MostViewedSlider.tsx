@@ -34,8 +34,9 @@ export default function MostViewedSlider() {
   const checkScrollPosition = () => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      // Strict checks with 1px buffer for cross-browser safety
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
     }
   };
 
@@ -43,9 +44,16 @@ export default function MostViewedSlider() {
     const el = scrollRef.current;
     if (el) {
       el.addEventListener('scroll', checkScrollPosition);
-      return () => el.removeEventListener('scroll', checkScrollPosition);
+      window.addEventListener('resize', checkScrollPosition);
+      // Initial check
+      checkScrollPosition();
+
+      return () => {
+        el.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
     }
-  }, []);
+  }, [mostViewedProducts]); // Re-run when products load/change
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -71,21 +79,29 @@ export default function MostViewedSlider() {
       </div>
 
       <div className="relative group w-full">
-        {/* Navigation Buttons - Minimalist */}
+        {/* Navigation Buttons - Strict Logic & Styling */}
         <button
           onClick={() => scroll("left")}
           disabled={!canScrollLeft}
-          className={`hidden md:flex absolute -left-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-all ${!canScrollLeft ? "opacity-0" : "opacity-100"}`}
+          className={`hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full items-center justify-center transition-all duration-300 border border-gray-100 bg-white ${!canScrollLeft
+              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none text-gray-400"
+              : "opacity-100 shadow-lg text-gray-800 hover:bg-black hover:text-white"
+            }`}
+          aria-label="Scroll left"
         >
-          <ChevronLeft className="w-8 h-8 font-light" strokeWidth={1} />
+          <ChevronLeft className="w-6 h-6" strokeWidth={1.5} />
         </button>
 
         <button
           onClick={() => scroll("right")}
           disabled={!canScrollRight}
-          className={`hidden md:flex absolute -right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-all ${!canScrollRight ? "opacity-0" : "opacity-100"}`}
+          className={`hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full items-center justify-center transition-all duration-300 border border-gray-100 bg-white ${!canScrollRight
+              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none text-gray-400"
+              : "opacity-100 shadow-lg text-gray-800 hover:bg-black hover:text-white"
+            }`}
+          aria-label="Scroll right"
         >
-          <ChevronRight className="w-8 h-8 font-light" strokeWidth={1} />
+          <ChevronRight className="w-6 h-6" strokeWidth={1.5} />
         </button>
 
         {/* Slider */}

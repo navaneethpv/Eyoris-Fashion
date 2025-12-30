@@ -85,23 +85,14 @@ export default function MostViewedSlider() {
   if (mostViewedProducts.length === 0) return null;
 
   return (
-    <section className="py-20 bg-gradient-to-b from-purple-50/50 to-white relative overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 mb-12 flex items-end justify-between">
-        <div>
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mb-2">
-            Most Viewed
-          </h2>
-          <p className="text-gray-500 font-medium tracking-wide">
-            Styles the world is falling for
-          </p>
-        </div>
-        <Link
-          href="/product"
-          className="hidden md:flex items-center gap-2 px-6 py-2 rounded-full border border-gray-200 text-sm font-bold hover:bg-black hover:text-white transition-all duration-300"
-        >
-          VIEW ALL
-          <ChevronRight className="w-4 h-4" />
-        </Link>
+    <section className="py-24 bg-white relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 mb-12 text-center">
+        <h2 className="text-3xl md:text-4xl font-serif text-gray-900 mb-2">
+          Trending Now
+        </h2>
+        <p className="text-gray-500 text-sm tracking-wider uppercase">
+          Most Coveted Pieces
+        </p>
       </div>
 
       <div
@@ -111,36 +102,34 @@ export default function MostViewedSlider() {
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
       >
-        {/* Navigation Buttons */}
+        {/* Navigation Buttons - Minimalist */}
         <button
           onClick={() => scroll("left")}
           disabled={!canScrollLeft}
-          className={`absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollLeft ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
-            }`}
+          className={`hidden md:flex absolute -left-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-all ${!canScrollLeft ? "opacity-0" : "opacity-100"}`}
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-8 h-8 font-light" strokeWidth={1} />
         </button>
 
         <button
           onClick={() => scroll("right")}
           disabled={!canScrollRight}
-          className={`absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollRight ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
-            }`}
+          className={`hidden md:flex absolute -right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-all ${!canScrollRight ? "opacity-0" : "opacity-100"}`}
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-8 h-8 font-light" strokeWidth={1} />
         </button>
 
         {/* Slider */}
         <div
           ref={scrollRef}
-          className={`flex gap-6 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? "snap-x snap-mandatory" : ""
+          className={`flex gap-8 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? "snap-x snap-mandatory" : ""
             }`}
           style={{ scrollbarWidth: 'none' }}
         >
           {mostViewedProducts.map((p, i) => (
             <div
               key={p._id || i}
-              className="snap-center shrink-0 w-[75vw] sm:w-[320px] md:w-[360px]"
+              className="snap-center shrink-0 w-[80vw] sm:w-[320px] md:w-[340px]"
             >
               <ProductCard
                 product={{
@@ -157,8 +146,6 @@ export default function MostViewedSlider() {
               />
             </div>
           ))}
-          {/* Spacer */}
-          <div className="w-8 shrink-0" />
         </div>
       </div>
     </section>

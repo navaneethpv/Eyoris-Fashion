@@ -1,49 +1,49 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { RefreshCcw, Truck, Headset } from "lucide-react";
+import { RotateCcw, Truck, Headphones } from "lucide-react";
 
 const features = [
     {
-        icon: RefreshCcw,
-        title: "7 Days Easy Return",
-        description: "Hassle-free returns & exchange",
+        icon: RotateCcw,
+        title: "7 Days Returns",
+        description: "Easy returns within 7 days",
     },
     {
         icon: Truck,
-        title: "Fast Delivery",
+        title: "Express Delivery",
         description: "Free shipping on orders over ₹999",
     },
     {
-        icon: Headset,
-        title: "24×7 Customer Support",
-        description: "We are here to help you anytime",
+        icon: Headphones,
+        title: "24/7 Support",
+        description: "Expert assistance whenever you need",
     },
 ];
 
 export default function ServiceFeatures() {
     return (
-        <section className="py-12 bg-gray-50/50">
-            <div className="max-w-[1400px] mx-auto px-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="py-16 md:py-24 border-b border-gray-100">
+            <div className="max-w-[1400px] mx-auto px-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
                     {features.map((feature, index) => (
                         <motion.div
                             key={index}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1, duration: 0.5 }}
+                            transition={{ delay: index * 0.1, duration: 0.6 }}
                             viewport={{ once: true }}
-                            className="flex items-center gap-5 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow group"
+                            className="flex flex-col items-center text-center p-4 group"
                         >
-                            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <feature.icon className="w-6 h-6 text-gray-900" strokeWidth={1.5} />
+                            <div className="mb-6 text-gray-900 transition-transform duration-500 group-hover:-translate-y-1">
+                                <feature.icon className="w-8 h-8" strokeWidth={1} />
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-gray-900 group-hover:text-black transition-colors">
-                                    {feature.title}
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-1">{feature.description}</p>
-                            </div>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-900 mb-2">
+                                {feature.title}
+                            </h3>
+                            <p className="text-sm text-gray-500 font-light">
+                                {feature.description}
+                            </p>
                         </motion.div>
                     ))}
                 </div>

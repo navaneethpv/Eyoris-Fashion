@@ -6,6 +6,8 @@ import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
+import ServiceFeatures from "./(pages)/components/ServiceFeatures";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [homeData, setHomeData] = useState<{ trending: any[], offers: any[] }>({
@@ -51,8 +53,17 @@ export default function Home() {
       {/* NEW: OFFER CAROUSEL */}
       <OfferCarousel />
 
+      {/* TRUST & SERVICE FEATURES */}
+      <ServiceFeatures />
+
       {/* TRENDING PRODUCTS */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
+      <motion.section
+        className="max-w-7xl mx-auto px-6 py-24"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {/* HEADER */}
         <div className="flex items-end justify-between mb-16">
           <div>
@@ -84,11 +95,19 @@ export default function Home() {
             {/* Silent fallback or simple message */}
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* MOST VIEWED SLIDER */}
       {/* MOST VIEWED SLIDER */}
-      <MostViewedSlider />
+      {/* MOST VIEWED SLIDER */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        viewport={{ once: true }}
+      >
+        <MostViewedSlider />
+      </motion.div>
 
       {/* PAGE ANIMATION */}
       <style jsx>{`

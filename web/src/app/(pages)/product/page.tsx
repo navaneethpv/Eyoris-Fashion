@@ -37,8 +37,8 @@ async function getProducts(
 ): Promise<ProductsApiResponse> {
   const params = new URLSearchParams();
   if (searchParams.page) params.set("page", searchParams.page);
-  // Set limit to 60 products per page for better browsing experience
-  const limit = 60;
+  // Set limit to 70 products per page for better browsing experience
+  const limit = 70;
   params.set("limit", String(limit));
 
   // articleType maps to 'category' in backend

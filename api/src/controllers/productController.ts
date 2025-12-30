@@ -1012,21 +1012,43 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
 // ----------------- Controller: getHomeProducts (Dynamic) -----------------
 export const getHomeProducts = async (req: Request, res: Response) => {
   try {
+    // Exclusion Regexes
+    const innerwearRegex = /briefs|bras|lingerie|underwear|innerwear|panties|thong|boxers|trunks|vest|brief|baniyan/i;
+    // Exclude sprays, skincare, lotions, etc. Keep lipsticks and other makeup.
+    const excludedCosmeticsRegex = /spray|skincare|lotion|cream|serum|moisturizer|cleanser|facewash|face wash|body wash|shampoo|conditioner|soap|oil/i;
+
+    const exclusionFilter = {
+      $nor: [
+        { category: innerwearRegex },
+        { subCategory: innerwearRegex },
+        { name: innerwearRegex },
+        { category: excludedCosmeticsRegex },
+        { subCategory: excludedCosmeticsRegex },
+        { name: excludedCosmeticsRegex }
+      ]
+    };
+
+    const matchStage = {
+      isPublished: true,
+      stock: { $gt: 0 },
+      ...exclusionFilter
+    };
+
     // 1. Trending (Random 12)
     const trending = await Product.aggregate([
-      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $match: matchStage },
       { $sample: { size: 12 } }
     ]);
 
     // 2. Most Viewed (Random 10)
     const mostViewed = await Product.aggregate([
-      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $match: matchStage },
       { $sample: { size: 10 } }
     ]);
 
     // 3. Offers (Random 8)
     const offers = await Product.aggregate([
-      { $match: { isPublished: true, stock: { $gt: 0 } } },
+      { $match: matchStage },
       { $sample: { size: 8 } }
     ]);
 

@@ -111,7 +111,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.4 }}
-        className="bg-white rounded-2xl p-6 md:p-10 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100"
+        className="bg-white rounded-3xl p-6 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.04)] border border-gray-100"
       >
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
           <h2 className="text-2xl font-serif text-gray-900">
@@ -120,9 +120,10 @@ export default function ProfilePage() {
           <Link
             href="/profile"
             onClick={() => setActiveTabId("main_dashboard")}
-            className="text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-black transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-black transition-all"
+            aria-label="Close"
           >
-            Close
+            <span className="text-lg leading-none">&times;</span>
           </Link>
         </div>
         <ActiveComponent clerkUser={user} />
@@ -135,24 +136,24 @@ export default function ProfilePage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-3"
+      className="space-y-4"
     >
       {PROFILE_LINKS.map((link) => (
         <motion.div key={link.id} variants={itemVariants}>
           <Link
             href={`/profile?tab=${link.id}`}
             onClick={() => setActiveTabId(link.id)}
-            className="group flex items-center justify-between p-5 bg-white border border-transparent rounded-xl hover:border-gray-100 hover:shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all duration-300"
+            className="group flex items-center justify-between p-6 bg-white border border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-300"
           >
-            <div className="flex items-center gap-5">
-              <div className="p-3 bg-gray-50 rounded-full text-gray-900 group-hover:bg-black group-hover:text-white transition-colors duration-300">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-gray-50 rounded-2xl text-gray-600 group-hover:bg-black group-hover:text-white transition-colors duration-300">
                 <link.icon className="w-5 h-5" strokeWidth={1.5} />
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-medium text-gray-900 group-hover:text-black transition-colors">
                   {link.name}
                 </span>
-                <span className="text-xs text-gray-400 font-medium tracking-wide">
+                <span className="text-sm text-gray-500 font-medium opacity-80">
                   {link.description}
                 </span>
               </div>
@@ -162,20 +163,20 @@ export default function ProfilePage() {
         </motion.div>
       ))}
 
-      <motion.div variants={itemVariants} className="pt-6">
+      <motion.div variants={itemVariants} className="pt-8">
         <button
           onClick={() => signOut()}
-          className="w-full group flex items-center justify-between p-5 rounded-xl border border-transparent hover:bg-red-50/50 transition-all duration-300"
+          className="w-full group flex items-center justify-between p-6 rounded-2xl border border-transparent hover:bg-red-50/40 transition-all duration-300"
         >
-          <div className="flex items-center gap-5">
-            <div className="p-3 bg-gray-50 rounded-full text-gray-400 group-hover:bg-red-100 group-hover:text-red-600 transition-colors duration-300">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-gray-50 rounded-2xl text-gray-400 group-hover:bg-red-100 group-hover:text-red-500 transition-colors duration-300">
               <LogOut className="w-5 h-5" strokeWidth={1.5} />
             </div>
             <div className="flex flex-col text-left">
               <span className="text-lg font-medium text-gray-500 group-hover:text-red-600 transition-colors">
                 Log Out
               </span>
-              <span className="text-xs text-gray-400 group-hover:text-red-400/80 transition-colors">
+              <span className="text-sm text-gray-400 group-hover:text-red-400 transition-colors">
                 Sign out of your account
               </span>
             </div>
@@ -201,36 +202,37 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-6 py-16 md:py-24">
+      <main className="max-w-3xl mx-auto px-6 py-16 md:py-24 mb-20">
         {/* User Header Section */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={fadeIn}
-          className="mb-12 text-center md:text-left flex flex-col md:flex-row items-center gap-8"
+          className="mb-16 text-center md:text-left flex flex-col md:flex-row items-center gap-10"
         >
           {user ? (
             <>
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="relative"
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="relative group"
               >
                 <img
                   src={user.imageUrl}
                   alt="Avatar"
-                  className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover shadow-[0_8px_30px_rgba(0,0,0,0.08)] border-2 border-white ring-1 ring-gray-100"
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-xl shadow-gray-200/60 border-4 border-white"
                 />
-                <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 border-4 border-white rounded-full"></div>
+                <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full shadow-sm"></div>
               </motion.div>
 
-              <div className="flex flex-col items-center md:items-start space-y-2">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">
+              <div className="flex flex-col items-center md:items-start space-y-3">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-[0.15em]">
                   Welcome Back
                 </span>
-                <h1 className="text-3xl md:text-4xl font-serif font-medium text-gray-900">
+                <h1 className="text-3xl md:text-5xl font-serif font-medium text-gray-900 tracking-tight">
                   {user.fullName || user.username}
                 </h1>
-                <p className="text-sm text-gray-500 font-medium">
+                <p className="text-sm text-gray-500 font-medium bg-gray-50/80 px-4 py-1.5 rounded-full mt-1">
                   {user.primaryEmailAddress?.emailAddress}
                 </p>
               </div>
@@ -280,7 +282,7 @@ export default function ProfilePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-8 text-center"
+            className="mt-12 pt-8 border-t border-gray-100 text-center"
           >
             <Link
               href="/profile"

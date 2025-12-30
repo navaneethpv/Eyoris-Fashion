@@ -119,62 +119,15 @@ export default function OutfitGenerator({
     setLoading(true);
     setResult(null);
 
-    const normalizedGender: "male" | "female" | null = (() => {
-      if (!productGender) return null;
-      const g = productGender.toLowerCase().trim();
-      if (/(men|man|male|boy)/i.test(g)) return "male";
-      if (/(women|woman|female|girl|lady|ladies)/i.test(g)) return "female";
-      return null;
-    })();
-
-    const userPreferences = {
-      gender: normalizedGender,
-      styleVibe, // We keep styleVibe passed to backend, but backend might ignore it in Phase 1
-    };
-
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      if (!API_URL) {
-        throw new Error("NEXT_PUBLIC_API_URL is not configured");
-      }
-
-      // Pure simple fetch - no exclusions
-      const res = await fetch(`${API_URL}/api/ai/outfit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, userPreferences }),
+    // MOCK: Simulate API delay and return safe no-op response
+    setTimeout(() => {
+      setResult({
+        outfitTitle: "Style Studio",
+        outfitItems: [],
+        overallStyleExplanation: "Outfit generation is temporarily unavailable.",
       });
-
-      if (!res.ok) {
-        const errorData = await res
-          .json()
-          .catch(() => ({ message: "Unknown error" }));
-        console.error("API Error:", res.status, errorData);
-        alert(
-          `Failed to generate outfit: ${errorData.message || "Server error"}`
-        );
-        setLoading(false);
-        return;
-      }
-
-      const data = await res.json();
-      console.log("Outfit API Response:", data);
-
-      if (!data || typeof data !== "object") {
-        console.warn("Invalid response format:", data);
-        setResult(null);
-      } else {
-        data.outfitItems = data.outfitItems ?? [];
-        setResult(data);
-      }
-    } catch (e) {
-      console.error("Fetch error:", e);
-      alert(
-        "AI failed to suggest an outfit. Please check your connection and try again."
-      );
-    } finally {
       setLoading(false);
-    }
+    }, 1000);
   };
 
   return (

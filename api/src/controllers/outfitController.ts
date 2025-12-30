@@ -32,12 +32,12 @@ const getProductRole = (product: IProduct): string => {
     }
 
     // Tops
-    if (cat === 'shirts' || sub.includes('shirt') || sub.includes('top') || sub.includes('tee') || sub.includes('polo') || sub.includes('blouse') || sub.includes('jacket') || sub.includes('coat') || sub.includes('sweater') || sub.includes('hoodie') || sub.includes('sweatshirt')) {
+    if (cat === 'shirts' || sub.includes('shirt') || sub.includes('top') || sub.includes('tee') || sub.includes('polo') || sub.includes('blouse') || sub.includes('jacket') || sub.includes('coat') || sub.includes('sweater') || sub.includes('hoodie') || sub.includes('sweat') || sub.includes('kurta') || sub.includes('kurti') || sub.includes('tunic') || sub.includes('vest') || sub.includes('blazer') || sub.includes('cardigan') || sub.includes('shrug') || sub.includes('bodysuit') || sub.includes('camisole')) {
         return ROLES.TOP;
     }
 
     // Bottoms
-    if (cat === 'jeans' || sub.includes('jean') || sub.includes('pant') || sub.includes('trouser') || sub.includes('legging') || sub.includes('jogger') || sub.includes('short') || sub.includes('skirt')) {
+    if (cat === 'jeans' || sub.includes('jean') || sub.includes('pant') || sub.includes('trouser') || sub.includes('legging') || sub.includes('jogger') || sub.includes('short') || sub.includes('skirt') || sub.includes('chino') || sub.includes('cargo') || sub.includes('track') || sub.includes('capri') || sub.includes('dhoti') || sub.includes('salwar') || sub.includes('churidar') || sub.includes('palazzo') || sub.includes('pyjama') || sub.includes('pajama')) {
         return ROLES.BOTTOM;
     }
 

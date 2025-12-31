@@ -162,21 +162,45 @@ export default function CheckoutPage() {
   if (orderSuccess) {
     const displayFirstName = orderData?.shippingAddress?.firstName || user?.firstName;
     const displayEmail = orderData?.shippingAddress?.email || user?.primaryEmailAddress?.emailAddress;
+    const displayOrderId = orderData?._id ? `#EYORIS-${orderData._id.slice(-6).toUpperCase()}` : `#ORDER-${Math.floor(Math.random() * 100000)}`;
 
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-fade-in">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <CheckCircle className="w-12 h-12 text-green-600" />
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center animate-fade-in sm:py-20">
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6 shadow-sm ring-4 ring-green-50/50 sm:w-24 sm:h-24">
+            <CheckCircle className="w-10 h-10 text-green-600 sm:w-12 sm:h-12" />
           </div>
-          <h1 className="text-4xl font-black mb-4 text-gray-900">Order Confirmed!</h1>
-          <p className="text-gray-900 mb-8 max-w-md text-lg">
-            Thanks {displayFirstName}! We&apos;ve sent a receipt to <b>{displayEmail}</b>. Your order is being prepared.
+
+          <h1 className="text-3xl font-black mb-2 text-gray-900 sm:text-4xl">Order Confirmed!</h1>
+
+          {/* Order Meta */}
+          <div className="flex flex-col items-center gap-1 mb-6 text-sm">
+            <span className="font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-full text-xs tracking-wide">
+              Order ID: {displayOrderId}
+            </span>
+            <p className="text-gray-500 font-medium">Estimated delivery: 5–7 business days</p>
+          </div>
+
+          <p className="text-gray-600 mb-8 max-w-md text-base sm:text-lg leading-relaxed">
+            Thanks {displayFirstName}! We&apos;ve sent a receipt to <b className="text-gray-900">{displayEmail}</b>. Your order is being prepared.
           </p>
-          <Link href="/product" className="bg-black text-white px-10 py-4 rounded-full font-bold hover:scale-105 transition transform shadow-xl">
-            Continue Shopping
-          </Link>
+
+          <div className="flex flex-col w-full max-w-xs gap-3 sm:flex-row sm:max-w-none sm:w-auto">
+            <Link
+              href="/product"
+              className="w-full bg-black text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 hover:scale-105 transition transform shadow-lg text-center flex items-center justify-center gap-2 sm:w-auto"
+            >
+              <Plus className="w-4 h-4" /> Continue Shopping
+            </Link>
+
+            <Link
+              href="/profile?tab=orders"
+              className="w-full bg-white text-gray-900 border border-gray-200 px-8 py-3.5 rounded-full font-bold hover:bg-gray-50 hover:border-gray-300 transition text-center sm:w-auto"
+            >
+              View My Orders
+            </Link>
+          </div>
         </div>
       </div>
     );

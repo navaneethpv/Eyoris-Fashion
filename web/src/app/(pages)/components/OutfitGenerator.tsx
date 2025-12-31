@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Loader2, Zap, ChevronDown, Sparkle, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, Zap, ChevronDown, Sparkle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import AddToCartButton from "./AddToCartButton";
 import Modal from "./Modal";
 
@@ -68,6 +69,172 @@ function resolveImageUrl(images: any): string {
   return PLACEHOLDER_IMAGE;
 }
 
+interface ScrollableSectionProps {
+  title: string;
+  items: OutfitItem[];
+  isAccessory?: boolean;
+}
+
+const ScrollableSection = ({ title, items, isAccessory = false }: ScrollableSectionProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+
+  const checkScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setShowLeftArrow(scrollLeft > 0);
+    // Use a small buffer (e.g. 5px) to avoiding rounding errors
+    setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 5);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [items]);
+
+  const scroll = (direction: "left" | "right") => {
+    if (!scrollRef.current) return;
+    const scrollAmount = 320; // Approx card width
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="mb-10 last:mb-0 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards relative group/section">
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h5 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
+          {title}
+          {isAccessory && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{items.length}</span>}
+        </h5>
+        {!isAccessory && <div className="h-[1px] flex-1 ml-4 bg-gradient-to-r from-gray-200 to-transparent"></div>}
+      </div>
+
+      {/* Container wrapper for relative positioning of arrows */}
+      <div className="relative">
+
+        {/* Left Arrow */}
+        <AnimatePresence>
+          {showLeftArrow && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => scroll("left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-30 bg-white/80 backdrop-blur-md shadow-md rounded-full w-10 h-10 flex items-center justify-center text-gray-800 hover:bg-black hover:text-white transition-colors duration-300 hidden md:flex"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* Horizontal Scroll Container */}
+        <div
+          ref={scrollRef}
+          onScroll={checkScroll}
+          className="flex overflow-x-auto gap-4 pb-4 px-1 scroll-smooth scrollbar-hide snap-x snap-mandatory relative z-10"
+          style={{ cursor: "grab" }}
+        >
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              className={`flex-shrink-0 snap-start ${isAccessory ? 'w-[220px]' : 'w-[300px] md:w-[340px]'}`}
+            >
+              <div className="relative bg-white rounded-2xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex overflow-hidden group/card">
+
+                {/* Floating Role Badge */}
+                <div className="absolute top-2 left-2 z-20 pointer-events-none">
+                  <span className="bg-white/90 backdrop-blur-md text-gray-900 text-[9px] font-bold px-2 py-1 rounded-full shadow-sm tracking-wider uppercase border border-gray-100">
+                    {item.role}
+                  </span>
+                </div>
+
+                {item.product ? (
+                  <>
+                    {/* Left: Image (Square) */}
+                    <Link
+                      href={`/products/${item.product.slug}`}
+                      className={`relative bg-gray-50 flex-shrink-0 overflow-hidden group-hover/card:brightness-105 transition-all ${isAccessory ? 'w-24' : 'w-32 md:w-36'}`}
+                    >
+                      <img
+                        src={resolveImageUrl(item.product.images)}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target.src !== PLACEHOLDER_IMAGE) {
+                            target.src = PLACEHOLDER_IMAGE;
+                          }
+                        }}
+                      />
+                    </Link>
+
+                    {/* Right: Content */}
+                    <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+                      <Link href={`/products/${item.product.slug}`} className="block">
+                        {/* Brand */}
+                        <p className="text-[9px] uppercase tracking-widest text-violet-600 font-bold mb-0.5 truncate">
+                          {item.product.brand || 'Eyoris'}
+                        </p>
+                        {/* Name */}
+                        <h4 className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1 group-hover/card:text-violet-700 transition-colors">
+                          {item.product.name}
+                        </h4>
+                        {/* Price */}
+                        <p className="text-sm font-bold text-gray-900 mb-2">
+                          ₹{(item.product.price_cents / 100).toFixed(0)}
+                        </p>
+                      </Link>
+
+                      {/* Compact Action */}
+                      <div className="mt-auto">
+                        <AddToCartButton
+                          productId={item.product._id}
+                          price={item.product.price_cents}
+                          variants={item.product.variants}
+                          compact={true}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full flex flex-col items-center justify-center p-6 text-center bg-gray-50 h-32">
+                    <span className="text-lg mb-1 opacity-40">✨</span>
+                    <p className="text-[10px] text-gray-400 font-medium">Coming Soon</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right Arrow */}
+        <AnimatePresence>
+          {showRightArrow && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => scroll("right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-30 bg-white/80 backdrop-blur-md shadow-md rounded-full w-10 h-10 flex items-center justify-center text-gray-800 hover:bg-black hover:text-white transition-colors duration-300 hidden md:flex"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+      </div>
+    </div>
+  );
+};
+
 interface OutfitGeneratorProps {
   productId: string;
   productGender?: string | null;
@@ -88,42 +255,6 @@ export default function OutfitGenerator({
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
   const [showBlockModal, setShowBlockModal] = useState(false);
-
-  // Native scroll with custom drag
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    isDragging.current = true;
-    startX.current = e.pageX - scrollRef.current.offsetLeft;
-    scrollLeft.current = scrollRef.current.scrollLeft;
-    scrollRef.current.style.cursor = "grabbing";
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging.current || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX.current) * 2; // Scroll speed multiplier
-    scrollRef.current.scrollLeft = scrollLeft.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    isDragging.current = false;
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = "grab";
-    }
-  };
-
-  const handleMouseLeave = () => {
-    isDragging.current = false;
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = "grab";
-    }
-  };
 
   // Exclusion Memory
   const excludedIdsRef = useRef<Set<string>>(new Set());
@@ -227,102 +358,6 @@ export default function OutfitGenerator({
     return acc;
   }, {});
 
-  const renderSection = (title: string, items: OutfitItem[], isAccessory = false) => {
-    if (!items || items.length === 0) return null;
-
-    return (
-      <div className="mb-10 last:mb-0 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h5 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            {title}
-            {isAccessory && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{items.length}</span>}
-          </h5>
-          {!isAccessory && <div className="h-[1px] flex-1 ml-4 bg-gradient-to-r from-gray-200 to-transparent"></div>}
-        </div>
-
-        {/* Horizontal Scroll Container */}
-        <div className="relative group/scroll">
-          <div
-            className="flex overflow-x-auto gap-4 pb-4 px-1 scroll-smooth scrollbar-hide snap-x snap-mandatory"
-            style={{ cursor: "grab" }}
-          >
-            {items.map((item, idx) => (
-              <div
-                key={idx}
-                className={`flex-shrink-0 snap-start ${isAccessory ? 'w-[220px]' : 'w-[300px] md:w-[340px]'}`}
-              >
-                <div className="relative bg-white rounded-2xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex overflow-hidden group/card">
-
-                  {/* Floating Role Badge */}
-                  <div className="absolute top-2 left-2 z-20 pointer-events-none">
-                    <span className="bg-white/90 backdrop-blur-md text-gray-900 text-[9px] font-bold px-2 py-1 rounded-full shadow-sm tracking-wider uppercase border border-gray-100">
-                      {item.role}
-                    </span>
-                  </div>
-
-                  {item.product ? (
-                    <>
-                      {/* Left: Image (Square) */}
-                      <Link
-                        href={`/products/${item.product.slug}`}
-                        className={`relative bg-gray-50 flex-shrink-0 overflow-hidden group-hover/card:brightness-105 transition-all ${isAccessory ? 'w-24' : 'w-32 md:w-36'}`}
-                      >
-                        <img
-                          src={resolveImageUrl(item.product.images)}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            if (target.src !== PLACEHOLDER_IMAGE) {
-                              target.src = PLACEHOLDER_IMAGE;
-                            }
-                          }}
-                        />
-                      </Link>
-
-                      {/* Right: Content */}
-                      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-                        <Link href={`/products/${item.product.slug}`} className="block">
-                          {/* Brand */}
-                          <p className="text-[9px] uppercase tracking-widest text-violet-600 font-bold mb-0.5 truncate">
-                            {item.product.brand || 'Eyoris'}
-                          </p>
-                          {/* Name */}
-                          <h4 className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1 group-hover/card:text-violet-700 transition-colors">
-                            {item.product.name}
-                          </h4>
-                          {/* Price */}
-                          <p className="text-sm font-bold text-gray-900 mb-2">
-                            ₹{(item.product.price_cents / 100).toFixed(0)}
-                          </p>
-                        </Link>
-
-                        {/* Compact Action */}
-                        <div className="mt-auto">
-                          <AddToCartButton
-                            productId={item.product._id}
-                            price={item.product.price_cents}
-                            variants={item.product.variants}
-                            compact={true}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full flex flex-col items-center justify-center p-6 text-center bg-gray-50 h-32">
-                      <span className="text-lg mb-1 opacity-40">✨</span>
-                      <p className="text-[10px] text-gray-400 font-medium">Coming Soon</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="mt-16 px-4 md:px-0 max-w-6xl mx-auto mb-20">
       {/* Premium Gradient Container */}
@@ -406,15 +441,15 @@ export default function OutfitGenerator({
             <div className="space-y-4">
               {/* Main Outfit Items */}
               <div className="space-y-8">
-                {groupedItems.tops && renderSection("Top Picks", groupedItems.tops)}
-                {groupedItems.bottoms && renderSection("Matching Bottoms", groupedItems.bottoms)}
-                {groupedItems.footwear && renderSection("Perfect Pairs", groupedItems.footwear)}
+                {groupedItems.tops && <ScrollableSection title="Top Picks" items={groupedItems.tops} />}
+                {groupedItems.bottoms && <ScrollableSection title="Matching Bottoms" items={groupedItems.bottoms} />}
+                {groupedItems.footwear && <ScrollableSection title="Perfect Pairs" items={groupedItems.footwear} />}
               </div>
 
               {/* Accessories Group - Distinct Styling */}
               {groupedItems.accessories && (
                 <div className="mt-12 bg-white/60 rounded-3xl p-6 border border-white shadow-sm">
-                  {renderSection("Complete the Look", groupedItems.accessories, true)}
+                  <ScrollableSection title="Complete the Look" items={groupedItems.accessories} isAccessory={true} />
                 </div>
               )}
 

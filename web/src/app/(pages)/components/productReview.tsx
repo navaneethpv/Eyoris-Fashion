@@ -8,6 +8,7 @@ interface Review {
     _id: string;
     rating: number;
     comment: string;
+    userName?: string;
     createdAt: string;
 }
 
@@ -72,14 +73,30 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     productId: productId,
                     rating: newRating,
                     comment: newComment,
+                    userName: user.fullName || user.firstName || "User"
                 })
             });
 
             if (res.ok) {
+                const savedReview = await res.json();
+
+                // Construct enhanced review object for immediate display
+                // If the user object is populated on backend, good. If not, we fall back to generic or current user.
+                const enhancedReview = {
+                    ...savedReview,
+                    userId: {
+                        _id: user.id,
+                        name: user.fullName || user.firstName || 'User',
+                        avatar: user.imageUrl
+                    }
+                };
+
+                // Optimistic Update: Prepend and Limit to 10
+                setReviews(prev => [enhancedReview, ...prev].slice(0, 10));
+
                 setNewRating(0);
                 setNewComment('');
                 setFocused(false);
-                fetchReviews(); // Refresh the list
             } else {
                 alert("Failed to submit review.");
             }
@@ -116,8 +133,8 @@ export default function ProductReviews({ productId }: { productId: string }) {
                                     >
                                         <Star
                                             className={`w-8 h-8 transition-colors duration-200 ${i <= (hoverRating || newRating)
-                                                    ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm'
-                                                    : 'fill-gray-50 text-gray-200'
+                                                ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm'
+                                                : 'fill-gray-50 text-gray-200'
                                                 }`}
                                         />
                                     </button>
@@ -216,7 +233,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                                                 A
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">Anonymous</p>
+                                                <p className="text-sm font-bold text-gray-900">{review.userName || "Anonymous"}</p>
                                                 <div className="flex items-center gap-2">
                                                     <StarRatingDisplay rating={review.rating} />
                                                     <span className="w-1 h-1 bg-gray-300 rounded-full" />

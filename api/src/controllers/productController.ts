@@ -877,11 +877,11 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 export const createReview = async (req: Request, res: Response) => {
   try {
-    const { userId, productId, rating, comment } = req.body;
-    if (!userId || !productId || !rating || !comment) {
+    const { userId, productId, rating, comment, userName } = req.body;
+    if (!userId || !productId || !rating || !comment || !userName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const newReview = new Review({ userId, productId, rating, comment });
+    const newReview = new Review({ userId, productId, rating, comment, userName });
     await newReview.save();
     const stats = await Review.aggregate([
       { $match: { productId: new mongoose.Types.ObjectId(productId) } },
@@ -909,11 +909,15 @@ export const createReview = async (req: Request, res: Response) => {
 
 export const getReviews = async (req: Request, res: Response) => {
   try {
-    const { productId } = req.query;
+    const productId = req.params.productId || req.query.productId;
     if (!productId) {
       return res.status(400).json({ message: 'Missing productId' });
     }
-    const reviews = await Review.find({ productId }).populate('userId', 'name avatar');
+    const reviews = await Review.find({ productId })
+      .populate('userId', 'name avatar')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
     res.json(reviews);
   } catch (error) {
     console.error("getReviews error:", error);

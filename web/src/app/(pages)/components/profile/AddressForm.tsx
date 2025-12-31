@@ -16,6 +16,8 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [autoFilled, setAutoFilled] = useState(false);
+    const [pincodeLoading, setPincodeLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -61,6 +63,40 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         setError("");
     }, [initialData, isOpen]);
 
+    useEffect(() => {
+        const fetchPincode = async () => {
+            if (formData.zip.length !== 6 || autoFilled) return;
+
+            try {
+                setPincodeLoading(true);
+
+                const res = await fetch(
+                    `https://api.postalpincode.in/pincode/${formData.zip}`
+                );
+                const data = await res.json();
+
+                if (data[0]?.Status === "Success") {
+                    const postOffice = data[0].PostOffice[0];
+
+                    setFormData(prev => ({
+                        ...prev,
+                        city: prev.city || postOffice.Block || "",
+                        district: prev.district || postOffice.District || "",
+                        state: prev.state || postOffice.State || "",
+                    }));
+
+                    setAutoFilled(true);
+                }
+            } catch (err) {
+                console.error("Pincode lookup failed");
+            } finally {
+                setPincodeLoading(false);
+            }
+        };
+
+        fetchPincode();
+    }, [formData.zip]);
+
     if (!isOpen) return null;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -72,6 +108,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         } else if (name === "zip") {
             // Only digits, max 6
             const val = value.replace(/\D/g, "").slice(0, 6);
+            setAutoFilled(false);
             setFormData((prev) => ({ ...prev, [name]: val }));
         } else {
             setFormData((prev) => ({ ...prev, [name]: value }));
@@ -173,7 +210,12 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pincode</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                Pincode
+                                {pincodeLoading && (
+                                    <span className="text-xs text-gray-400 ml-2">Fetching location…</span>
+                                )}
+                            </label>
                             <input
                                 name="zip"
                                 type="text"

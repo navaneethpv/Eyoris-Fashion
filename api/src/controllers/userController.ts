@@ -25,7 +25,7 @@ export const addAddress = async (req: Request, res: Response) => {
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const { street, city, district, state, zip, phone, type, isDefault } = req.body;
+        const { name, street, city, district, state, zip, phone, type, isDefault } = req.body;
 
         let user = await User.findOne({ clerkId: userId });
 
@@ -47,6 +47,7 @@ export const addAddress = async (req: Request, res: Response) => {
         }
 
         user.addresses.push({
+            name,
             street,
             city,
             district,
@@ -79,13 +80,14 @@ export const updateAddress = async (req: Request, res: Response) => {
         const address = user.addresses.id(addressId);
         if (!address) return res.status(404).json({ message: 'Address not found' });
 
-        const { street, city, district, state, zip, phone, type, isDefault } = req.body;
+        const { name, street, city, district, state, zip, phone, type, isDefault } = req.body;
 
         // If setting as default, unset others first
         if (isDefault) {
             user.addresses.forEach((addr: any) => addr.isDefault = false);
         }
 
+        if (name) address.name = name;
         if (street) address.street = street;
         if (city) address.city = city;
         if (district) address.district = district;

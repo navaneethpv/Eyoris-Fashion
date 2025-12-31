@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 interface AddressFormProps {
     isOpen: boolean;
@@ -12,11 +12,13 @@ interface AddressFormProps {
 }
 
 export default function AddressForm({ isOpen, onClose, onSuccess, initialData }: AddressFormProps) {
+    const { user } = useUser();
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const [formData, setFormData] = useState({
+        name: "",
         street: "",
         city: "",
         district: "",
@@ -32,6 +34,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
             // Remove +91 prefix for editing if stored with it
             const cleanPhone = initialData.phone.replace(/^\+91/, "");
             setFormData({
+                name: initialData.name || "",
                 street: initialData.street || "",
                 city: initialData.city || "",
                 district: initialData.district || "",
@@ -44,6 +47,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         } else {
             // Reset for new address
             setFormData({
+                name: user?.fullName || "",
                 street: "",
                 city: "",
                 district: "",
@@ -153,6 +157,19 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                             {error}
                         </div>
                     )}
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Full Name</label>
+                        <input
+                            name="name"
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Full Name"
+                            className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                        />
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-1">

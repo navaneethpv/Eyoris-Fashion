@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema({
     sizes: [String]
   },
   addresses: [{
+    name: { type: String, required: true },
     street: { type: String, required: true },
     city: { type: String, required: true },
     district: { type: String, required: true },

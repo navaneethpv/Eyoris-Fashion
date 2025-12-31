@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth, useUser } from "@clerk/nextjs";
 
@@ -16,8 +16,11 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [autoFilled, setAutoFilled] = useState(false);
     const [pincodeLoading, setPincodeLoading] = useState(false);
+    const [pincodeError, setPincodeError] = useState("");
+    const [autoFilled, setAutoFilled] = useState(false);
+    const pincodeCache = useRef<Record<string, any>>({});
+    const cityRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -67,6 +70,20 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         const fetchPincode = async () => {
             if (formData.zip.length !== 6 || autoFilled) return;
 
+            // Cache hit
+            if (pincodeCache.current[formData.zip]) {
+                const cached = pincodeCache.current[formData.zip];
+                setFormData(prev => ({
+                    ...prev,
+                    city: cached.city,
+                    district: cached.district,
+                    state: cached.state,
+                }));
+                setAutoFilled(true);
+                cityRef.current?.focus();
+                return;
+            }
+
             try {
                 setPincodeLoading(true);
 
@@ -75,20 +92,32 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                 );
                 const data = await res.json();
 
-                if (data[0]?.Status === "Success") {
-                    const postOffice = data[0].PostOffice[0];
-
-                    setFormData(prev => ({
-                        ...prev,
-                        city: prev.city || postOffice.Block || "",
-                        district: prev.district || postOffice.District || "",
-                        state: prev.state || postOffice.State || "",
-                    }));
-
-                    setAutoFilled(true);
+                if (data[0]?.Status !== "Success") {
+                    setPincodeError("Invalid Pincode");
+                    return;
                 }
-            } catch (err) {
-                console.error("Pincode lookup failed");
+
+                const po = data[0].PostOffice[0];
+
+                const location = {
+                    city: po.Block || "",
+                    district: po.District || "",
+                    state: po.State || "",
+                };
+
+                // Save to cache
+                pincodeCache.current[formData.zip] = location;
+
+                setFormData(prev => ({
+                    ...prev,
+                    ...location,
+                }));
+
+                setAutoFilled(true);
+                cityRef.current?.focus();
+
+            } catch {
+                setPincodeError("Failed to fetch location");
             } finally {
                 setPincodeLoading(false);
             }
@@ -108,6 +137,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         } else if (name === "zip") {
             // Only digits, max 6
             const val = value.replace(/\D/g, "").slice(0, 6);
+            setPincodeError("");
             setAutoFilled(false);
             setFormData((prev) => ({ ...prev, [name]: val }));
         } else {
@@ -215,6 +245,9 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 {pincodeLoading && (
                                     <span className="text-xs text-gray-400 ml-2">Fetching location…</span>
                                 )}
+                                {pincodeError && (
+                                    <span className="text-xs text-red-500 ml-2">{pincodeError}</span>
+                                )}
                             </label>
                             <input
                                 name="zip"
@@ -250,9 +283,11 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="city"
                                 type="text"
                                 required
+                                ref={cityRef}
+                                disabled={pincodeLoading || !autoFilled}
                                 value={formData.city}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                             />
                         </div>
                         <div className="space-y-1">
@@ -261,9 +296,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="state"
                                 type="text"
                                 required
+                                disabled={pincodeLoading || !autoFilled}
                                 value={formData.state}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -275,9 +311,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="district"
                                 type="text"
                                 required
+                                disabled={pincodeLoading || !autoFilled}
                                 value={formData.district}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>

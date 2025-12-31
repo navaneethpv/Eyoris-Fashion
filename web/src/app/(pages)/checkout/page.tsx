@@ -25,6 +25,14 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -92,8 +100,7 @@ export default function CheckoutPage() {
     const orderPayload = {
       userId: user?.id,
       shippingAddress: {
-        firstName: user?.firstName || '',
-        lastName: user?.lastName || '',
+        name: selectedAddress.name || (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : ''),
         email: user?.primaryEmailAddress?.emailAddress || '',
         phone: selectedAddress.phone,
         street: selectedAddress.street,
@@ -210,7 +217,7 @@ export default function CheckoutPage() {
                 {addresses.length > 0 && (
                   <button
                     onClick={() => setShowAddressModal(true)}
-                    className="text-xs font-bold text-primary border border-primary px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all uppercase tracking-wide"
+                    className="text-xs font-bold text-primary border border-primary px-4 py-2 rounded-full hover:bg-primary hover:text-white hover:bg-black hover:cursor-pointer transition-all uppercase tracking-wide"
                   >
                     Change
                   </button>
@@ -223,7 +230,7 @@ export default function CheckoutPage() {
                     <span className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[10px] font-bold rounded uppercase tracking-wide">
                       {selectedAddress.type}
                     </span>
-                    <span className="font-bold text-gray-900">{user?.fullName}</span>
+                    <span className="font-bold text-gray-900">{selectedAddress.name}</span>
                     <span className="text-gray-400 text-sm font-medium">{selectedAddress.phone}</span>
                   </div>
                   <p className="text-gray-700 font-medium leading-relaxed">
@@ -336,33 +343,64 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* ADDRESS SELECTION MODAL */}
+      {/* ADDRESS SELECTION MODAL OR BOTTOM SHEET */}
       {showAddressModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-xl font-black text-gray-900">Select Delivery Address</h3>
-              <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-              <AddressBook
-                clerkUser={user}
-                onSelect={(addr: any) => {
-                  setSelectedAddress(addr);
-                  setShowAddressModal(false);
-                }}
-                selectedId={selectedAddress?._id}
-              />
-            </div>
-            <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
-              <button onClick={() => setShowAddForm(true)} className="text-primary font-bold text-sm hover:underline">
-                + Add New Address
-              </button>
+        isMobile ? (
+          // Mobile Bottom Sheet
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowAddressModal(false)}>
+            <div
+              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 flex flex-col shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <h3 className="text-lg font-black text-gray-900">Select Delivery Address</h3>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 bg-gray-100 rounded-full">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+              <div className="p-5 overflow-y-auto">
+                <AddressBook
+                  clerkUser={user}
+                  onSelect={(addr: any) => {
+                    setSelectedAddress(addr);
+                    setShowAddressModal(false);
+                  }}
+                  selectedId={selectedAddress?._id}
+                />
+                <button onClick={() => setShowAddForm(true)} className="w-full mt-4 py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                  <Plus className="w-5 h-5" /> Add New Address
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Desktop Modal
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="text-xl font-black text-gray-900">Select Delivery Address</h3>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <AddressBook
+                  clerkUser={user}
+                  onSelect={(addr: any) => {
+                    setSelectedAddress(addr);
+                    setShowAddressModal(false);
+                  }}
+                  selectedId={selectedAddress?._id}
+                />
+              </div>
+              <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
+                <button onClick={() => setShowAddForm(true)} className="text-primary font-bold text-sm hover:underline">
+                  + Add New Address
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {/* ADD NEW ADDRESS FORM MODAL (Overlay) */}

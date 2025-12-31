@@ -1,7 +1,6 @@
 // TypeScript interfaces for Order functionality
 export interface ShippingAddress {
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   phone: string;
   street: string;

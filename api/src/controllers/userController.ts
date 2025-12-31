@@ -1,15 +1,16 @@
 
 import { Request, Response } from 'express';
+import { getAuth } from "@clerk/express";
 import { User } from '../models/User';
 
 // Get all addresses
 export const getAddresses = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).auth?.userId;
-        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
         const user = await User.findOne({ clerkId: userId });
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) return res.status(200).json([]);
 
         res.status(200).json(user.addresses || []);
     } catch (error) {
@@ -21,13 +22,20 @@ export const getAddresses = async (req: Request, res: Response) => {
 // Add a new address
 export const addAddress = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).auth?.userId;
-        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const { street, city, district, state, zip, phone, type, isDefault } = req.body;
+        const { name, street, city, district, state, zip, phone, type, isDefault } = req.body;
 
-        const user = await User.findOne({ clerkId: userId });
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        let user = await User.findOne({ clerkId: userId });
+
+        if (!user) {
+            user = await User.create({
+                clerkId: userId,
+                email: req.body.email || "unknown@clerk.user",
+                addresses: [],
+            });
+        }
 
         // If it's the first address, make it default automatically
         const isFirstAddress = user.addresses.length === 0;
@@ -39,6 +47,7 @@ export const addAddress = async (req: Request, res: Response) => {
         }
 
         user.addresses.push({
+            name,
             street,
             city,
             district,
@@ -61,9 +70,9 @@ export const addAddress = async (req: Request, res: Response) => {
 // Update an address
 export const updateAddress = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).auth?.userId;
+        const { userId } = getAuth(req);
         const { addressId } = req.params;
-        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
         const user = await User.findOne({ clerkId: userId });
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -71,13 +80,14 @@ export const updateAddress = async (req: Request, res: Response) => {
         const address = user.addresses.id(addressId);
         if (!address) return res.status(404).json({ message: 'Address not found' });
 
-        const { street, city, district, state, zip, phone, type, isDefault } = req.body;
+        const { name, street, city, district, state, zip, phone, type, isDefault } = req.body;
 
         // If setting as default, unset others first
         if (isDefault) {
             user.addresses.forEach((addr: any) => addr.isDefault = false);
         }
 
+        if (name) address.name = name;
         if (street) address.street = street;
         if (city) address.city = city;
         if (district) address.district = district;
@@ -98,9 +108,9 @@ export const updateAddress = async (req: Request, res: Response) => {
 // Delete an address
 export const deleteAddress = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).auth?.userId;
+        const { userId } = getAuth(req);
         const { addressId } = req.params;
-        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
         const user = await User.findOne({ clerkId: userId });
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -130,9 +140,9 @@ export const deleteAddress = async (req: Request, res: Response) => {
 // Set default address
 export const setDefaultAddress = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).auth?.userId;
+        const { userId } = getAuth(req);
         const { addressId } = req.params;
-        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
         const user = await User.findOne({ clerkId: userId });
         if (!user) return res.status(404).json({ message: 'User not found' });

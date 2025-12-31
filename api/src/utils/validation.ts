@@ -14,7 +14,7 @@ export class ValidationError extends Error {
 }
 
 export const validateShippingAddress = (address: any): ShippingAddress => {
-  const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'street', 'city', 'district', 'state', 'zip'];
+  const requiredFields = ['name', 'email', 'phone', 'street', 'city', 'district', 'state', 'zip'];
 
   for (const field of requiredFields) {
     if (!address[field] || typeof address[field] !== 'string' || !address[field].trim()) {
@@ -36,8 +36,7 @@ export const validateShippingAddress = (address: any): ShippingAddress => {
   }
 
   return {
-    firstName: address.firstName.trim(),
-    lastName: address.lastName.trim(),
+    name: address.name.trim(),
     email: address.email.trim().toLowerCase(),
     phone: cleanPhone,
     street: address.street.trim(),

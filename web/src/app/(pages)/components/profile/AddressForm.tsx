@@ -1,8 +1,8 @@
 
 "use client";
-import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
+import { useState, useEffect, useRef } from "react";
+import { X, Loader2, Edit2 } from "lucide-react";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 interface AddressFormProps {
     isOpen: boolean;
@@ -12,12 +12,21 @@ interface AddressFormProps {
 }
 
 export default function AddressForm({ isOpen, onClose, onSuccess, initialData }: AddressFormProps) {
+    const { user } = useUser();
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [pincodeLoading, setPincodeLoading] = useState(false);
+    const [pincodeError, setPincodeError] = useState("");
+    const [autoFilled, setAutoFilled] = useState(false);
+    const [isManual, setIsManual] = useState(false);
+    const pincodeCache = useRef<Record<string, any>>({});
+    const streetRef = useRef<HTMLTextAreaElement>(null);
 
     const [formData, setFormData] = useState({
+        name: "",
         street: "",
+        landmark: "",
         city: "",
         district: "",
         state: "",
@@ -32,7 +41,9 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
             // Remove +91 prefix for editing if stored with it
             const cleanPhone = initialData.phone.replace(/^\+91/, "");
             setFormData({
+                name: initialData.name || "",
                 street: initialData.street || "",
+                landmark: initialData.landmark || "",
                 city: initialData.city || "",
                 district: initialData.district || "",
                 state: initialData.state || "",
@@ -44,7 +55,9 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         } else {
             // Reset for new address
             setFormData({
+                name: user?.fullName || "",
                 street: "",
+                landmark: "",
                 city: "",
                 district: "",
                 state: "",
@@ -57,6 +70,69 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         setError("");
     }, [initialData, isOpen]);
 
+    useEffect(() => {
+        const fetchPincode = async () => {
+            if (formData.zip.length !== 6 || autoFilled) return;
+
+            // Cache hit
+            if (pincodeCache.current[formData.zip]) {
+                const cached = pincodeCache.current[formData.zip];
+                setFormData(prev => ({
+                    ...prev,
+                    city: cached.city,
+                    district: cached.district,
+                    state: cached.state,
+                }));
+                setAutoFilled(true);
+                setIsManual(false); // Reset manual override on new valid pincode
+                setTimeout(() => streetRef.current?.focus(), 100);
+                return;
+            }
+
+            try {
+                setPincodeLoading(true);
+                // Reset manual override when fetching new logic
+                setIsManual(false);
+
+                const res = await fetch(
+                    `https://api.postalpincode.in/pincode/${formData.zip}`
+                );
+                const data = await res.json();
+
+                if (data[0]?.Status !== "Success") {
+                    setPincodeError("Invalid Pincode");
+                    return;
+                }
+
+                const po = data[0].PostOffice[0];
+
+                const location = {
+                    city: po.Block || "",
+                    district: po.District || "",
+                    state: po.State || "",
+                };
+
+                // Save to cache
+                pincodeCache.current[formData.zip] = location;
+
+                setFormData(prev => ({
+                    ...prev,
+                    ...location,
+                }));
+
+                setAutoFilled(true);
+                setTimeout(() => streetRef.current?.focus(), 100);
+
+            } catch {
+                setPincodeError("Failed to fetch location");
+            } finally {
+                setPincodeLoading(false);
+            }
+        };
+
+        fetchPincode();
+    }, [formData.zip]);
+
     if (!isOpen) return null;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -68,10 +144,16 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         } else if (name === "zip") {
             // Only digits, max 6
             const val = value.replace(/\D/g, "").slice(0, 6);
+            setPincodeError("");
+            setAutoFilled(false);
             setFormData((prev) => ({ ...prev, [name]: val }));
         } else {
             setFormData((prev) => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handleManualToggle = () => {
+        setIsManual(!isManual);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +217,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div
-                className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden"
+                className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl sm:rounded-2xl"
                 role="dialog"
             >
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
@@ -154,23 +236,47 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Full Name</label>
+                        <input
+                            name="name"
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Full Name"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pincode</label>
-                            <input
-                                name="zip"
-                                type="text"
-                                required
-                                value={formData.zip}
-                                onChange={handleChange}
-                                placeholder="6-digit Pincode"
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
-                            />
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                Pincode
+                            </label>
+                            <div className="relative">
+                                <input
+                                    name="zip"
+                                    type="text"
+                                    required
+                                    value={formData.zip}
+                                    onChange={handleChange}
+                                    placeholder="6-digit Pincode"
+                                    maxLength={6}
+                                    className={`w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base pr-10 ${pincodeError ? "border-red-500 bg-red-50" : ""}`}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                    {pincodeLoading && <Loader2 className="w-4 h-4 animate-spin text-black" />}
+                                </div>
+                            </div>
+                            {pincodeError && (
+                                <span className="text-xs text-red-500 font-medium block mt-1">{pincodeError}</span>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone (+91)</label>
                             <div className="flex">
-                                <span className="flex items-center justify-center px-3 bg-gray-100 border border-gray-100 border-r-0 rounded-l-xl text-gray-500 font-bold text-sm">+91</span>
+                                <span className="min-w-[48px] flex items-center justify-center px-3 bg-gray-100 border border-gray-100 border-r-0 rounded-l-xl text-gray-500 font-bold text-sm">+91</span>
                                 <input
                                     name="phone"
                                     type="text"
@@ -178,22 +284,34 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                     value={formData.phone}
                                     onChange={handleChange}
                                     placeholder="10-digit Number"
-                                    className="w-full p-3 bg-gray-50 border border-transparent rounded-r-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                    className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-r-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Location Details</span>
+                        <button
+                            type="button"
+                            onClick={handleManualToggle}
+                            className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 active:scale-95 transition-transform"
+                        >
+                            <Edit2 className="w-3 h-3" /> {isManual ? "Disable Edit" : "Edit Manually"}
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">City</label>
                             <input
                                 name="city"
                                 type="text"
                                 required
+                                disabled={!isManual}
                                 value={formData.city}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                         <div className="space-y-1">
@@ -202,23 +320,25 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="state"
                                 type="text"
                                 required
+                                disabled={!isManual}
                                 value={formData.state}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">District</label>
                             <input
                                 name="district"
                                 type="text"
                                 required
+                                disabled={!isManual}
                                 value={formData.district}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                     </div>
@@ -228,10 +348,23 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         <textarea
                             name="street"
                             required
+                            ref={streetRef}
                             rows={3}
                             value={formData.street}
                             onChange={handleChange as any}
-                            className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none min-h-[80px] text-sm sm:text-base"
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Landmark (Optional)</label>
+                        <input
+                            name="landmark"
+                            type="text"
+                            value={formData.landmark}
+                            onChange={handleChange}
+                            placeholder="E.g. Near City Hospital"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                         />
                     </div>
 
@@ -268,7 +401,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         <label htmlFor="defaultCheck" className="text-sm font-medium text-gray-700 select-none cursor-pointer">Make this my default address</label>
                     </div>
 
-                    <div className="flex gap-4 pt-2">
+                    <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-100 flex gap-3">
                         <button
                             type="button"
                             onClick={onClose}
@@ -286,7 +419,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         </button>
                     </div>
                 </form>
+
             </div>
-        </div>
+
+
+        </div >
     );
 }

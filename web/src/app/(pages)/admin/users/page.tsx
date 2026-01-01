@@ -56,8 +56,16 @@ export default function UsersPage() {
                     {user.role}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-gray-500">
-                  {formatTimeAgo(user.lastSeenAt)}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span
+                      className={`h-2 w-2 rounded-full ${user.isOnline ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                    />
+                    <span className="text-gray-700">
+                      {user.isOnline ? "Online" : formatTimeAgo(user.lastSeenAt)}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-gray-500">{user.joined}</td>
               </tr>

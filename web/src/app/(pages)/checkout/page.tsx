@@ -318,27 +318,60 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-4">
-                {/* Active Payment Method */}
-                <div className="flex items-center gap-5 p-5 border border-purple-100 bg-purple-50/10 rounded-2xl cursor-pointer transition-all shadow-sm ring-1 ring-purple-500/10 hover:ring-purple-500/30">
-                  <div className="relative w-5 h-5 flex items-center justify-center">
-                    <div className="w-5 h-5 rounded-full border-[5px] border-purple-600 bg-white" />
+                {/* Active Payment Method: Credit / Debit Card */}
+                <div
+                  role="radio"
+                  aria-checked="true"
+                  tabIndex={0}
+                  className="group relative flex items-center gap-5 p-5 border border-purple-200 bg-purple-50/20 rounded-2xl cursor-pointer transition-all duration-300 shadow-sm ring-1 ring-purple-500/20 hover:ring-purple-500/40 hover:shadow-md hover:bg-purple-50/40 outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                >
+                  <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full border-[6px] border-purple-600 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                  <div className="p-2.5 bg-white rounded-xl shadow-sm border border-purple-50">
+
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm border border-purple-50 shrink-0">
                     <CreditCard className="w-6 h-6 text-purple-600" />
                   </div>
-                  <div className="flex-1">
-                    <span className="block font-bold text-zinc-900 text-sm">Credit / Debit Card</span>
-                    <span className="text-xs text-zinc-500 font-medium">Secure encryption via Stripe</span>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="block font-bold text-zinc-900 text-sm sm:text-base">Credit / Debit Card</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-green-500 hidden sm:block" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-zinc-500 font-medium flex items-center gap-1.5 line-clamp-1">
+                      <Lock className="w-3 h-3 text-zinc-400" /> Secure encryption via Stripe
+                    </span>
+                  </div>
+
+                  {/* Desktop Trust Signal */}
+                  <div className="hidden sm:block">
+                    <div className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded-md tracking-wide uppercase">
+                      Selected
+                    </div>
                   </div>
                 </div>
 
-                {/* Disabled Method */}
-                <div className="flex items-center gap-5 p-5 border border-zinc-100 rounded-2xl opacity-40 cursor-not-allowed grayscale bg-zinc-50">
-                  <div className="w-5 h-5 rounded-full border border-zinc-300" />
-                  <div className="p-2.5 bg-white rounded-xl border border-zinc-100">
-                    <span className="w-6 h-6 block bg-zinc-200 rounded-sm" />
+                {/* Disabled Method: PayPal / Wallet */}
+                <div
+                  className="flex items-center gap-5 p-5 border border-zinc-100 rounded-2xl opacity-50 cursor-not-allowed grayscale bg-zinc-50/50 hover:bg-zinc-50 transition-colors pointer-events-none select-none relative overflow-hidden"
+                  aria-disabled="true"
+                >
+                  <div className="w-6 h-6 rounded-full border-2 border-zinc-200 shrink-0" />
+
+                  <div className="p-2.5 bg-white rounded-xl border border-zinc-100 shrink-0">
+                    <div className="w-6 h-6 bg-zinc-200 rounded-md" />
                   </div>
-                  <span className="font-bold text-zinc-900 text-sm">Coming Soon</span>
+
+                  <div className="flex-1">
+                    <span className="block font-bold text-zinc-400 text-sm sm:text-base">PayPal / Wallet</span>
+                    <span className="text-xs text-zinc-400 font-medium">Coming Soon</span>
+                  </div>
+
+                  <div className="absolute top-3 right-3">
+                    <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Soon
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

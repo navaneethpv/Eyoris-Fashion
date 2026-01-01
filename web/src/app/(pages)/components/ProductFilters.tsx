@@ -184,7 +184,7 @@ export default function ProductFilters({
         {/* Inputs */}
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
             <input
               type="number"
               value={localMin}
@@ -194,12 +194,12 @@ export default function ProductFilters({
                 setLocalMin(val);
                 commitPriceChange(val, localMax);
               }}
-              className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-center"
+              className="w-full pl-7 pr-3 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-left"
             />
           </div>
           <span className="text-gray-300 font-medium">-</span>
           <div className="relative flex-1">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
             <input
               type="number"
               value={localMax}
@@ -209,7 +209,7 @@ export default function ProductFilters({
                 setLocalMax(val);
                 commitPriceChange(localMin, val);
               }}
-              className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-center"
+              className="w-full pl-7 pr-1 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-left"
             />
           </div>
         </div>

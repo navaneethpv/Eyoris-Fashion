@@ -121,7 +121,7 @@ export default function WishlistPage() {
               Tap the heart on any product to save it here. Start building your personal wardrobe!
             </p>
             <Link
-              href="/products"
+              href="/product"
               className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
             >
               <span>Explore Collection</span>

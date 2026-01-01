@@ -219,7 +219,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 font-sans text-zinc-900">
+    <div className="min-h-screen bg-white font-sans text-zinc-900">
       <Navbar />
 
       {/* Subtle Divider below Navbar */}

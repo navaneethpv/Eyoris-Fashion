@@ -34,7 +34,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("dev"));
 
-import { updateLastSeen } from "./middleware/userActivity";
+import { updateLastSeen } from "./middleware/updateLastSeen";
 
 // Clerk middleware - MUST be before routes
 app.use(clerkMiddleware());

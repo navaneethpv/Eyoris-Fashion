@@ -205,7 +205,10 @@ export const getProducts = async (req: Request, res: Response) => {
       }
 
       // Clear q since we've extracted intent into structured filters
-      q = '';
+      // BUT keep q if it's an accessory search so we can apply the expanded regex later
+      if (!/accessory|accessories/i.test(originalQuery as string)) {
+        q = '';
+      }
     }
 
     const pipeline: any[] = [];
@@ -282,8 +285,8 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     // Exclude innerwear logic (Restored)
-    // Only filter when there's no search query (q parameter)
-    if (!q) {
+    // Only filter when there's no search query (q parameter) OR when searching for "Accessories" (virtual category)
+    if (!q || /accessory|accessories/i.test(q as string)) {
       // Innerwear terms to exclude (case-insensitive matching)
       const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear', 'panties', 'thong', 'boxers', 'trunks', 'vest', 'brief'];
       const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
@@ -321,7 +324,18 @@ export const getProducts = async (req: Request, res: Response) => {
 
       const exactRegex = new RegExp(`^${escapeRegex(q)}$`, 'i');
       const startsWithRegex = new RegExp(`^${escapeRegex(q)}`, 'i');
-      const generalRegex = new RegExp(escapeRegex(q), 'i');
+      let generalRegex = new RegExp(escapeRegex(q), 'i');
+
+      // SPECIAL: Expanded Accessories Search
+      if (/accessory|accessories/i.test(q)) {
+        const accTerms = [
+          'Jewellery', 'Bingle', 'Bangle', 'Necklace', 'Handbag', 'Purse', 'Sunglass',
+          'Belt', 'Watch', 'Hat', 'Cap', 'Accessory', 'Accessories',
+          'Earring', 'Ring', 'Wallet', 'Perfume', 'Tie', 'Cufflink', 'Scarf'
+        ];
+        generalRegex = new RegExp(accTerms.join('|'), 'i');
+        console.log('[SEARCH] Enhanced Accessories Search Active for mixed results');
+      }
 
       matchStage.$or = [
         { name: generalRegex },

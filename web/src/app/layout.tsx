@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Footer from "./(pages)/components/Footer";
+
 import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className={`${inter.className} ${playfair.variable} flex flex-col min-h-screen`}>
         <ClerkProvider>
           <SpeedInsights />
+
           {children}
           <Footer />
         </ClerkProvider>

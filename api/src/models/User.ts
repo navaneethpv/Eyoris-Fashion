@@ -22,7 +22,8 @@ const UserSchema = new mongoose.Schema({
     type: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
     isDefault: { type: Boolean, default: false }
   }],
-  lastSeenAt: { type: Date, default: null }
+  lastSeenAt: { type: Date, default: null },
+  isOnline: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export const User = mongoose.model('User', UserSchema);

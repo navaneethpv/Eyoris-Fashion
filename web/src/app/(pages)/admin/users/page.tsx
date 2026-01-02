@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const { getToken } = useAuth();
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -29,8 +30,33 @@ export default function UsersPage() {
 
       const data = await res.json();
       setUsers(data.users || []);
+      setCurrentUserRole(data.currentUserRole);
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, action: 'promote' | 'demote') => {
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    try {
+      const token = await getToken();
+      const res = await fetch(`${baseUrl}/api/admin/users/${userId}/${action}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        alert("User role updated successfully!");
+        fetchUsers();
+      } else {
+        const err = await res.json();
+        alert(`Failed: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Role update error:", error);
     }
   };
 
@@ -50,7 +76,7 @@ export default function UsersPage() {
               <th className="px-6 py-4">Name</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Role</th>
-
+              {currentUserRole === 'super_admin' && <th className="px-6 py-4">Actions</th>}
               <th className="px-6 py-4">Joined</th>
             </tr>
           </thead>
@@ -72,7 +98,30 @@ export default function UsersPage() {
                     {user.role}
                   </span>
                 </td>
-
+                {currentUserRole === 'super_admin' && (
+                  <td className="px-6 py-4">
+                    {user.rawRole !== 'super_admin' && (
+                      <div className="flex gap-2">
+                        {user.rawRole === 'customer' && (
+                          <button
+                            onClick={() => handleRoleChange(user.id, 'promote')}
+                            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+                          >
+                            Make Admin
+                          </button>
+                        )}
+                        {user.rawRole === 'admin' && (
+                          <button
+                            onClick={() => handleRoleChange(user.id, 'demote')}
+                            className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200"
+                          >
+                            Remove Admin
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                )}
                 <td className="px-6 py-4 text-gray-500">{user.joined}</td>
               </tr>
             ))}

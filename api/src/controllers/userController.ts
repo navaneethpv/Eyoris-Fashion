@@ -163,3 +163,63 @@ export const setDefaultAddress = async (req: Request, res: Response) => {
 };
 
 
+
+// Super Admin: Promote to Admin
+export const promoteToAdmin = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role === 'admin' || user.role === 'super_admin') {
+            return res.status(400).json({ message: 'User is already an admin' });
+        }
+
+        user.role = 'admin';
+        await user.save();
+
+        res.json({ message: `User ${user.email} promoted to Admin`, user });
+    } catch (error) {
+        console.error('Promote Error:', error);
+        res.status(500).json({ message: 'Failed to promote user' });
+    }
+};
+
+// Super Admin: Demote to Customer
+export const demoteFromAdmin = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const currentSuperAdmin = (req as any).user;
+
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role === 'customer') {
+            return res.status(400).json({ message: 'User is already a customer' });
+        }
+
+        // Safety: Cannot demote self
+        if (user._id.toString() === currentSuperAdmin._id.toString()) {
+            return res.status(403).json({ message: 'You cannot demote yourself' });
+        }
+
+        // Safety: Cannot demote another Super Admin (optional but good practice)
+        if (user.role === 'super_admin') {
+            return res.status(403).json({ message: 'Cannot demote another Super Admin' });
+        }
+
+        user.role = 'customer';
+        await user.save();
+
+        res.json({ message: `User ${user.email} demoted to Customer`, user });
+    } catch (error) {
+        console.error('Demote Error:', error);
+        res.status(500).json({ message: 'Failed to demote user' });
+    }
+};

@@ -1,5 +1,6 @@
 
 import { Router } from 'express';
+import { getAdminMe } from '../controllers/adminController';
 import { getDashboardStats, getMonthlySales } from '../controllers/orderController';
 import { requireAdmin, requireSuperAdmin } from '../middleware/adminAuth';
 import { promoteToAdmin, demoteFromAdmin } from '../controllers/userController';
@@ -9,6 +10,8 @@ const router = Router();
 
 // Apply admin protection to all routes in this file
 router.use(requireAdmin);
+
+router.get("/me", getAdminMe); // New endpoint for role verification
 
 router.get('/stats', getDashboardStats);
 router.get('/monthly-sales', getMonthlySales);

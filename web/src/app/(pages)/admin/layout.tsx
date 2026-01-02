@@ -1,13 +1,58 @@
 "use client"
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingBag, Users, Package, LogOut } from 'lucide-react';
-import { UserButton, useUser } from '@clerk/nextjs';
+import { UserButton, useUser, useAuth } from '@clerk/nextjs';
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const verifyAdmin = async () => {
+      try {
+        const token = await getToken();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+        const res = await fetch(
+          `${apiUrl}/api/admin/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (res.ok) {
+          setIsAuthorized(true);
+        } else {
+          router.replace("/");
+        }
+      } catch {
+        router.replace("/");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyAdmin();
+  }, [getToken, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) return null;
 
   const menu = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },

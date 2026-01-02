@@ -4,9 +4,17 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, DollarSign, ShoppingBag, Users, Package, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useAdminFetch } from '@/lib/adminFetch';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
+  const adminFetch = useAdminFetch();
+  const [stats, setStats] = useState({
+    revenue: 0,
+    orders: 0,
+    users: 0,
+    recentOrders: []
+  });
+  const [loading, setLoading] = useState(true);
   const [productCount, setProductCount] = useState(0);
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -15,18 +23,30 @@ export default function DashboardPage() {
   const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
-    fetch(`${baseUrl}/api/admin/stats`)
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error(err));
+    const fetchData = async () => {
+      try {
+        const statsData = await adminFetch('/api/admin/stats');
 
-    fetch(`${baseUrl}/api/products?limit=1`)
-      .then(res => res.json())
-      .then(data => setProductCount(data.meta?.total || 0))
-      .catch(err => console.error(err));
+        setStats({
+          revenue: statsData.revenue || 0,
+          orders: statsData.orders || 0,
+          users: statsData.users || 0,
+          recentOrders: statsData.recentOrders || []
+        });
+
+        const prodData = await adminFetch('/api/products?limit=1');
+        setProductCount(prodData.meta?.total || 0);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  if (!stats) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-zinc-600" /></div>;
+  if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-zinc-600" /></div>;
 
   // Mock data for the chart (In real app, fetch 7-day history)
   const chartData = [
@@ -171,24 +191,32 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {stats.recentOrders.map((order: any) => (
-                <tr key={order._id} className="hover:bg-zinc-50 transition">
-                  <td className="px-6 py-4 font-mono text-xs text-zinc-500">#{order._id.slice(-6).toUpperCase()}</td>
-                  <td className="px-6 py-4 font-medium text-zinc-900">
-                    {order.shippingAddress?.firstName || "Guest"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${order.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-zinc-900">₹{(order.total_cents / 100).toFixed(2)}</td>
-                  <td className="px-6 py-4 text-zinc-500">
-                    {new Date(order.createdAt).toLocaleDateString()}
+              {stats.recentOrders && stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order: any) => (
+                  <tr key={order._id} className="hover:bg-zinc-50 transition">
+                    <td className="px-6 py-4 font-mono text-xs text-zinc-500">#{order._id.slice(-6).toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-zinc-900">
+                      {order.shippingAddress?.firstName || "Guest"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${order.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-zinc-900">₹{(order.total_cents / 100).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-zinc-500">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="text-center py-6 text-zinc-400">
+                    No recent orders
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

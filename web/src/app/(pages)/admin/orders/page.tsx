@@ -2,8 +2,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Truck, Check, X, Loader2, ChevronDown, ChevronUp, FileText, Download, Package, CreditCard, Clock, MapPin, CheckCircle } from 'lucide-react';
+// import { useAuth } from "@clerk/nextjs"; // Removed
+import { useAdminFetch } from '@/lib/adminFetch';
 
 export default function OrdersPage() {
+  const adminFetch = useAdminFetch();
+  // const { getToken } = useAuth(); // Removed
   const [orders, setOrders] = useState<any[]>([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -13,10 +17,14 @@ export default function OrdersPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-  const fetchOrders = () => {
-    fetch(`${API_URL}/api/orders/all`)
-      .then(res => res.json())
-      .then(data => setOrders(data));
+  const fetchOrders = async () => {
+    try {
+      const data = await adminFetch('/api/orders/all');
+      setOrders(Array.isArray(data) ? data : data.orders || []);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrders([]);
+    }
   };
 
   useEffect(() => {
@@ -26,18 +34,13 @@ export default function OrdersPage() {
   const handleStatusChange = async (orderId: string, newOrderStatus: string) => {
     setUpdatingId(orderId);
     try {
-      const res = await fetch(`${API_URL}/api/orders/${orderId}/order-status`, {
+      await adminFetch(`/api/orders/${orderId}/order-status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: newOrderStatus })
       });
 
-      if (res.ok) {
-        fetchOrders();
-      } else {
-        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        alert(`Failed to update status: ${errorData.message}`);
-      }
+      fetchOrders();
     } catch (error) {
       alert("Failed to update status");
     } finally {
@@ -93,20 +96,14 @@ export default function OrdersPage() {
   const handleApproveReturn = async (orderId: string) => {
     if (!confirm('Are you sure you want to approve this return? This will mark the order as Returned and payment as Refunded.')) return;
 
-    // setApprovingReturn(orderId); // If you want loading state
-    setUpdatingId(orderId); // Reuse updating state for loader
+    setUpdatingId(orderId);
     try {
-      const res = await fetch(`${API_URL}/api/orders/${orderId}/return/approve`, {
+      await adminFetch(`/api/orders/${orderId}/return/approve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (res.ok) {
-        fetchOrders();
-      } else {
-        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        alert(`Failed to approve return: ${errorData.message}`);
-      }
+      fetchOrders();
     } catch (error) {
       alert("Failed to approve return");
     } finally {
@@ -180,383 +177,391 @@ export default function OrdersPage() {
 
           <tbody className="divide-y divide-gray-100">
             <AnimatePresence>
-              {orders.map((order: any, index: number) => {
-                const isExpanded = expandedOrderId === order._id;
+              {orders && orders.length > 0 ? (
+                orders.map((order: any, index: number) => {
+                  const isExpanded = expandedOrderId === order._id;
 
-                return (
-                  <React.Fragment key={order._id}>
-                    {/* Main Order Row */}
-                    <motion.tr
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ backgroundColor: '#f9fafb' }}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
-                    >
-                      <td className="px-6 py-4">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedOrderId(isExpanded ? null : order._id);
-                          }}
-                        >
-                          <motion.div
-                            animate={{ rotate: isExpanded ? 180 : 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="w-4 h-4 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-gray-500" />
-                            )}
-                          </motion.div>
-                        </motion.button>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                        <motion.span
-                          whileHover={{ scale: 1.05 }}
-                          className="bg-gray-100 px-2 py-1 rounded"
-                        >
-                          #{order._id.slice(-6)}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-900">{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
-                        <p className="text-xs text-gray-500 flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {order.shippingAddress?.city}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <motion.span
-                          whileHover={{ scale: 1.05 }}
-                          className="font-bold text-gray-900 bg-green-50 px-3 py-1 rounded-lg"
-                        >
-                          {formatCurrency(order.total_cents)}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <motion.span
-                          whileHover={{ scale: 1.05 }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getPaymentStatusColor(order.paymentStatus)}`}
-                        >
-                          {order.paymentStatus}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <motion.span
-                          whileHover={{ scale: 1.05 }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getOrderStatusColor(order.orderStatus)}`}
-                        >
-                          {order.orderStatus}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          {/* Status Update */}
-                          <div className="relative">
-                            {updatingId === order._id ? (
-                              <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex items-center text-blue-600 text-xs font-bold"
-                              >
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Updating...
-                              </motion.div>
-                            ) : (
-                              <motion.select
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className={`bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg block w-28 p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none ${order.paymentStatus?.toLowerCase() !== 'paid' || order.orderStatus === 'cancelled' ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                value={order.orderStatus}
-                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                disabled={order.paymentStatus?.toLowerCase() !== 'paid' || order.orderStatus === 'cancelled'}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <option value="placed">Placed</option>
-                                <option value="shipped">Shipped</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                              </motion.select>
-                            )}
-                          </div>
-
-                          {/* Invoice Button */}
+                  return (
+                    <React.Fragment key={order._id}>
+                      {/* Main Order Row */}
+                      <motion.tr
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ backgroundColor: '#f9fafb' }}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
+                      >
+                        <td className="px-6 py-4">
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handlePrintInvoice(order._id);
+                              setExpandedOrderId(isExpanded ? null : order._id);
                             }}
-                            disabled={printingOrder === order._id}
-                            className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
-                            title="Print Invoice"
                           >
-                            {printingOrder === order._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <FileText className="w-4 h-4" />
-                            )}
-
+                            <motion.div
+                              animate={{ rotate: isExpanded ? 180 : 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              )}
+                            </motion.div>
                           </motion.button>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                          <motion.span
+                            whileHover={{ scale: 1.05 }}
+                            className="bg-gray-100 px-2 py-1 rounded"
+                          >
+                            #{order._id.slice(-6)}
+                          </motion.span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-900">{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
+                          <p className="text-xs text-gray-500 flex items-center">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {order.shippingAddress?.city}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <motion.span
+                            whileHover={{ scale: 1.05 }}
+                            className="font-bold text-gray-900 bg-green-50 px-3 py-1 rounded-lg"
+                          >
+                            {formatCurrency(order.total_cents)}
+                          </motion.span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <motion.span
+                            whileHover={{ scale: 1.05 }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getPaymentStatusColor(order.paymentStatus)}`}
+                          >
+                            {order.paymentStatus}
+                          </motion.span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <motion.span
+                            whileHover={{ scale: 1.05 }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getOrderStatusColor(order.orderStatus)}`}
+                          >
+                            {order.orderStatus}
+                          </motion.span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            {/* Status Update */}
+                            <div className="relative">
+                              {updatingId === order._id ? (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="flex items-center text-blue-600 text-xs font-bold"
+                                >
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Updating...
+                                </motion.div>
+                              ) : (
+                                <motion.select
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg block w-28 p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none ${order.paymentStatus?.toLowerCase() !== 'paid' || order.orderStatus === 'cancelled' ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  value={order.orderStatus}
+                                  onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                  disabled={order.paymentStatus?.toLowerCase() !== 'paid' || order.orderStatus === 'cancelled'}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <option value="placed">Placed</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered">Delivered</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </motion.select>
+                              )}
+                            </div>
 
-                          {/* Approve Return Button */}
-                          {order.orderStatus === 'return_requested' && (
+                            {/* Invoice Button */}
                             <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleApproveReturn(order._id);
+                                handlePrintInvoice(order._id);
                               }}
-                              className="px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-bold rounded-lg border border-orange-200 transition-colors flex items-center"
+                              disabled={printingOrder === order._id}
+                              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
+                              title="Print Invoice"
                             >
-                              {updatingId === order._id ? (
-                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              {printingOrder === order._id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <Package className="w-3 h-3 mr-1" />
+                                <FileText className="w-4 h-4" />
                               )}
-                              Approve Return
+
                             </motion.button>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
 
-                    {/* Expanded Order Details */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.tr
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        >
-                          <td colSpan={7} className="px-6 py-0 bg-gray-50">
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="py-6"
-                            >
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Order Items */}
-                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                    <Package className="w-5 h-5 mr-2 text-blue-600" />
-                                    Ordered Items
-                                  </h3>
+                            {/* Approve Return Button */}
+                            {order.orderStatus === 'return_requested' && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApproveReturn(order._id);
+                                }}
+                                className="px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-bold rounded-lg border border-orange-200 transition-colors flex items-center"
+                              >
+                                {updatingId === order._id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                ) : (
+                                  <Package className="w-3 h-3 mr-1" />
+                                )}
+                                Approve Return
+                              </motion.button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
 
-                                  <div className="space-y-4">
-                                    {order.items?.map((item: any, itemIndex: number) => (
-                                      <motion.div
-                                        key={itemIndex}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: itemIndex * 0.1 }}
-                                        className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                                      >
-                                        <div className="flex-shrink-0">
-                                          {item.image ? (
-                                            <img
-                                              src={item.image}
-                                              alt={item.name}
-                                              className="w-12 h-12 rounded-lg object-cover"
-                                            />
-                                          ) : (
-                                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                              <Package className="w-6 h-6 text-gray-400" />
+                      {/* Expanded Order Details */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.tr
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          >
+                            <td colSpan={7} className="px-6 py-0 bg-gray-50">
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="py-6"
+                              >
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                  {/* Order Items */}
+                                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                      <Package className="w-5 h-5 mr-2 text-blue-600" />
+                                      Ordered Items
+                                    </h3>
+
+                                    <div className="space-y-4">
+                                      {order.items?.map((item: any, itemIndex: number) => (
+                                        <motion.div
+                                          key={itemIndex}
+                                          initial={{ opacity: 0, x: -20 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: itemIndex * 0.1 }}
+                                          className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                                        >
+                                          <div className="flex-shrink-0">
+                                            {item.image ? (
+                                              <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-12 h-12 rounded-lg object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                                <Package className="w-6 h-6 text-gray-400" />
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          <div className="flex-grow">
+                                            <h4 className="font-semibold text-gray-900 text-sm">{item.name}</h4>
+                                            <p className="text-xs text-gray-500">Variant: {item.variantSku}</p>
+                                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                          </div>
+
+                                          <div className="text-right">
+                                            <p className="font-bold text-gray-900">
+                                              {formatCurrency(item.price_cents)}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              {formatCurrency(item.price_cents * item.quantity)}
+                                            </p>
+                                          </div>
+                                        </motion.div>
+                                      ))}
+                                    </div>
+
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-gray-900">Total:</span>
+                                        <span className="font-bold text-lg text-gray-900">
+                                          {formatCurrency(order.total_cents)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Shipping & Payment Info */}
+                                  <div className="space-y-6">
+                                    {/* Shipping Address */}
+                                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                        <Truck className="w-5 h-5 mr-2 text-blue-600" />
+                                        Shipping Address
+                                      </h3>
+
+                                      <div className="space-y-3">
+                                        <div>
+                                          <p className="font-semibold text-gray-900">
+                                            {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
+                                          </p>
+                                          <p className="text-sm text-gray-600">{order.shippingAddress?.email}</p>
+                                          <p className="text-sm text-gray-600">{order.shippingAddress?.phone}</p>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-gray-100">
+                                          <p className="text-sm text-gray-700">
+                                            {order.shippingAddress?.street}<br />
+                                            {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
+                                            {order.shippingAddress?.country}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Payment & Order Info */}
+                                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                        <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
+                                        Order Information
+                                      </h3>
+
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-500">Order Date:</span>
+                                          <span className="text-sm font-medium text-gray-900 flex items-center">
+                                            <Clock className="w-4 h-4 mr-1" />
+                                            {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                              year: 'numeric',
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-500">Payment Method:</span>
+                                          <span className="text-sm font-medium text-gray-900">
+                                            {order.paymentInfo?.method || 'Credit Card'}
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-500">Payment Status:</span>
+                                          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getPaymentStatusColor(order.paymentStatus)}`}>
+                                            {order.paymentStatus}
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-500">Order Status:</span>
+                                          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getOrderStatusColor(order.orderStatus)}`}>
+                                            {order.orderStatus}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Cancellation Details - Only show for cancelled orders */}
+                                    {order.orderStatus === 'cancelled' && (
+                                      <div className="bg-red-50 rounded-xl border-2 border-red-200 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center">
+                                          <X className="w-5 h-5 mr-2 text-red-600" />
+                                          🚫 Order Cancelled
+                                        </h3>
+
+                                        <div className="space-y-3">
+                                          <div>
+                                            <span className="text-sm font-semibold text-red-900 block mb-1">Reason:</span>
+                                            <p className="text-sm text-red-800 bg-white/50 p-3 rounded-lg border border-red-200">
+                                              "{order.cancellationReason || 'No reason provided'}"
+                                            </p>
+                                          </div>
+
+                                          {order.cancelledAt && (
+                                            <div className="flex items-center justify-between pt-2 border-t border-red-200">
+                                              <span className="text-sm font-semibold text-red-900">Cancelled on:</span>
+                                              <span className="text-sm font-medium text-red-900 flex items-center">
+                                                <Clock className="w-4 h-4 mr-1" />
+                                                {new Date(order.cancelledAt).toLocaleDateString('en-US', {
+                                                  year: 'numeric',
+                                                  month: 'short',
+                                                  day: 'numeric',
+                                                  hour: '2-digit',
+                                                  minute: '2-digit'
+                                                })}
+                                              </span>
                                             </div>
                                           )}
                                         </div>
+                                      </div>
+                                    )}
 
-                                        <div className="flex-grow">
-                                          <h4 className="font-semibold text-gray-900 text-sm">{item.name}</h4>
-                                          <p className="text-xs text-gray-500">Variant: {item.variantSku}</p>
-                                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                    {/* Return Request Details - Only show for return_requested orders */}
+                                    {order.orderStatus === 'return_requested' && (
+                                      <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-orange-900 mb-4 flex items-center">
+                                          <Package className="w-5 h-5 mr-2 text-orange-600" />
+                                          📦 Return Requested
+                                        </h3>
+
+                                        <div className="space-y-3">
+                                          <div>
+                                            <span className="text-sm font-semibold text-orange-900 block mb-1">Reason:</span>
+                                            <p className="text-sm text-orange-800 bg-white/50 p-3 rounded-lg border border-orange-200">
+                                              "{order.returnReason || 'No reason provided'}"
+                                            </p>
+                                          </div>
+
+                                          {order.returnRequestedAt && (
+                                            <div className="flex items-center justify-between pt-2 border-t border-orange-200">
+                                              <span className="text-sm font-semibold text-orange-900">Requested on:</span>
+                                              <span className="text-sm font-medium text-orange-900 flex items-center">
+                                                <Clock className="w-4 h-4 mr-1" />
+                                                {new Date(order.returnRequestedAt).toLocaleDateString('en-US', {
+                                                  year: 'numeric',
+                                                  month: 'short',
+                                                  day: 'numeric',
+                                                  hour: '2-digit',
+                                                  minute: '2-digit'
+                                                })}
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
-
-                                        <div className="text-right">
-                                          <p className="font-bold text-gray-900">
-                                            {formatCurrency(item.price_cents)}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            {formatCurrency(item.price_cents * item.quantity)}
-                                          </p>
-                                        </div>
-                                      </motion.div>
-                                    ))}
-                                  </div>
-
-                                  <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <div className="flex justify-between items-center">
-                                      <span className="font-bold text-gray-900">Total:</span>
-                                      <span className="font-bold text-lg text-gray-900">
-                                        {formatCurrency(order.total_cents)}
-                                      </span>
-                                    </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-
-                                {/* Shipping & Payment Info */}
-                                <div className="space-y-6">
-                                  {/* Shipping Address */}
-                                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                      <Truck className="w-5 h-5 mr-2 text-blue-600" />
-                                      Shipping Address
-                                    </h3>
-
-                                    <div className="space-y-3">
-                                      <div>
-                                        <p className="font-semibold text-gray-900">
-                                          {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
-                                        </p>
-                                        <p className="text-sm text-gray-600">{order.shippingAddress?.email}</p>
-                                        <p className="text-sm text-gray-600">{order.shippingAddress?.phone}</p>
-                                      </div>
-
-                                      <div className="pt-2 border-t border-gray-100">
-                                        <p className="text-sm text-gray-700">
-                                          {order.shippingAddress?.street}<br />
-                                          {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
-                                          {order.shippingAddress?.country}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Payment & Order Info */}
-                                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                      <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
-                                      Order Information
-                                    </h3>
-
-                                    <div className="space-y-3">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-500">Order Date:</span>
-                                        <span className="text-sm font-medium text-gray-900 flex items-center">
-                                          <Clock className="w-4 h-4 mr-1" />
-                                          {new Date(order.createdAt).toLocaleDateString('en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-500">Payment Method:</span>
-                                        <span className="text-sm font-medium text-gray-900">
-                                          {order.paymentInfo?.method || 'Credit Card'}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-500">Payment Status:</span>
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                          {order.paymentStatus}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-500">Order Status:</span>
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getOrderStatusColor(order.orderStatus)}`}>
-                                          {order.orderStatus}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Cancellation Details - Only show for cancelled orders */}
-                                  {order.orderStatus === 'cancelled' && (
-                                    <div className="bg-red-50 rounded-xl border-2 border-red-200 p-6 shadow-sm">
-                                      <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center">
-                                        <X className="w-5 h-5 mr-2 text-red-600" />
-                                        🚫 Order Cancelled
-                                      </h3>
-
-                                      <div className="space-y-3">
-                                        <div>
-                                          <span className="text-sm font-semibold text-red-900 block mb-1">Reason:</span>
-                                          <p className="text-sm text-red-800 bg-white/50 p-3 rounded-lg border border-red-200">
-                                            "{order.cancellationReason || 'No reason provided'}"
-                                          </p>
-                                        </div>
-
-                                        {order.cancelledAt && (
-                                          <div className="flex items-center justify-between pt-2 border-t border-red-200">
-                                            <span className="text-sm font-semibold text-red-900">Cancelled on:</span>
-                                            <span className="text-sm font-medium text-red-900 flex items-center">
-                                              <Clock className="w-4 h-4 mr-1" />
-                                              {new Date(order.cancelledAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                              })}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Return Request Details - Only show for return_requested orders */}
-                                  {order.orderStatus === 'return_requested' && (
-                                    <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-6 shadow-sm">
-                                      <h3 className="text-lg font-bold text-orange-900 mb-4 flex items-center">
-                                        <Package className="w-5 h-5 mr-2 text-orange-600" />
-                                        📦 Return Requested
-                                      </h3>
-
-                                      <div className="space-y-3">
-                                        <div>
-                                          <span className="text-sm font-semibold text-orange-900 block mb-1">Reason:</span>
-                                          <p className="text-sm text-orange-800 bg-white/50 p-3 rounded-lg border border-orange-200">
-                                            "{order.returnReason || 'No reason provided'}"
-                                          </p>
-                                        </div>
-
-                                        {order.returnRequestedAt && (
-                                          <div className="flex items-center justify-between pt-2 border-t border-orange-200">
-                                            <span className="text-sm font-semibold text-orange-900">Requested on:</span>
-                                            <span className="text-sm font-medium text-orange-900 flex items-center">
-                                              <Clock className="w-4 h-4 mr-1" />
-                                              {new Date(order.returnRequestedAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                              })}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
-                          </td>
-                        </motion.tr>
-                      )}
-                    </AnimatePresence>
-                  </React.Fragment>
-                );
-              })}
+                              </motion.div>
+                            </td>
+                          </motion.tr>
+                        )}
+                      </AnimatePresence>
+                    </React.Fragment>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-gray-400">
+                    No orders found
+                  </td>
+                </tr>
+              )}
             </AnimatePresence>
           </tbody>
         </table>

@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
+import { useAdminFetch } from '@/lib/adminFetch';
 import { motion, AnimatePresence } from "framer-motion";
 
 
@@ -33,17 +34,13 @@ export default function ProductsListPage() {
   const [limit] = useState<number>(24);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [pageInput, setPageInput] = useState<string>(String(page));
-  const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
-  const baseUrl = base.replace(/\/$/, "");
+
+  const adminFetch = useAdminFetch();
 
   useEffect(() => {
     const p = page;
-    fetch(`${baseUrl}/api/products?limit=${limit}&page=${p}`)
-      .then((res) => res.json())
-      .then((res) => {
+    adminFetch(`/api/products?limit=${limit}&page=${p}`)
+      .then((res: any) => {
         setProducts(res.data || []);
         setTotalPages(res.meta?.pages || 1);
         setPageInput(String(p));
@@ -69,15 +66,10 @@ export default function ProductsListPage() {
 
     setDeletingId(id);
     try {
-      const res = await fetch(`${baseUrl}/api/products/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        // Remove from local state immediately
-        setProducts((prev) => prev.filter((p: any) => p._id !== id));
-      } else {
-        alert("Failed to delete");
-      }
+      await adminFetch(`/api/products/${id}`, { method: "DELETE" });
+
+      // Remove from local state immediately
+      setProducts((prev) => prev.filter((p: any) => p._id !== id));
     } catch (error) {
       alert("Error deleting product");
     } finally {

@@ -2,33 +2,18 @@
 import { useEffect, useState } from 'react';
 
 
-import { useAuth } from '@clerk/nextjs';
+// import { useAuth } from '@clerk/nextjs'; // Removed
+import { useAdminFetch } from '@/lib/adminFetch';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const { getToken } = useAuth();
-  const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
-  const baseUrl = base.replace(/\/$/, "");
+  const adminFetch = useAdminFetch();
+  // const { getToken } = useAuth(); // Removed
 
   const fetchUsers = async () => {
     try {
-      const token = await getToken();
-      const res = await fetch(`${baseUrl}/api/admin/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        console.error("Failed to fetch users:", res.statusText);
-        return;
-      }
-
-      const data = await res.json();
+      const data = await adminFetch("/api/admin/users");
       setUsers(data.users || []);
       setCurrentUserRole(data.currentUserRole);
     } catch (error) {
@@ -40,23 +25,14 @@ export default function UsersPage() {
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
 
     try {
-      const token = await getToken();
-      const res = await fetch(`${baseUrl}/api/admin/users/${userId}/${action}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await adminFetch(`/api/admin/users/${userId}/${action}`, {
+        method: 'PATCH'
       });
-
-      if (res.ok) {
-        alert("User role updated successfully!");
-        fetchUsers();
-      } else {
-        const err = await res.json();
-        alert(`Failed: ${err.message}`);
-      }
-    } catch (error) {
+      alert("User role updated successfully!");
+      fetchUsers();
+    } catch (error: any) {
       console.error("Role update error:", error);
+      alert(`Failed: ${error.message || "Unknown error"}`);
     }
   };
 

@@ -1,15 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { IDominantColor, IAITags } from "./common";
 
-export interface IDominantColor {
-  hex: string;
-  rgb: number[];
-}
-
-export interface IAITags {
-  dominant_color_name: string;
-  style_tags: string[];
-  material_tags: string[];
-}
+export { IDominantColor, IAITags };
 
 
 export interface IProduct extends Document {

@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import User from "../models/User";
+import { User } from "../models/User";
 
 export const getAdminMe = async (req: Request, res: Response) => {
-    const userId = req.auth?.userId;
+    const userId = (req as any).auth?.userId;
 
     if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });

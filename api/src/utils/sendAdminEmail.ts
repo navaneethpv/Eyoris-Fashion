@@ -11,19 +11,24 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-export const sendAdminEmail = async (
-    subject: string,
-    html: string
-) => {
+export const sendAdminEmail = async (subject: string, html: string) => {
     try {
+        console.log("📧 Admin email trigger started");
+
         // Fetch all admins & super admins
         const admins = await User.find({
             role: { $in: ["admin", "super_admin"] }
         }).select("email");
 
-        if (!admins.length) return;
+        console.log("👤 Admins found:", admins);
+
+        if (!admins.length) {
+            console.log("❌ No admins found in DB");
+            return;
+        }
 
         const emails = admins.map(a => a.email);
+        console.log("📨 Sending email to:", emails);
 
         await transporter.sendMail({
             from: `"Eyoris Orders" <${process.env.SMTP_USER}>`,
@@ -31,7 +36,9 @@ export const sendAdminEmail = async (
             subject,
             html,
         });
+
+        console.log("✅ Email sent successfully");
     } catch (error) {
-        console.error("Admin order email failed:", error);
+        console.error("❌ Admin email error:", error);
     }
 };

@@ -25,7 +25,7 @@ interface ProductCardProps {
   isPremium?: boolean;
 }
 
-const PLACEHOLDER = "https://via.placeholder.com/300x200?text=No+Image";
+const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect width='300' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%239ca3af'%3ENo Image Available%3C/text%3E%3C/svg%3E";
 
 export default function ProductCard({ product, isPremium = false }: ProductCardProps) {
   const [localProduct, setLocalProduct] = useState<Product>(product);

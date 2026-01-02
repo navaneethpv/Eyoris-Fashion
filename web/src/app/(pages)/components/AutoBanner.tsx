@@ -21,7 +21,7 @@ const banners = [
     description: "Impeccable fits defined by precision and style.",
     buttonText: "Shop Men",
     link: "/product?gender=men",
-    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=1080&fit=crop",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 3,
@@ -39,7 +39,7 @@ const banners = [
     description: "Bold statements for the concrete jungle.",
     buttonText: "Shop Streetwear",
     link: "/product?q=Streetwear",
-    image: "https://images.unsplash.com/photo-1523396864712-ecc4a2401d41?w=1920&h=1080&fit=crop",
+    image: "https://images.unsplash.com/photo-1635650805023-f2529440b5aa?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 5,
@@ -48,7 +48,7 @@ const banners = [
     description: "Sophisticated attire for your most memorable nights.",
     buttonText: "View Formal Wear",
     link: "/product?q=Formal",
-    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1920&h=1080&fit=crop",
+    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 6,
@@ -57,7 +57,7 @@ const banners = [
     description: "Elevate your look with our curated accessories.",
     buttonText: "Discover Accessories",
     link: "/product?q=Accessories",
-    image: "https://images.unsplash.com/photo-1618453292459-53424688f279?w=1920&h=1080&fit=crop",
+    image: "https://images.unsplash.com/photo-1506169894395-36397e4aaee4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
 ];
 

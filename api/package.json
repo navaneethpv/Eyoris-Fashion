@@ -27,7 +27,6 @@
     "express": "^5.2.1",
     "get-image-colors": "^4.0.1",
     "helmet": "^8.1.0",
-    "imagekit": "^6.0.0",
     "jsonstream": "^1.0.3",
     "mongoose": "^9.0.1",
     "morgan": "^1.10.1",

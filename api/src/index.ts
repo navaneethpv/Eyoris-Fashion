@@ -50,9 +50,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/outfit", outfitRoutes);
-import testEmailRoutes from "./routes/testEmailRoutes";
 app.use("/api/user", userRoutes);
-app.use("/api", testEmailRoutes);
 
 
 app.get("/", (req, res) => {

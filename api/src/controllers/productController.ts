@@ -12,7 +12,8 @@ import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
 import { normalizeCategoryName as normalizeAIIntent, VALID_CATEGORIES as AI_VALID_CATEGORIES } from '../utils/categoryNormalizer';
-import { generateImageEmbedding } from '../utils/visualSearchAI'; // ✅ NEW IMPORT
+import { generateImageEmbedding, generateTextEmbedding } from '../utils/visualSearchAI'; // ✅ NEW IMPORT
+import { searchProductsSmart } from '../services/searchOrchestrator';
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
 
@@ -230,6 +231,40 @@ export const getProducts = async (req: Request, res: Response) => {
     if (q && typeof q === 'string') {
       const { parseSearchIntent } = require('../utils/searchIntentParser');
       const intent = parseSearchIntent(q);
+
+      // --- PHASE 6: SMART SEARCH INTEGRATION ---
+      // Try vector search first for the original query
+      try {
+        console.log(`[SMART SEARCH] Processing query: "${originalQuery}"`);
+        const embedding = await generateTextEmbedding(originalQuery as string);
+
+        const smartResult = await searchProductsSmart(embedding, {
+          category: (category as string) || intent.category, // Use explicit filter OR inferred intent
+          gender: (req.query.gender as string) || intent.gender,
+          limit: limit
+        });
+
+        if (smartResult.type === 'VECTOR') {
+          // Return vector results immediately
+          // We need to map them to the same shape as the standard aggregation result
+          const total = smartResult.data.length; // Vector search limit is usually small (20), so total ~= count
+
+          return res.json({
+            data: smartResult.data,
+            meta: {
+              total,
+              page,
+              pages: 1 // Vector search usually returns single page of best matches
+            }
+          });
+        }
+
+        // If FALLBACK, proceed to standard logic below...
+      } catch (smartSearchError) {
+        console.error("[SMART SEARCH] Failed, falling back to keyword search.", smartSearchError);
+        // Continue to standard logic
+      }
+      // -----------------------------------------
 
       if (intent.gender) {
         inferredGender = intent.gender;

@@ -248,3 +248,31 @@ export async function generateImageDescription(input: {
         return null; // Fail-safe
     }
 }
+
+/**
+ * Generates a vector embedding for a text query.
+ * Uses 'models/text-embedding-004'.
+ */
+export async function generateTextEmbedding(text: string): Promise<number[] | undefined> {
+    try {
+        const result = await ai.models.embedContent({
+            model: "models/text-embedding-004",
+            contents: [{ parts: [{ text }] }]
+        });
+
+        // Handle response flexibly
+        const response: any = result;
+        if (response.embedding && response.embedding.values) {
+            return response.embedding.values;
+        }
+
+        if (response.embeddings && response.embeddings.length > 0 && response.embeddings[0].values) {
+            return response.embeddings[0].values;
+        }
+
+        return undefined;
+    } catch (err: any) {
+        console.warn("[VISUAL SEARCH AI] Text Embedding Failed:", err.message);
+        return undefined;
+    }
+}

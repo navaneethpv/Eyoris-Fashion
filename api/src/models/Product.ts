@@ -20,6 +20,7 @@ export interface IProduct extends Document {
   images: string[];
   stock: number; // ✅ ADDED
   views?: number; // ✅ ADDED
+  imageEmbedding?: number[]; // For vector search
   dominantColor: IDominantColor & { name?: string };
   aiTags: IAITags;
   variants?: any[];
@@ -55,6 +56,11 @@ const ProductSchema = new Schema<IProduct>(
     views: {
       type: Number,
       default: 0
+    },
+
+    imageEmbedding: {
+      type: [Number],
+      required: false,
     },
 
     dominantColor: {

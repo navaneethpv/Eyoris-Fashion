@@ -3,7 +3,9 @@
 import { Request, Response } from "express";
 import mongoose from 'mongoose';
 import axios from "axios";
-import cloudinary from "../config/cloudinary";
+import fs from 'fs';
+import path from 'path';
+// import cloudinary from "../config/cloudinary"; // REMOVED
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
@@ -17,25 +19,31 @@ import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normaliz
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
 /**
- * Upload a buffer to Cloudinary using upload_stream.
+ * Save a buffer to local disk.
  */
-function uploadBufferToCloudinary(buffer: Buffer, folder = 'eyoris/products') {
-  return new Promise<any>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        use_filename: true,
-        unique_filename: false,
-        resource_type: 'image',
-        access_mode: 'public',
-        type: 'upload'
-      },
-      (err: any, result: any) => {
-        if (err) return reject(err);
-        return resolve(result);
+function saveBufferToLocal(buffer: Buffer, mimeType: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Determine extension
+      const ext = mimeType.split('/')[1] || 'jpg';
+      const filename = `product-${Date.now()}-${Math.round(Math.random() * 1000)}.${ext}`;
+      const uploadDir = path.join(__dirname, '../../public/uploads');
+
+      // Ensure directory exists
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
-    );
-    stream.end(buffer);
+
+      const filepath = path.join(uploadDir, filename);
+
+      fs.writeFile(filepath, buffer, (err) => {
+        if (err) return reject(err);
+        // Return relative URL for frontend
+        resolve(`/uploads/${filename}`);
+      });
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -67,15 +75,21 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         throw new Error(`Invalid URL: ${source.url}`);
       }
     } else if (buffer) {
-      // If a file buffer was provided directly (from an upload), upload it.
-      const uploadResult = await uploadBufferToCloudinary(buffer);
-      finalUrl = uploadResult.secure_url;
+      // If a file buffer was provided directly (from an upload), save it locally.
+      const localUrl = await saveBufferToLocal(buffer, mimeType);
+
+      // Since we need a full URL for the frontend (or relative is fine if served from same domain)
+      // Ideally we store relative '/uploads/...' and frontend handles it. 
+      // But for consistency with existing full URLs, we can prefix with process.env.API_URL if needed.
+      // However, frontend <Image> tag handles relative paths fine if configured, or plain img tags.
+      // Let's store the relative path.
+      finalUrl = `${process.env.API_URL || 'http://localhost:4000'}${localUrl}`;
     } else {
       throw new Error("No image source (URL or buffer) was provided.");
     }
 
     if (!finalUrl) {
-      throw new Error('Image upload to Cloudinary failed.');
+      throw new Error('Image save failed.');
     }
 
     // --- Step 2: Analyze the image (if we have a buffer) ---

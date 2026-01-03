@@ -29,10 +29,17 @@ const corsOptions = {
 };
 
 
+import path from "path"; // Added path
+
+// ...
+
 app.use(cors(corsOptions));
 // app.options(/.*/, cors(corsOptions));// MUST be immediately after
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 import { updateLastSeen } from "./middleware/updateLastSeen";
 

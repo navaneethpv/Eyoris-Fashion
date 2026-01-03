@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
+import { sendEmail } from "../utils/sendEmail";
 
 import { Product } from '../models/Product';
 import {
@@ -113,6 +114,26 @@ export const createOrder = async (req: Request, res: Response) => {
       { userId: validatedRequest.userId },
       { $set: { items: [] } }
     );
+
+    // Send Customer Confirmation Email (Non-blocking)
+    try {
+      // TEMPORARY: Hardcoded recipient for testing as per instructions
+      const testRecipient = "navaneethpv450@gmail.com";
+
+      await sendEmail(
+        testRecipient,
+        `Order Confirmed: #${savedOrder._id}`,
+        `
+          <h1>Order Confirmed!</h1>
+          <p>Thank you for your order.</p>
+          <p><strong>Order ID:</strong> ${savedOrder._id}</p>
+          <p><strong>Total Amount:</strong> ₹${(savedOrder.total_cents / 100).toFixed(2)}</p>
+          <p>We will notify you when your order is shipped.</p>
+        `
+      );
+    } catch (e) {
+      console.error("Customer order confirmation email failed", e);
+    }
 
     // Return saved order (Mongoose document with proper conversion)
     res.status(201).json(savedOrder);

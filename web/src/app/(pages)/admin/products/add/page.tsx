@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useCategorySuggest } from '../../../../../hooks/useCategorySuggest';
+import { useAuth } from '@clerk/nextjs'; // ✅ Import useAuth
 
 // --- Type Definitions ---
 interface ImageInput {
@@ -19,6 +20,7 @@ export default function AddProductPage() {
   // --- States for UI and Submission ---
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { getToken } = useAuth(); // ✅ Get getToken hook
 
   // --- AI Hook Integration ---
   const { suggestCategory, suggestedCategory, isSuggesting, setSuggestedCategory } = useCategorySuggest();
@@ -268,7 +270,14 @@ export default function AddProductPage() {
     form.append('imageUrls', JSON.stringify(imageUrls));
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products`, { method: 'POST', body: form });
+      const token = await getToken(); // ✅ Get token
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ Attach token
+        },
+        body: form
+      });
       if (res.ok) {
         setSuccess(true);
         // Reset form...

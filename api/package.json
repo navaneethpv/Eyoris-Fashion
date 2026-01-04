@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed:kaggle": "ts-node scripts/seed_kaggle.ts",
-    "seed:users": "ts-node scripts/seed_users.ts"
+    "seed:users": "ts-node scripts/seed_users.ts",
+    "seed:gemini:tags": "ts-node scripts/backfill_ai_tags.ts",
+    "cleanup:ai:tags": "ts-node scripts/cleanup_ai_tags.ts"
   },
   "keywords": [],
   "author": "",

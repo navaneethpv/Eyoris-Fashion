@@ -56,7 +56,10 @@ function saveBufferToLocal(buffer: Buffer, mimeType: string): Promise<string> {
  * Returns { url, dominantColor: { name, hex, rgb }, aiTags, imageEmbedding }
  */
 
-async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeType?: string }) {
+async function processSingleImage(
+  source: { buffer?: Buffer, url?: string, mimeType?: string },
+  context: { name: string, category: string } = { name: 'Fashion Item', category: 'Clothing' }
+) {
   let finalUrl = '';
   let buffer: Buffer | undefined = source.buffer;
   let mimeType = source.mimeType || 'image/jpeg';
@@ -121,7 +124,7 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         // Use Promise.all to run color and AI analysis concurrently for speed.
         const [geminiColorResult, aiResult, embeddingResult] = await Promise.all([
           getGarmentColorFromGemini(buffer, mimeType),
-          getProductTagsFromGemini(buffer, mimeType),
+          getProductTagsFromGemini(buffer, mimeType, context.name, context.category),
           generateClipEmbedding(buffer) // ✅ Use CLIP for embedding
         ]);
 
@@ -756,13 +759,19 @@ export const createProduct = async (req: Request, res: Response) => {
 
     for (const file of uploadedFiles) {
       if (file && file.buffer) {
-        imageTasks.push(processSingleImage({ buffer: file.buffer, mimeType: file.mimetype }));
+        imageTasks.push(processSingleImage(
+          { buffer: file.buffer, mimeType: file.mimetype },
+          { name: name || 'Product', category: category || 'Clothing' }
+        ));
       }
     }
 
     for (const url of urlArray) {
       if (typeof url === 'string' && url.trim()) {
-        imageTasks.push(processSingleImage({ url: url.trim() }));
+        imageTasks.push(processSingleImage(
+          { url: url.trim() },
+          { name: name || 'Product', category: category || 'Clothing' }
+        ));
       }
     }
 

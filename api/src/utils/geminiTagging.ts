@@ -44,14 +44,38 @@ const CATEGORY_SCHEMA = {
 /* ---------------- PRODUCT TAGGING ---------------- */
 export async function getProductTagsFromGemini(
   imageBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  productName: string = "Fashion Item",
+  category: string = "Clothing"
 ) {
   try {
     const imagePart = bufferToGenerativePart(imageBuffer, mimeType);
 
+    const prompt = `You are analyzing a fashion product image for an e-commerce platform.
+
+Product name: ${productName}
+Category: ${category}
+
+Analyze the clothing item shown in the image and return ONLY valid JSON in the following format:
+
+{
+  "dominant_color_name": "",
+  "style_tags": [],
+  "material_tags": []
+}
+
+Rules:
+- Use standard fashion terminology
+- style_tags should describe style or pattern (e.g., Casual, Formal, Checked, Solid)
+- material_tags should describe fabric if clearly visible (e.g., Cotton, Denim, Polyester)
+- Do NOT include explanations
+- Do NOT include extra text
+- Do NOT include markdown
+- If unsure about a field, return an empty array or empty string`;
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [imagePart, { text: "Analyze clothing item and generate tags." }] }],
+      contents: [{ role: "user", parts: [imagePart, { text: prompt }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: TAG_SCHEMA,
@@ -86,10 +110,10 @@ export async function getSuggestedCategoryAndSubCategoryFromGemini(
 ): Promise<CategorySuggestion> {
   // Default categories if none provided
   const defaultCategories = [
-    "T-Shirts", "Shirts", "Jeans", "Dresses", "Jackets", 
+    "T-Shirts", "Shirts", "Jeans", "Dresses", "Jackets",
     "Kurtis", "Sarees", "Footwear", "Accessories"
   ];
-  
+
   const defaultSubCategories = [
     // T-Shirts
     "Round Neck", "V Neck", "Polo", "Graphic", "Plain",
@@ -110,13 +134,13 @@ export async function getSuggestedCategoryAndSubCategoryFromGemini(
     // Accessories
     "Bags", "Jewelry", "Watches", "Belts", "Sunglasses"
   ];
-  
-  const categories = allowedCategories && allowedCategories.length > 0 
-    ? allowedCategories 
+
+  const categories = allowedCategories && allowedCategories.length > 0
+    ? allowedCategories
     : defaultCategories;
-    
-  const subCategories = allowedSubCategories && allowedSubCategories.length > 0 
-    ? allowedSubCategories 
+
+  const subCategories = allowedSubCategories && allowedSubCategories.length > 0
+    ? allowedSubCategories
     : defaultSubCategories;
 
   try {
@@ -152,7 +176,7 @@ Output valid JSON only, no explanations.`;
     const parsed = JSON.parse(response.text!);
     const suggestedCategory = parsed.category || "";
     const suggestedSubCategory = parsed.subCategory || "";
-    
+
     return {
       category: categories.includes(suggestedCategory) ? suggestedCategory : categories[0],
       subCategory: subCategories.includes(suggestedSubCategory) ? suggestedSubCategory : subCategories[0]

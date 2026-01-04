@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${playfair.variable} flex flex-col min-h-screen`}>
+      <body className={`${inter.className} ${playfair.variable} flex flex-col min-h-screen overflow-x-hidden`}>
         <ClerkProvider>
           <SpeedInsights />
 

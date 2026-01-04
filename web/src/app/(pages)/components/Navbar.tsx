@@ -2,13 +2,17 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { ShoppingBag, Search, Heart, X } from "lucide-react";
-import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
 import { useCartCount } from "@/hooks/useCartCount";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useWishlistCount } from "@/hooks/useWishlistCount";
+import dynamic from 'next/dynamic';
 
+const ImageSearchModal = dynamic(() => import('./ImageSearchModal'), {
+  ssr: false,
+  loading: () => null
+});
 
 const NAV_ITEMS = [
   { name: "MEN", href: "/product?gender=men", type: "gender", value: "men" },
@@ -108,9 +112,9 @@ function NavbarContent() {
         </div>
 
         {/* ================= CATEGORY HUB (Pill Style) ================= */}
-        <div className="border-t border-gray-100 bg-gray-100 shadow-sm">
-          <div className="max-w-7xl mx-auto py-2 px-4">
-            <div className="flex items-center justify-start lg:justify-center gap-3 overflow-x-auto scrollbar-hide py-2 px-1">
+        <div className="border-t border-gray-100 bg-gray-100 shadow-sm h-[52px]">
+          <div className="max-w-7xl mx-auto py-2 px-4 h-full">
+            <div className="flex items-center justify-start lg:justify-center gap-3 overflow-x-auto scrollbar-hide px-1 h-full">
               {NAV_ITEMS.map((item) => {
                 const active = isActive(item);
                 return (

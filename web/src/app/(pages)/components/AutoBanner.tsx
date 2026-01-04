@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,47 +63,31 @@ const banners = [
 
 export default function AutoBanner() {
   const [current, setCurrent] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const STRICT_DURATION = 4000;
 
+  // Use CSS animation instead of JS loop to unblock main thread
   useEffect(() => {
-    let animationFrameId: number;
-    let lastTime = performance.now();
+    if (isPaused) return;
 
-    const animate = (time: number) => {
-      if (!isPaused) {
-        const delta = time - lastTime;
-        setProgress((prev) => {
-          const nextProgress = prev + (delta / STRICT_DURATION) * 100;
-          if (nextProgress >= 100) {
-            setCurrent((c) => (c + 1) % banners.length);
-            return 0;
-          }
-          return nextProgress;
-        });
-      }
-      lastTime = time;
-      animationFrameId = requestAnimationFrame(animate);
-    };
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % banners.length);
+    }, STRICT_DURATION);
 
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => clearInterval(timer);
   }, [isPaused]);
 
   const next = () => {
     setCurrent((prev) => (prev + 1) % banners.length);
-    setProgress(0);
   };
 
   const prev = () => {
     setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
-    setProgress(0);
   };
 
   return (
     <div
-      className="relative w-full h-[600px] md:h-[85vh] overflow-hidden bg-gray-100 group"
+      className="relative w-full h-[600px] md:h-[85vh] overflow-hidden bg-gray-100 group select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -118,7 +102,7 @@ export default function AutoBanner() {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          {/* Background Image */}
+          {/* Background Image - Priority Load */}
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${banners[current].image})` }}
@@ -127,7 +111,7 @@ export default function AutoBanner() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
 
           {/* Content */}
-          <div className="absolute inset-0 flex items-center justify-center text-center p-6">
+          <div className="absolute inset-0 flex items-center justify-center text-center p-6 bg-black/10">
             <div className="max-w-4xl">
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -177,12 +161,14 @@ export default function AutoBanner() {
       <button
         onClick={prev}
         className="absolute left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-full hover:bg-white hover:text-black text-white hidden md:block"
+        aria-label="Previous Slide"
       >
         <ChevronLeft className="w-8 h-8 font-thin" strokeWidth={1} />
       </button>
       <button
         onClick={next}
         className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-full hover:bg-white hover:text-black text-white hidden md:block"
+        aria-label="Next Slide"
       >
         <ChevronRight className="w-8 h-8 font-thin" strokeWidth={1} />
       </button>
@@ -192,20 +178,35 @@ export default function AutoBanner() {
         {banners.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => { setCurrent(idx); setProgress(0); }}
+            onClick={() => { setCurrent(idx); }}
             className={`relative h-1 rounded-full overflow-hidden transition-all duration-300 ease-out ${idx === current ? "w-12 bg-white/30" : "w-3 bg-white/50"
               }`}
           >
-            {/* Progress Bar Fill - Only for Active Slide */}
-            {idx === current && (
+            {/* CSS Animation for Progress - Unblocks Main Thread */}
+            {idx === current && !isPaused && (
               <div
-                className="absolute left-0 top-0 bottom-0 bg-white transition-all duration-[50ms] ease-linear"
-                style={{ width: `${progress}%` }}
+                className="absolute left-0 top-0 bottom-0 bg-white"
+                style={{
+                  animation: `progress ${STRICT_DURATION}ms linear forwards`,
+                  width: '0%'
+                }}
               />
             )}
+            {idx === current && isPaused && (
+              <div
+                className="absolute left-0 top-0 bottom-0 bg-white w-full"
+              />
+            )}
+            <style jsx>{`
+              @keyframes progress {
+                from { width: 0%; }
+                to { width: 100%; }
+              }
+            `}</style>
           </button>
         ))}
       </div>
     </div>
   );
 }
+

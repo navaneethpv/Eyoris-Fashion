@@ -34,6 +34,7 @@ type GridScanProps = {
   enableGyro?: boolean;
   scanOnClick?: boolean;
   snapBackDelay?: number;
+  interactive?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -330,6 +331,7 @@ export const GridScan: React.FC<GridScanProps> = ({
   enableGyro = false,
   scanOnClick = false,
   snapBackDelay = 250,
+  interactive = true,
   className,
   style
 }) => {
@@ -415,7 +417,7 @@ export const GridScan: React.FC<GridScanProps> = ({
       ) {
         try {
           await (DeviceOrientationEvent as any).requestPermission();
-        } catch {}
+        } catch { }
       }
     };
     const onEnter = () => {
@@ -436,18 +438,22 @@ export const GridScan: React.FC<GridScanProps> = ({
         Math.max(0, snapBackDelay || 0)
       );
     };
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseenter', onEnter);
-    if (scanOnClick) el.addEventListener('click', onClick);
-    el.addEventListener('mouseleave', onLeave);
+    if (interactive) {
+      el.addEventListener('mousemove', onMove);
+      el.addEventListener('mouseenter', onEnter);
+      if (scanOnClick) el.addEventListener('click', onClick);
+      el.addEventListener('mouseleave', onLeave);
+    }
     return () => {
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-      if (scanOnClick) el.removeEventListener('click', onClick);
+      if (interactive) {
+        el.removeEventListener('mousemove', onMove);
+        el.removeEventListener('mouseenter', onEnter);
+        el.removeEventListener('mouseleave', onLeave);
+        if (scanOnClick) el.removeEventListener('click', onClick);
+      }
       if (leaveTimer) clearTimeout(leaveTimer);
     };
-  }, [uiFaceActive, snapBackDelay, scanOnClick, enableGyro]);
+  }, [uiFaceActive, snapBackDelay, scanOnClick, enableGyro, interactive]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -822,7 +828,11 @@ export const GridScan: React.FC<GridScanProps> = ({
 };
 
 function srgbColor(hex: string) {
-  const c = new THREE.Color(hex);
+  let value = hex;
+  if (value.startsWith('#') && value.length === 9) {
+    value = value.slice(0, 7);
+  }
+  const c = new THREE.Color(value);
   return c.convertSRGBToLinear();
 }
 

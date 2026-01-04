@@ -15,13 +15,14 @@ export default function NotFound() {
                     gridScale={0.05}
                     lineStyle="solid"
                     linesColor="#ffffffff"
-                    scanColor="#e22d15ff"
+                    scanColor="#dd3535ff"
                     scanOpacity={0.4}
-                    scanDirection="pingpong"
+                    scanDirection="backward"
                     scanDuration={4}
                     enablePost={true}
                     bloomIntensity={0.5}
                     noiseIntensity={0.02}
+                    interactive={false}
                 />
             </div>
 

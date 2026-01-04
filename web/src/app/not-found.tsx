@@ -2,17 +2,28 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { GridScan } from "@/components/GridScan";
 
 export default function NotFound() {
     return (
         <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[#050505] text-white overflow-hidden selection:bg-white selection:text-black">
 
-            {/* Cinematic Background Gradient - Breathing */}
-            <motion.div
-                animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-neutral-900/40 blur-[150px] rounded-full pointer-events-none"
-            />
+            {/* Dynamic Background - GridScan */}
+            <div className="absolute inset-0 z-0 opacity-40">
+                <GridScan
+                    enableWebcam={false}
+                    gridScale={0.05}
+                    lineStyle="solid"
+                    linesColor="#ffffffff"
+                    scanColor="#e22d15ff"
+                    scanOpacity={0.4}
+                    scanDirection="pingpong"
+                    scanDuration={4}
+                    enablePost={true}
+                    bloomIntensity={0.5}
+                    noiseIntensity={0.02}
+                />
+            </div>
 
             {/* Background Watermark - Floating */}
             <motion.div

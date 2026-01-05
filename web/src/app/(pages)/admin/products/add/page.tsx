@@ -34,7 +34,7 @@ export default function AddProductPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    brand: '',
+    brand: 'Eyoris Basics', // Static Brand by default
     masterCategory: '',    // Admin "Category" → maps to masterCategory in backend
     category: '',          // Admin "SubCategory" (articleType) → maps to category in backend
     gender: '',           // Gender field (Men/Women/Kids)
@@ -343,9 +343,9 @@ export default function AddProductPage() {
                     required
                     name="brand"
                     value={formData.brand}
-                    onChange={handleChange}
-                    className="w-full p-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all"
-                    placeholder="e.g. Nike, Eyoris"
+                    readOnly
+                    className="w-full p-3 border border-zinc-200 rounded-lg bg-zinc-100 text-zinc-500 cursor-not-allowed"
+                    placeholder="Eyoris Basics"
                   />
                 </div>
               </div>

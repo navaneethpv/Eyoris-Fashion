@@ -21,32 +21,31 @@ import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normaliz
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
+import imagekit from "../config/imagekit";
+
 /**
- * Save a buffer to local disk.
+ * Upload a buffer to ImageKit.
  */
-function saveBufferToLocal(buffer: Buffer, mimeType: string): Promise<string> {
+function uploadToImageKit(buffer: Buffer, filename: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    try {
-      // Determine extension
-      const ext = mimeType.split('/')[1] || 'jpg';
-      const filename = `product-${Date.now()}-${Math.round(Math.random() * 1000)}.${ext}`;
-      const uploadDir = path.join(__dirname, '../../public/uploads');
-
-      // Ensure directory exists
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+    imagekit.upload(
+      {
+        file: buffer, // ImageKit supports buffer directly
+        fileName: filename,
+        folder: "/products", // Optional: organize in a folder
+      },
+      (err, result) => {
+        if (err) {
+          console.error("ImageKit Upload Error:", err);
+          return reject(err);
+        }
+        if (result && result.url) {
+          resolve(result.url); // Return the public URL
+        } else {
+          reject(new Error("ImageKit upload failed: No URL returned"));
+        }
       }
-
-      const filepath = path.join(uploadDir, filename);
-
-      fs.writeFile(filepath, buffer, (err) => {
-        if (err) return reject(err);
-        // Return relative URL for frontend
-        resolve(`/uploads/${filename}`);
-      });
-    } catch (err) {
-      reject(err);
-    }
+    );
   });
 }
 
@@ -76,33 +75,50 @@ async function processSingleImage(
         if (!/^https?:\/\//.test(source.url)) {
           throw new Error("Invalid URL format. Must start with http:// or https://");
         }
-        finalUrl = source.url;
 
-        // Download image to buffer for AI processing (embeddings, tags, colors)
-        // We do this inside the try block so if it fails, we catch it.
-        // Note: If download fails, we might still want to proceed with just the URL if strictly necessary,
-        // but for now we treat it as a "networkError" which is caught below.
-        console.log(`[PROCESS_IMAGE] Downloading image for AI analysis: ${source.url}`);
+        // If it's already an ImageKit URL (or Cloudinary/firebase), we might just use it.
+        // But for consistency and persistence, we might want to re-upload or just keep it.
+        // For now, let's treat external URLs as things we want to IMPORT into our system if possible,
+        // OR just rely on the external URL. 
+        // IF we want to persist everything in ImageKit, we should download and upload.
+        // Let's assume we maintain the external URL if it is provided, unless we want to own it.
+        // But the user requested "upload products", implying they might paste a link and want it saved.
+        // Let's stick to the current logic: Use the URL as is for `finalUrl`, but download for AI.
+        // WAIT: The valid request was "upload products". If they provide a URL, do we host it?
+        // If it's a temporary URL, we lose it.
+        // Better approach: Download it and Upload to ImageKit to ensure persistence.
+
+        // Let's Download -> Upload to ImageKit
+        console.log(`[PROCESS_IMAGE] Downloading image for persistence & AI: ${source.url}`);
         const response = await axios.get(source.url, { responseType: 'arraybuffer', timeout: 10000 });
         buffer = Buffer.from(response.data);
         if (response.headers['content-type']) {
           mimeType = response.headers['content-type'];
         }
 
+        // Generate filename
+        const ext = mimeType.split('/')[1] || 'jpg';
+        const filename = `product-${Date.now()}-${Math.round(Math.random() * 1000)}.${ext}`;
+
+        // Upload to ImageKit
+        finalUrl = await uploadToImageKit(buffer, filename);
+        console.log(`[PROCESS_IMAGE] Uploaded remote image to ImageKit: ${finalUrl}`);
+
       } catch (networkError: any) {
-        console.warn(`[WARN] Failed to download/validate URL: ${source.url}. Reason: ${networkError.message}`);
-        throw new Error(`Invalid URL or Download Failed: ${source.url}`);
+        console.warn(`[WARN] Failed to download/validate/upload URL: ${source.url}. Reason: ${networkError.message}`);
+        // Fallback: If download fails, check if the URL itself is accessible. If so, just use it.
+        // But for this robust implementation, let's just fail if we can't process it, 
+        // OR just return the original URL if we trust it.
+        // Let's use the original URL as fallback if download fails, but warn.
+        finalUrl = source.url;
       }
     } else if (buffer) {
-      // If a file buffer was provided directly (from an upload), save it locally.
-      const localUrl = await saveBufferToLocal(buffer, mimeType);
+      // If a file buffer was provided directly (from an upload)
+      const ext = mimeType.split('/')[1] || 'jpg';
+      const filename = `product-${Date.now()}-${Math.round(Math.random() * 1000)}.${ext}`;
 
-      // Since we need a full URL for the frontend (or relative is fine if served from same domain)
-      // Ideally we store relative '/uploads/...' and frontend handles it. 
-      // But for consistency with existing full URLs, we can prefix with process.env.API_URL if needed.
-      // However, frontend <Image> tag handles relative paths fine if configured, or plain img tags.
-      // Let's store the relative path.
-      finalUrl = `${process.env.API_URL || 'http://localhost:4000'}${localUrl}`;
+      finalUrl = await uploadToImageKit(buffer, filename);
+      console.log(`[PROCESS_IMAGE] Uploaded buffer to ImageKit: ${finalUrl}`);
     } else {
       throw new Error("No image source (URL or buffer) was provided.");
     }

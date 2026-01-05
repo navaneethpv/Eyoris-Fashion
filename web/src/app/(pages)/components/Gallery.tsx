@@ -86,7 +86,7 @@ export default function Gallery({ images, name }: GalleryProps) {
         </div>
 
         {/* Main Image: Top on mobile (order-1), Right on Desktop (order-2) */}
-        <div className="order-1 lg:order-2 flex-1 relative lg:sticky lg:top-24 self-start">
+        <div className="order-1 lg:order-2 w-full lg:flex-1 relative lg:sticky lg:top-24 self-start">
           <div
             className="relative aspect-[3/4] lg:h-[580px] w-full bg-gray-50/50 rounded-xl overflow-hidden shadow-sm border border-gray-100"
             onMouseEnter={() => setIsHovering(true)}

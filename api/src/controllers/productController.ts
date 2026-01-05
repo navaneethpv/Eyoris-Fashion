@@ -510,22 +510,6 @@ export const getProducts = async (req: Request, res: Response) => {
     //   }
     // }
 
-    // --- 5. STRICT SEARCH EMPTY STATE ---
-    const hasQParam = Object.prototype.hasOwnProperty.call(req.query, "q");
-    const isSearchMode = hasQParam;
-
-    if (isSearchMode && total === 0) {
-      return res.json({
-        data: [],
-        meta: {
-          total: 0,
-          page,
-          pages: 0,
-          isSearchEmpty: true
-        }
-      });
-    }
-
     res.json({
       data,
       meta: {

@@ -226,7 +226,6 @@ type ApiMeta = {
   page: number;
   pages: number;
   total: number;
-  isSearchEmpty?: boolean;
 };
 
 type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
@@ -248,6 +247,7 @@ function ProductPageContent() {
   const [meta, setMeta] = useState<ApiMeta>({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState<boolean>(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchLocked, setSearchLocked] = useState(false);
 
   const resolvedSearchParams: SearchParams = useMemo(
     () => ({
@@ -284,23 +284,37 @@ function ProductPageContent() {
 
   const sortKey = (resolvedSearchParams.sort as SortKey) || undefined;
 
+  // Unlock search when query is cleared
+  useEffect(() => {
+    if (!resolvedSearchParams.q) {
+      setSearchLocked(false);
+    }
+  }, [resolvedSearchParams.q]);
+
   // Fetch products
   useEffect(() => {
     let isCancelled = false;
 
     async function fetchData() {
+      // PREVENT OVERRIDE: If locked and search active, stop here
+      if (searchLocked && resolvedSearchParams.q) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      // Premium feel: Ensure loader shows for at least 800ms
-      const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
+      const minLoadTime = new Promise((resolve) => setTimeout(resolve, 800));
       const request = getProducts(resolvedSearchParams);
 
       const [_, response] = await Promise.all([minLoadTime, request]);
       const { data, meta } = response;
 
-      if (meta?.isSearchEmpty) {
+      // LOCK ON ZERO RESULTS: If search returns 0, lock the state
+      if (resolvedSearchParams.q && meta?.total === 0) {
         if (!isCancelled) {
           setProducts([]);
-          setMeta(meta as ApiMeta);
+          setMeta(meta);
+          setSearchLocked(true);
           setLoading(false);
         }
         return;
@@ -427,23 +441,7 @@ function ProductPageContent() {
   };
 
   const clearAllFilters = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    [
-      "gender",
-      "brand",
-      "color",
-      "size",
-      "minPrice",
-      "maxPrice",
-      "search",
-      "q",
-      "sort",
-    ].forEach((key) => params.delete(key));
-    params.delete("q"); // Explicitly ensure 'q' is removed
-    router.push(
-      params.toString() ? `${pathname}?${params.toString()}` : pathname,
-      { scroll: false }
-    );
+    router.replace("/product", { scroll: false });
   };
 
   return (

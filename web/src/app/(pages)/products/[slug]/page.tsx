@@ -210,54 +210,56 @@ export default async function ProductDetailPage({
           <div className="lg:col-span-5 flex flex-col h-full pt-2">
 
             {/* 1. Brand & Rating Badge */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-3">
-                <h1 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-xs font-semibold text-gray-500 uppercase tracking-[0.25em]">
                   {product.brand || "Eyoris Basics"}
                 </h1>
 
                 {typeof product.rating === "number" && (
-                  <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                    <Star className="w-3.5 h-3.5 fill-current text-gray-900" />
-                    <span className="font-bold text-xs text-gray-900">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-100 bg-white shadow-sm">
+                    <Star className="w-3.5 h-3.5 fill-black text-black" />
+                    <span className="font-medium text-xs text-gray-900">
                       {product.rating.toFixed(1)}
                     </span>
-                    <span className="text-[10px] text-gray-400 pl-1">
-                      ({product.reviewsCount ?? 0})
+                    <span className="text-[10px] text-gray-400 pl-1 border-l border-gray-100 ml-1">
+                      {product.reviewsCount ?? 0}
                     </span>
                   </div>
                 )}
               </div>
 
-              <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6 leading-[1.1] tracking-tight font-serif">
+              <h2 className="text-3xl md:text-5xl font-medium text-gray-900 mb-6 leading-tight tracking-tight font-serif">
                 {product.name}
               </h2>
+
+              <div className="h-px w-16 bg-gray-200 mb-8" />
             </div>
 
             {/* 2. Price Section */}
-            <div className="mb-10 p-6 rounded-2xl bg-gray-50 border border-gray-100/50">
-              <div className="flex items-baseline gap-4 mb-2">
-                <span className="text-4xl font-bold text-gray-900 tracking-tight">
+            <div className="mb-10">
+              <div className="flex items-baseline gap-4 mb-3">
+                <span className="text-3xl font-medium text-gray-900 tracking-tight">
                   ₹{(product.price_cents / 100).toFixed(0)}
                 </span>
                 {product.price_before_cents && (
-                  <span className="text-xl text-gray-400 line-through decoration-gray-300 decoration-2">
+                  <span className="text-lg text-gray-400 line-through font-light">
                     ₹{(product.price_before_cents / 100).toFixed(0)}
                   </span>
                 )}
-              </div>
-              <div className="flex items-center gap-3">
                 {discount > 0 && (
-                  <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase tracking-wide">
+                  <span className="text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wide border border-emerald-100">
                     Save {discount}%
                   </span>
                 )}
-                <span className="text-xs text-gray-400 font-medium">Inclusive of all taxes</span>
               </div>
+              <p className="text-sm text-gray-500 font-light">
+                Price inclusive of all taxes
+              </p>
             </div>
 
             {/* 3. Sizes & Add To Cart (Encapsulated) */}
-            <div className="mb-8">
+            <div className="mb-10">
               {/* AddToCartButton handles the "Select Size" header, buttons, and Add/Heart actions */}
               <AddToCartButton
                 productId={product._id}
@@ -267,22 +269,16 @@ export default async function ProductDetailPage({
             </div>
 
             {/* 4. Delivery & Trust Icons */}
-            <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-10">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
-                <div className="p-2 bg-gray-50 rounded-full">
-                  <Truck className="w-4 h-4 text-gray-900" />
-                </div>
-                <span className="font-medium">Free Express Delivery</span>
+            <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 mb-10">
+              <div className="flex items-center gap-4 py-3 border-t border-gray-100">
+                <Truck className="w-5 h-5 text-gray-400 stroke-1" />
+                <span className="font-medium tracking-wide">Free Express Delivery</span>
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
-                <div className="p-2 bg-gray-50 rounded-full">
-                  <ShieldCheck className="w-4 h-4 text-gray-900" />
-                </div>
-                <span className="font-medium">30 Day Easy Returns</span>
+              <div className="flex items-center gap-4 py-3 border-t border-gray-100">
+                <ShieldCheck className="w-5 h-5 text-gray-400 stroke-1" />
+                <span className="font-medium tracking-wide">30 Day Easy Returns</span>
               </div>
             </div>
-
-            <div className="h-px bg-gray-100 my-2" />
           </div>
         </div>
 

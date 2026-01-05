@@ -228,10 +228,14 @@ export const getProducts = async (req: Request, res: Response) => {
     let { q } = req.query;
     const originalQuery = q; // Save before clearing for multi-category search
 
+    // Helper: Escape Regex special characters
+    const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
     // --- Flipkart-style Intent-Based Search ---
     // Parse natural language search into structured filters
     let inferredGender: string | null = null;
     let inferredCategory: string | null = null;
+    let isSearch = false;
 
     if (q && typeof q === 'string') {
       const { parseSearchIntent } = require('../utils/searchIntentParser');
@@ -239,6 +243,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
       // --- PHASE 6: SMART SEARCH INTEGRATION ---
       // Try vector search first for the original query
+      let vectorFound = false;
       try {
         console.log(`[SMART SEARCH] Processing query: "${originalQuery}"`);
         const embedding = await generateClipTextEmbedding(originalQuery as string);
@@ -249,70 +254,53 @@ export const getProducts = async (req: Request, res: Response) => {
           limit: limit
         });
 
-        if (smartResult.type === 'VECTOR') {
+        if (smartResult.type === 'VECTOR' && smartResult.data.length > 0) {
+          console.log(`[SMART SEARCH] Success. Found ${smartResult.data.length} matches.`);
           // Return vector results immediately
-          // We need to map them to the same shape as the standard aggregation result
-          const total = smartResult.data.length; // Vector search limit is usually small (20), so total ~= count
-
           return res.json({
             data: smartResult.data,
             meta: {
-              total,
+              total: smartResult.data.length,
               page,
               pages: 1 // Vector search usually returns single page of best matches
             }
           });
         }
-
-        // If FALLBACK, proceed to standard logic below...
       } catch (smartSearchError) {
         console.error("[SMART SEARCH] Failed, falling back to keyword search.", smartSearchError);
         // Continue to standard logic
       }
       // -----------------------------------------
 
-      if (intent.gender) {
-        inferredGender = intent.gender;
-      }
-      if (intent.category) {
-        inferredCategory = intent.category;
-      }
+      if (intent.gender) inferredGender = intent.gender;
+      if (intent.category) inferredCategory = intent.category;
 
-      // Clear q since we've extracted intent into structured filters
-      // BUT keep q if it's an accessory search so we can apply the expanded regex later
-      if (!/accessory|accessories/i.test(originalQuery as string)) {
-        q = '';
-      }
+      isSearch = true;
     }
 
     const pipeline: any[] = [];
-
-    // 1. Match Stage (Base Filters)
     const matchStage: any = { isPublished: true };
 
-    // Apply Filters (Manual overrides Inferred)
-    // Normalize Gender: "men" -> "Men" (Case Insensitive Match)
+    // --- 1. Apply Filters (Manual overrides Inferred) ---
+
+    // Gender
     const rawGender = (req.query.gender as string) || inferredGender;
     if (rawGender) {
       matchStage.gender = new RegExp(`^${rawGender}$`, 'i');
     }
 
-    // Normalize Category: "clothes" -> "Clothes"
+    // Category
     let finalCategory = (category as string) || (req.query.articleType as string) || inferredCategory;
     if (finalCategory) {
-      // Check if its a special footwear case first
       const queryLower = originalQuery && typeof originalQuery === 'string' ? originalQuery.toLowerCase() : '';
+      // Special Footwear Handling
       if (queryLower && (queryLower.includes('footwear') || queryLower.includes('chappals') || queryLower.includes('chappal'))) {
-        // Search across ALL footwear categories
         matchStage.category = {
           $in: ['Heels', 'Flats', 'Sandals', 'Sports Sandals', 'Sports Shoes',
             'Casual Shoes', 'Formal Shoes', 'Flip Flops', 'Booties']
         };
-        console.log('[SEARCH] Detected "footwear" - searching across all footwear categories');
       } else {
-        // Use helper to canonicalize if possible
         const normalized = normalizeCategoryInput(finalCategory);
-        // If normalized found, use it (Exact Match), otherwise fallback to Regex for robustness
         if (normalized && VALID_CATEGORIES.includes(normalized)) {
           matchStage.category = normalized;
         } else {
@@ -321,184 +309,183 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     }
 
-    // Normalize SubCategory: "formal-shirts" -> "Formal Shirts" (Regex match handle)
+    // SubCategory
     if (req.query.subCategory) {
       const sub = req.query.subCategory as string;
-      // Treat hyphens as spaces for URL friendly params
       const subClean = sub.replace(/-/g, ' ').trim();
-      // Case insensitive match
       matchStage.subCategory = new RegExp(`^${subClean}$`, 'i');
     }
 
+    // MasterCategory
     if (req.query.masterCategory) matchStage.masterCategory = new RegExp(`^${req.query.masterCategory}$`, 'i');
 
-    // Multi-Select: Brand
+    // Brand
     if (req.query.brand) {
       const brands = (req.query.brand as string).split(',').map(b => new RegExp(`^${b.trim()}$`, 'i'));
       matchStage.brand = { $in: brands };
     }
 
-    // Multi-Select: Size
+    // Size
     if (req.query.size) {
       const sizes = (req.query.size as string).split(',').map(s => new RegExp(`^${s.trim()}$`, 'i'));
       matchStage["variants.size"] = { $in: sizes };
     }
 
-    // Multi-Select: Color
+    // Color
     if (req.query.color) {
       const colors = (req.query.color as string).split(',').map(c => new RegExp(`^${c.trim()}$`, 'i'));
       matchStage["dominantColor.name"] = { $in: colors };
     }
 
-    // articleType is handled via finalCategory above
-
+    // Price
     if (minPrice || maxPrice) {
       matchStage.price_cents = {};
       if (minPrice) matchStage.price_cents.$gte = Number(minPrice) * 100;
       if (maxPrice) matchStage.price_cents.$lte = Number(maxPrice) * 100;
     }
 
-    // Exclude innerwear logic (Restored)
-    // Only filter when there's no search query (q parameter) OR when searching for "Accessories" (virtual category)
+    // Exclude innerwear (unless searching for it)
     if (!q || /accessory|accessories/i.test(q as string)) {
-      // Innerwear terms to exclude (case-insensitive matching)
       const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear', 'panties', 'thong', 'boxers', 'trunks', 'vest', 'brief'];
       const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
-
-      // Exclude products where category, subCategory, or masterCategory matches any innerwear term
-      matchStage.$nor = [
-        { category: { $regex: innerwearRegex } },
-        { subCategory: { $regex: innerwearRegex } },
-        { masterCategory: { $regex: innerwearRegex } },
-        { name: { $regex: innerwearRegex } }
-      ];
+      // Only exclude if NO explicit category/subcategory filter contradicts this
+      if (!matchStage.category && !matchStage.subCategory) {
+        matchStage.$nor = [
+          { category: { $regex: innerwearRegex } },
+          { subCategory: { $regex: innerwearRegex } },
+          { masterCategory: { $regex: innerwearRegex } },
+          { name: { $regex: innerwearRegex } }
+        ];
+      }
     }
 
-    // Search Logic (Regex + Scoring) - Enhanced with normalization
-    let isSearch = false;
-    let resolvedCategory: string | null = null;
-    if (q && typeof q === 'string') {
-      isSearch = true;
 
-      // Try to resolve query to a category (e.g., "Tshirt" → "Tshirts")
-      resolvedCategory = resolveSearchCategory(q);
-      console.log(`[SEARCH] Query: "${q}" → Resolved Category: "${resolvedCategory}"`);
+    // --- 2. Advanced Keyword Search Logic ---
+    let searchStage: any = {};
+    if (isSearch && typeof q === 'string') {
+      const queryClean = q.trim();
 
-      // If we resolved a category and no explicit category filter exists, use it
-      if (resolvedCategory && !matchStage.category) {
-        matchStage.category = resolvedCategory;
-        console.log(`[SEARCH] Applied resolved category: "${resolvedCategory}"`);
+      // Split into tokens, ignore small words (<=2 chars) unless they are numbers or specific codes
+      const tokens = queryClean.split(/\s+/)
+        .map(t => t.trim())
+        .filter(t => t.length > 2 || /^[0-9]+$/.test(t)); // Keep numbers like '501'
+
+      if (tokens.length > 0) {
+        // "AND" Logic: Every token must match AT LEAST ONE field
+        const andConditions = tokens.map(token => {
+          const tokenRegex = new RegExp(escapeRegex(token), 'i');
+          return {
+            $or: [
+              { name: tokenRegex },
+              { description: tokenRegex },
+              { brand: tokenRegex },
+              { category: tokenRegex },
+              { subCategory: tokenRegex },
+              { masterCategory: tokenRegex },
+              { "dominantColor.name": tokenRegex },
+              { "aiTags.style_tags": tokenRegex },
+              { "aiTags.material_tags": tokenRegex },
+              { "aiTags.pattern": tokenRegex },
+              { "aiTags.sleeve": tokenRegex }
+            ]
+          };
+        });
+
+        // Allow Accessories Special Case (OR logic for "Accessories" keyword itself to catch various items)
+        if (/accessory|accessories/i.test(q)) {
+          const accTerms = [
+            'Jewellery', 'Bingle', 'Bangle', 'Necklace', 'Handbag', 'Purse', 'Sunglass',
+            'Belt', 'Watch', 'Hat', 'Cap', 'Accessory', 'Accessories',
+            'Earring', 'Ring', 'Wallet', 'Perfume', 'Tie', 'Cufflink', 'Scarf'
+          ];
+          const accRegex = new RegExp(accTerms.join('|'), 'i');
+          // If query is JUST "accessories", replace the AND logic with this wide net
+          // If query is "red accessories", keep "red" AND (accessories_group)
+
+          // For now, simpler approach: If accessories search, just add broad match to existing Match Stage
+          matchStage.$or = [
+            { category: accRegex },
+            { subCategory: accRegex },
+            { masterCategory: accRegex }
+          ];
+          // Remove 'accessory' from tokens to avoid double filtering if mapped
+        } else {
+          searchStage = { $and: andConditions };
+        }
       }
+    }
 
-      const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    // Merge Search Stage into Match Stage
+    const finalMatchStage = { ...matchStage, ...searchStage };
 
-      // Create normalized search for better matching
-      const normalizedQ = normalizeSearchQuery(q);
-      const normalizedRegex = new RegExp(escapeRegex(normalizedQ), 'i');
 
+    pipeline.push({ $match: finalMatchStage });
+
+    // --- 3. Relevance Scoring ---
+    if (isSearch && typeof q === 'string') {
       const exactRegex = new RegExp(`^${escapeRegex(q)}$`, 'i');
       const startsWithRegex = new RegExp(`^${escapeRegex(q)}`, 'i');
-      let generalRegex = new RegExp(escapeRegex(q), 'i');
+      const generalRegex = new RegExp(escapeRegex(q), 'i');
 
-      // SPECIAL: Expanded Accessories Search
-      if (/accessory|accessories/i.test(q)) {
-        const accTerms = [
-          'Jewellery', 'Bingle', 'Bangle', 'Necklace', 'Handbag', 'Purse', 'Sunglass',
-          'Belt', 'Watch', 'Hat', 'Cap', 'Accessory', 'Accessories',
-          'Earring', 'Ring', 'Wallet', 'Perfume', 'Tie', 'Cufflink', 'Scarf'
-        ];
-        generalRegex = new RegExp(accTerms.join('|'), 'i');
-        console.log('[SEARCH] Enhanced Accessories Search Active for mixed results');
-      }
-
-      matchStage.$or = [
-        { name: generalRegex },
-        { brand: generalRegex },
-        { category: generalRegex },
-        { subCategory: generalRegex },
-        { masterCategory: generalRegex },
-        { description: generalRegex }
-      ];
-
-      pipeline.push({ $match: matchStage });
-
-      // 2. Add Scoring Field
       pipeline.push({
         $addFields: {
           searchScore: {
             $switch: {
               branches: [
-                // Exact Name Match -> Score 100
+                // 1. Exact Name Match (Highest)
                 { case: { $regexMatch: { input: "$name", regex: exactRegex } }, then: 100 },
-                // Name Starts With -> Score 80
+                // 2. Name Starts With
                 { case: { $regexMatch: { input: "$name", regex: startsWithRegex } }, then: 80 },
-                // Name Contains -> Score 60
+                // 3. Name Contains
                 { case: { $regexMatch: { input: "$name", regex: generalRegex } }, then: 60 },
-                // Brand/Category Match -> Score 40
+                // 4. Category/SubCategory/Brand Match
                 {
                   case: {
                     $or: [
-                      { $regexMatch: { input: "$brand", regex: generalRegex } },
-                      { $regexMatch: { input: "$category", regex: generalRegex } }
+                      { $regexMatch: { input: "$category", regex: generalRegex } },
+                      { $regexMatch: { input: "$subCategory", regex: generalRegex } },
+                      { $regexMatch: { input: "$brand", regex: generalRegex } }
                     ]
-                  }, then: 40
+                  }, then: 50
+                },
+                // 5. AI Tags / Description Match
+                {
+                  case: {
+                    $or: [
+                      { $in: [new RegExp(q, 'i'), { $ifNull: ["$aiTags.style_tags", []] }] }, // basic check
+                      { $regexMatch: { input: "$description", regex: generalRegex } }
+                    ]
+                  }, then: 30
                 }
               ],
-              default: 20 // Description or other matches
+              default: 10 // Basic Keyword Match via the AND filter
             }
           }
         }
       });
-
-      // 3. Sort by Score
       pipeline.push({ $sort: { searchScore: -1, createdAt: -1 } });
-
     } else {
-      // No search, just match
-      pipeline.push({ $match: matchStage });
-
       // Default Sort
       const sortOptions: any = {};
       if (sort === 'price_asc') sortOptions.price_cents = 1;
       else if (sort === 'price_desc') sortOptions.price_cents = -1;
       else if (sort === 'newest') sortOptions.createdAt = -1;
-      else sortOptions.createdAt = -1; // Default
-
+      else sortOptions.createdAt = -1;
       pipeline.push({ $sort: sortOptions });
     }
 
-    // 4. Project fields
+    // --- 4. Projection & Pagination ---
     pipeline.push(
       {
         $project: {
-          _id: 1,
-          name: 1,
-          slug: 1,
-          category: 1,
-          gender: 1,
-          subCategory: 1,
-          masterCategory: 1,
-          price_cents: 1,
-          price_before_cents: 1,
-          brand: 1,
-          rating: 1,
-          images: "$images",
-          dominantColor: 1,
-          variants: {
-            $map: {
-              input: "$variants",
-              as: "v",
-              in: {
-                size: "$$v.size",
-                stock: "$$v.stock"
-              }
-            }
-          }
+          _id: 1, name: 1, slug: 1, category: 1, gender: 1, subCategory: 1,
+          masterCategory: 1, price_cents: 1, price_before_cents: 1, brand: 1,
+          rating: 1, images: 1, dominantColor: 1, variants: 1, // Keep full variants for cart
+          searchScore: 1
         }
       }
     );
 
-    // 5. Pagination
     pipeline.push({
       $facet: {
         metadata: [{ $count: "total" }],
@@ -506,18 +493,44 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     });
 
-    // Normalize search intent to match existing category logic without refactoring
-    console.log(`[SEARCH DEBUG] Page: ${page}, Query: "${q}", Category: "${matchStage.category}", Resolved: "${resolvedCategory}"`);
-    console.log(`[SEARCH DEBUG] Match Stage:`, JSON.stringify(matchStage, null, 2));
+    // Execute Main Search
+    let result = await Product.aggregate(pipeline);
+    let data = result[0].data || [];
+    let total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
-    // Execute Pipeline
-    const result = await Product.aggregate(pipeline);
+    // --- 5. FALLBACK LOGIC ---
+    // If no results found, search was attempted, and we need a fallback
+    if (total === 0 && isSearch) {
+      console.log(`[SEARCH] No exact matches for "${q}". Attempting fallback...`);
 
-    // Extract results
-    const data = result[0].data || [];
-    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+      // A. Try Category Fallback
+      const fallbackCategory = resolveSearchCategory(q as string);
+      if (fallbackCategory) {
+        console.log(`[SEARCH] Fallback: Found category "${fallbackCategory}"`);
+        const fallbackResult = await Product.find({
+          category: fallbackCategory,
+          isPublished: true
+        })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .select('name slug category price_cents images brand'); // Lean select for fallback
 
-    console.log(`[SEARCH DEBUG] Results - Total: ${total}, Page: ${page}, Data Count: ${data.length}`);
+        if (fallbackResult.length > 0) {
+          data = fallbackResult;
+          total = data.length; // Approximate
+        }
+      }
+
+      // B. If still empty, return "Latest Products" (Generic Fallback)
+      if (data.length === 0) {
+        console.log(`[SEARCH] Fallback: Fetching latest products.`);
+        data = await Product.find({ isPublished: true })
+          .sort({ createdAt: -1 })
+          .limit(40) // Limit to 40 for fallback
+          .select('name slug category price_cents images brand');
+        total = data.length;
+      }
+    }
 
     res.json({
       data,

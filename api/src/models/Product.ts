@@ -84,6 +84,12 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 ProductSchema.index({ name: "text", category: "text" });
+ProductSchema.index({ brand: 1 });
+ProductSchema.index({ subCategory: 1 });
+ProductSchema.index({ masterCategory: 1 });
+ProductSchema.index({ "dominantColor.name": 1 });
+ProductSchema.index({ "aiTags.style_tags": 1 });
+ProductSchema.index({ "aiTags.material_tags": 1 });
 
 export const Product = mongoose.model<IProduct>("Product", ProductSchema);
 export default Product;

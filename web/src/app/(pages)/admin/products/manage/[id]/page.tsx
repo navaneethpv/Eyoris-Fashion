@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import { useEffect, useState, useRef, useCallback, use } from 'react';
 import { Loader2, ArrowLeft, Trash2, Save, X, Plus, Upload, Image as ImageIcon, Zap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { useCategorySuggest } from '../../../../../../hooks/useCategorySuggest';
+import { useAdminFetch } from '@/lib/adminFetch'; // ✅ Import
 
 interface Variant {
     size: string;
@@ -13,10 +14,10 @@ interface Variant {
 }
 
 interface ImageInput {
-  type: 'file' | 'url';
-  id: number;
-  value: File | string;
-  preview: string;
+    type: 'file' | 'url';
+    id: number;
+    value: File | string;
+    preview: string;
 }
 
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     const [message, setMessage] = useState('');
     const resolvedParams = use(params);
     const productId = resolvedParams.id;
+
+    const adminFetch = useAdminFetch(); // ✅ Hook
 
     // --- AI Hook Integration ---
     const { suggestCategory, suggestedCategory, isSuggesting, setSuggestedCategory } = useCategorySuggest();
@@ -37,14 +40,14 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
     // --- Form Data State ---
     const [formData, setFormData] = useState({
-      name: '',
-      slug: '',
-      brand: '',
-      masterCategory: '',    
-      category: '',          
-      gender: '',           
-      price: '',
-      description: ''
+        name: '',
+        slug: '',
+        brand: '',
+        masterCategory: '',
+        category: '',
+        gender: '',
+        price: '',
+        description: ''
     });
 
     // --- Variant Management State ---
@@ -54,29 +57,30 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     const [masterCategories, setMasterCategories] = useState<string[]>([]);
     const [articleTypes, setArticleTypes] = useState<string[]>([]);
     const [filteredArticleTypes, setFilteredArticleTypes] = useState<string[]>([]);
-    
+
     const [isMasterCategoryDropdownOpen, setIsMasterCategoryDropdownOpen] = useState(false);
     const [isArticleTypeDropdownOpen, setIsArticleTypeDropdownOpen] = useState(false);
     const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
-    
+
     const [masterCategoryInputValue, setMasterCategoryInputValue] = useState('');
     const [articleTypeInputValue, setArticleTypeInputValue] = useState('');
-    
+
     const genderOptions = ['Men', 'Women', 'Kids'];
-    
+
     const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
+        process.env.NEXT_PUBLIC_API_BASE ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        "http://localhost:4000";
     const baseUrl = base.replace(/\/$/, "");
+
     // --- Fetch Product Data & Initialize ---
     const fetchProduct = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${baseUrl}/api/products/admin/${productId}`); 
-            if (!res.ok) throw new Error('Product not found or API error');
-            const data = await res.json();
-            
+            // ✅ Use adminFetch (includes Auth header)
+            // It returns parsed JSON data directly
+            const data: any = await adminFetch(`/api/products/admin/${productId}`);
+
             // Populate Form Data
             setFormData({
                 name: data.name || '',
@@ -92,7 +96,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             // Populate Price - handle cents vs dollars if needed
             // The Add page expects user input directly. If backend sends price_cents, convert.
             if (data.price_cents) {
-                 setFormData(prev => ({ ...prev, price: (data.price_cents / 100).toFixed(2) }));
+                setFormData(prev => ({ ...prev, price: (data.price_cents / 100).toFixed(2) }));
             }
 
             // Populate Variants
@@ -103,8 +107,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                 })));
             }
 
-             // Populate Images
-             if (data.images && Array.isArray(data.images)) {
+            // Populate Images
+            if (data.images && Array.isArray(data.images)) {
                 const initialImages: ImageInput[] = data.images.map((img: any) => ({
                     type: 'url', // treat existing images as URLs
                     id: nextImageId.current++,
@@ -112,15 +116,15 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                     preview: typeof img === 'string' ? img : img.url
                 }));
                 setImageInputs(initialImages);
-             }
+            }
 
-             // Initialize Dropdown Inputs
-             setMasterCategoryInputValue(data.masterCategory || '');
-             setArticleTypeInputValue(data.category || '');
+            // Initialize Dropdown Inputs
+            setMasterCategoryInputValue(data.masterCategory || '');
+            setArticleTypeInputValue(data.category || '');
 
         } catch (error) {
             console.error(error);
-            setMessage('Error: Could not load product data.');
+            setMessage('Error: Could not load product data. Check console.');
         } finally {
             setLoading(false);
         }
@@ -133,58 +137,58 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
     // --- Logic Hooks (Ported from Add Page) ---
     useEffect(() => {
-        // Fetch masterCategories
+        // Fetch masterCategories (Public, can use raw fetch or adminFetch)
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
-          .then((res) => res.json())
-          .then((data) => {
-            const masterCats = Array.from(new Set(
-              (data.data || []).map((p: any) => p.masterCategory).filter((cat: string) => cat && cat.trim())
-            )).sort() as string[];
-            
-            const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
-            setMasterCategories(masterCats.length > 0 ? masterCats : defaultMasterCategories);
-          })
-          .catch((err) => {
-             console.error("MasterCategory fetch failed", err);
-             setMasterCategories(['Apparel', 'Footwear', 'Accessories']);
-          });
-      }, []);
+            .then((res) => res.json())
+            .then((data) => {
+                const masterCats = Array.from(new Set(
+                    (data.data || []).map((p: any) => p.masterCategory).filter((cat: string) => cat && cat.trim())
+                )).sort() as string[];
+
+                const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
+                setMasterCategories(masterCats.length > 0 ? masterCats : defaultMasterCategories);
+            })
+            .catch((err) => {
+                console.error("MasterCategory fetch failed", err);
+                setMasterCategories(['Apparel', 'Footwear', 'Accessories']);
+            });
+    }, []);
 
     useEffect(() => {
         // Fetch articleTypes when masterCategory changes
         if (formData.masterCategory) {
-          fetch(`${baseUrl}/api/products?limit=1000`)
-            .then((res) => res.json())
-            .then((data) => {
-              const articleTypesList = Array.from(new Set(
-                (data.data || []).filter((p: any) => p.masterCategory === formData.masterCategory)
-                  .map((p: any) => p.category)
-                  .filter((cat: string) => cat && cat.trim())
-              )).sort() as string[];
-              
-              if (articleTypesList.length === 0) {
-                 // Try dedicated category endpoint fallback
-                 fetch(`${baseUrl}/api/products/categories`)
-                  .then((res) => res.json())
-                  .then((cats) => {
-                    setArticleTypes(cats);
-                    setFilteredArticleTypes(cats);
-                  }).catch(() => {});
-              } else {
-                setArticleTypes(articleTypesList);
-                setFilteredArticleTypes(articleTypesList);
-              }
-            })
-            .catch(() => {});
+            fetch(`${baseUrl}/api/products?limit=1000`)
+                .then((res) => res.json())
+                .then((data) => {
+                    const articleTypesList = Array.from(new Set(
+                        (data.data || []).filter((p: any) => p.masterCategory === formData.masterCategory)
+                            .map((p: any) => p.category)
+                            .filter((cat: string) => cat && cat.trim())
+                    )).sort() as string[];
+
+                    if (articleTypesList.length === 0) {
+                        // Try dedicated category endpoint fallback
+                        fetch(`${baseUrl}/api/products/categories`)
+                            .then((res) => res.json())
+                            .then((cats) => {
+                                setArticleTypes(cats);
+                                setFilteredArticleTypes(cats);
+                            }).catch(() => { });
+                    } else {
+                        setArticleTypes(articleTypesList);
+                        setFilteredArticleTypes(articleTypesList);
+                    }
+                })
+                .catch(() => { });
         } else {
-          setArticleTypes([]);
-          setFilteredArticleTypes([]);
+            setArticleTypes([]);
+            setFilteredArticleTypes([]);
         }
     }, [formData.masterCategory]);
 
     useEffect(() => {
-        const filtered = articleTypes.filter((at) => 
-          at.toLowerCase().includes(articleTypeInputValue.toLowerCase())
+        const filtered = articleTypes.filter((at) =>
+            at.toLowerCase().includes(articleTypeInputValue.toLowerCase())
         );
         setFilteredArticleTypes(filtered);
     }, [articleTypeInputValue, articleTypes]);
@@ -192,12 +196,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     // Close dropdowns
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          if (!target.closest('.dropdown-container')) {
-            setIsMasterCategoryDropdownOpen(false);
-            setIsArticleTypeDropdownOpen(false);
-            setIsGenderDropdownOpen(false);
-          }
+            const target = e.target as HTMLElement;
+            if (!target.closest('.dropdown-container')) {
+                setIsMasterCategoryDropdownOpen(false);
+                setIsArticleTypeDropdownOpen(false);
+                setIsGenderDropdownOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -206,16 +210,16 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     // AI Suggestions
     useEffect(() => {
         if (suggestedCategory) {
-          setFormData(prev => ({ 
-            ...prev, 
-            category: suggestedCategory.category, 
-          }));
-          setArticleTypeInputValue(suggestedCategory.category);
-          setIsMasterCategoryDropdownOpen(false);
-          setIsArticleTypeDropdownOpen(false);
-          setSuggestedCategory(null);
+            setFormData(prev => ({
+                ...prev,
+                category: suggestedCategory.category,
+            }));
+            setArticleTypeInputValue(suggestedCategory.category);
+            setIsMasterCategoryDropdownOpen(false);
+            setIsArticleTypeDropdownOpen(false);
+            setSuggestedCategory(null);
         }
-      }, [suggestedCategory, setSuggestedCategory]);
+    }, [suggestedCategory, setSuggestedCategory]);
 
 
     // --- Event Handlers ---
@@ -234,24 +238,24 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
         const preview = type === 'file' && fileOrUrl instanceof File ? URL.createObjectURL(fileOrUrl) : (fileOrUrl as string);
         setImageInputs(prev => [...prev, { type, id: nextImageId.current++, value: fileOrUrl, preview }]);
     }, [imageInputs.length]);
-    
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-          Array.from(e.target.files).forEach(file => addImageInput('file', file));
-          e.target.value = '';
+            Array.from(e.target.files).forEach(file => addImageInput('file', file));
+            e.target.value = '';
         }
     };
-    
+
     const handleUrlInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && e.currentTarget.value) {
-          e.preventDefault();
-          addImageInput('url', e.currentTarget.value);
-          e.currentTarget.value = '';
+            e.preventDefault();
+            addImageInput('url', e.currentTarget.value);
+            e.currentTarget.value = '';
         }
     };
-    
+
     const removeImage = (id: number) => setImageInputs(prev => prev.filter(input => input.id !== id));
-    
+
     const handleVariantChange = (index: number, field: 'size' | 'stock', value: string | number) => {
         const newVariants = [...variants];
         // @ts-ignore
@@ -298,19 +302,15 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                 variants: variants
             };
 
-            // Use PUT with JSON
-            const res = await fetch(`${baseUrl}api/products/${productId}`, { 
+            // ✅ Use adminFetch for PUT (Authenticated)
+            await adminFetch(`/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) 
+                body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
-                setMessage('✅ Product saved successfully! (Note: Image updates skipped)');
-            } else {
-                const err = await res.json();
-                throw new Error(err.message || 'Failed to save');
-            }
+            setMessage('✅ Product saved successfully! (Note: Image updates skipped)');
+
         } catch (error: any) {
             console.error(error);
             setMessage(`❌ Failed to save: ${error.message}`);
@@ -328,13 +328,13 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             </div>
         );
     }
-    
+
     // Animation Variants
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
-        visible: { 
+        visible: {
             opacity: 1,
-            transition: { 
+            transition: {
                 staggerChildren: 0.1,
                 delayChildren: 0.2
             }
@@ -343,19 +343,19 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
     const itemVariants: Variants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { 
-            opacity: 1, 
+        visible: {
+            opacity: 1,
             y: 0,
             transition: { duration: 0.5, ease: "easeOut" }
         }
     };
 
-    
-    
+
+
     return (
         <div className="min-h-screen bg-[#F9FAFB] pb-32">
             {/* --- HEADER --- */}
-            <motion.div 
+            <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
@@ -366,7 +366,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                         <Link href="/admin/products" className="group flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 bg-white hover:border-black hover:bg-black transition-all duration-300">
                             <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
                         </Link>
-                        
+
                         <div>
                             <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">Edit Product</div>
                             <h1 className="text-xl font-bold text-gray-900 tracking-tight">{formData.name || 'Untitled Product'}</h1>
@@ -374,16 +374,16 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                     </div>
 
                     <div className="flex items-center gap-4">
-                         {message && (
+                        {message && (
                             <div className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide animate-in fade-in slide-in-from-top-4 ${message.startsWith('✅') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                                 {message}
                             </div>
                         )}
-                        <motion.button 
+                        <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={handleSave} 
-                            disabled={isSaving} 
+                            onClick={handleSave}
+                            disabled={isSaving}
                             className="bg-black text-white px-8 py-3 rounded-full font-semibold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-xl shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -395,16 +395,16 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
             {/* --- MAIN CONTENT --- */}
             <form onSubmit={handleSave} className="max-w-7xl mx-auto px-6 py-10">
-                <motion.div 
+                <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                     className="grid grid-cols-1 lg:grid-cols-12 gap-10"
                 >
-                    
+
                     {/* LEFT COLUMN (8 cols) */}
                     <div className="lg:col-span-8 space-y-10">
-                        
+
                         {/* SECTION: BASIC INFO */}
                         <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
                             <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
@@ -415,22 +415,22 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="group">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 ml-1 group-focus-within:text-black transition-colors">Product Name</label>
-                                        <input 
-                                            required 
-                                            name="name" 
-                                            value={formData.name} 
-                                            onChange={handleChange} 
+                                        <input
+                                            required
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
                                             className="w-full bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 placeholder-gray-300"
                                             placeholder="e.g. Essential Cotton Tee"
                                         />
                                     </div>
                                     <div className="group">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 ml-1">Brand</label>
-                                        <input 
-                                            required 
-                                            name="brand" 
-                                            value={formData.brand} 
-                                            onChange={handleChange} 
+                                        <input
+                                            required
+                                            name="brand"
+                                            value={formData.brand}
+                                            onChange={handleChange}
                                             className="w-full bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300"
                                             placeholder="e.g. Nike"
                                         />
@@ -440,11 +440,11 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                 <div className="group">
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 ml-1">Slug (URL)</label>
                                     <div className="relative">
-                                        <input 
-                                            required 
-                                            name="slug" 
-                                            value={formData.slug} 
-                                            onChange={handleChange} 
+                                        <input
+                                            required
+                                            name="slug"
+                                            value={formData.slug}
+                                            onChange={handleChange}
                                             className="w-full bg-gray-50/50 border border-transparent focus:bg-white focus:border-gray-200 focus:ring-0 rounded-xl px-4 py-3 text-gray-500 font-mono text-sm transition-all"
                                         />
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300 bg-gray-100 px-2 py-1 rounded">SEO</div>
@@ -453,11 +453,11 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
                                 <div className="group">
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 ml-1 group-focus-within:text-black transition-colors">Description</label>
-                                    <textarea 
-                                        required 
-                                        name="description" 
-                                        value={formData.description} 
-                                        onChange={handleChange} 
+                                    <textarea
+                                        required
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleChange}
                                         className="w-full bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl px-5 py-4 text-gray-700 leading-relaxed min-h-[160px] resize-y transition-all duration-300"
                                         placeholder="Detailed product description..."
                                     />
@@ -467,7 +467,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
                         {/* SECTION: PRICING & INVENTORY */}
                         <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
-                             <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                            <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
                                 <h2 className="font-bold text-gray-900 text-lg">Pricing & Inventory</h2>
                                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">SKUs & Costs</span>
                             </div>
@@ -476,13 +476,13 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 ml-1">Base Price (₹)</label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-serif italic text-lg">₹</span>
-                                        <input 
-                                            required 
-                                            name="price" 
-                                            type="number" 
-                                            step="0.01" 
-                                            value={formData.price} 
-                                            onChange={handleChange} 
+                                        <input
+                                            required
+                                            name="price"
+                                            type="number"
+                                            step="0.01"
+                                            value={formData.price}
+                                            onChange={handleChange}
                                             className="w-full bg-white border border-gray-200 focus:border-black focus:ring-0 rounded-xl pl-10 pr-4 py-4 text-2xl font-bold text-gray-900 transition-all font-mono tracking-tight"
                                             placeholder="0.00"
                                         />
@@ -500,34 +500,34 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                             <div className="p-8">
                                 {/* Variants Table */}
                                 <div className="bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden">
-                                     <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                         <div className="col-span-4 pl-2">Size / Variant</div>
                                         <div className="col-span-4">Stock Level</div>
                                         <div className="col-span-4 text-right pr-2">Actions</div>
                                     </div>
-                                    
+
                                     <div className="divide-y divide-gray-100">
                                         {variants.map((variant, index) => (
                                             <div key={index} className="grid grid-cols-12 gap-6 px-6 py-4 items-center hover:bg-white transition-colors">
                                                 <div className="col-span-4">
-                                                    <input 
-                                                        type="text" 
-                                                        value={variant.size} 
+                                                    <input
+                                                        type="text"
+                                                        value={variant.size}
                                                         onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
                                                         className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 text-center uppercase focus:border-black focus:ring-0"
                                                         placeholder="Size"
                                                     />
                                                 </div>
                                                 <div className="col-span-4">
-                                                     <div className="relative">
-                                                        <input 
-                                                            type="number" 
-                                                            value={variant.stock} 
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={variant.stock}
                                                             onChange={(e) => handleVariantChange(index, 'stock', Number(e.target.value))}
                                                             className={`w-full bg-white border rounded-lg px-3 py-2 text-sm font-mono text-center focus:border-black focus:ring-0 ${variant.stock < 5 ? 'border-red-200 text-red-600 bg-red-50/10' : 'border-gray-200 text-gray-900'}`}
                                                         />
                                                         {variant.stock < 5 && <div className="absolute top-1/2 -translate-y-1/2 right-2 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-                                                     </div>
+                                                    </div>
                                                 </div>
                                                 <div className="col-span-4 text-right flex justify-end">
                                                     <button type="button" onClick={() => removeVariant(index)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
@@ -549,10 +549,10 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
                     {/* RIGHT COLUMN (4 cols) */}
                     <div className="lg:col-span-4 space-y-10">
-                        
-                         {/* SECTION: CATEGORIZATION */}
+
+                        {/* SECTION: CATEGORIZATION */}
                         <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
-                             <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
+                            <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
                                 <h2 className="font-bold text-gray-900 text-base">Categorization</h2>
                             </div>
                             <div className="p-6 space-y-6">
@@ -569,7 +569,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                                 <button
                                                     key={g}
                                                     type="button"
-                                                    onClick={() => { setFormData(p => ({...p, gender: g})); setIsGenderDropdownOpen(false); }}
+                                                    onClick={() => { setFormData(p => ({ ...p, gender: g })); setIsGenderDropdownOpen(false); }}
                                                     className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${isActive ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                                                 >
                                                     {g}
@@ -592,15 +592,15 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                             placeholder="Select..."
                                         />
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                                             <div className="w-2 h-2 border-b-2 border-r-2 border-gray-400 rotate-45 transform -translate-y-1" />
+                                            <div className="w-2 h-2 border-b-2 border-r-2 border-gray-400 rotate-45 transform -translate-y-1" />
                                         </div>
                                         {isMasterCategoryDropdownOpen && (
                                             <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1.5 animate-in fade-in zoom-in-95 duration-200">
                                                 {masterCategories.filter(c => c.toLowerCase().includes(masterCategoryInputValue.toLowerCase())).map(cat => (
-                                                    <div key={cat} onMouseDown={() => { 
-                                                        setMasterCategoryInputValue(cat); 
-                                                        setFormData(prev => ({...prev, masterCategory: cat})); 
-                                                        setIsMasterCategoryDropdownOpen(false); 
+                                                    <div key={cat} onMouseDown={() => {
+                                                        setMasterCategoryInputValue(cat);
+                                                        setFormData(prev => ({ ...prev, masterCategory: cat }));
+                                                        setIsMasterCategoryDropdownOpen(false);
                                                     }} className="px-3 py-2.5 hover:bg-gray-50 rounded-lg text-sm text-gray-700 cursor-pointer font-medium">
                                                         {cat}
                                                     </div>
@@ -624,12 +624,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                                 disabled={!formData.masterCategory}
                                                 placeholder="Type..."
                                             />
-                                             {isArticleTypeDropdownOpen && (
+                                            {isArticleTypeDropdownOpen && (
                                                 <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1.5 animate-in fade-in zoom-in-95 duration-200">
                                                     {filteredArticleTypes.map(at => (
                                                         <div key={at} onMouseDown={() => {
                                                             setArticleTypeInputValue(at);
-                                                            setFormData(p => ({...p, category: at}));
+                                                            setFormData(p => ({ ...p, category: at }));
                                                             setIsArticleTypeDropdownOpen(false);
                                                         }} className="px-3 py-2.5 hover:bg-gray-50 rounded-lg text-sm text-gray-700 cursor-pointer font-medium">{at}</div>
                                                     ))}
@@ -652,17 +652,17 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
                         {/* SECTION: IMAGES */}
                         <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
-                             <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                            <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
                                 <h2 className="font-bold text-gray-900 text-base">Images</h2>
                                 <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-full">{imageInputs.length}/5</span>
                             </div>
                             <div className="p-6">
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     {imageInputs.map((input, idx) => (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, scale: 0.9 }}
                                             animate={{ opacity: 1, scale: 1 }}
-                                            key={input.id} 
+                                            key={input.id}
                                             className={`relative aspect-[3/4] bg-gray-50 rounded-xl overflow-hidden border border-gray-100 group shadow-sm transition-all hover:shadow-md ${idx === 0 ? 'col-span-2 border-2 border-black/5 ring-4 ring-black/5' : ''}`}
                                         >
                                             <Image src={input.preview} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -670,13 +670,13 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                             <button type="button" onClick={() => removeImage(input.id)} className="absolute top-2 right-2 bg-white/90 backdrop-blur text-black p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white transform translate-y-2 group-hover:translate-y-0 scale-90 group-hover:scale-100">
                                                 <X className="w-3 h-3" />
                                             </button>
-                                             {idx === 0 && <span className="absolute bottom-3 left-3 bg-black/70 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">COVER</span>}
+                                            {idx === 0 && <span className="absolute bottom-3 left-3 bg-black/70 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">COVER</span>}
                                         </motion.div>
                                     ))}
                                     {imageInputs.length < 5 && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => fileInputRef.current?.click()} 
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
                                             className="aspect-[3/4] rounded-xl border-2 border-dashed border-gray-200 hover:border-black hover:bg-gray-50 transition-all flex flex-col items-center justify-center gap-2 group"
                                         >
                                             <div className="p-3 bg-gray-50 rounded-full group-hover:bg-white transition-colors group-hover:shadow-md">
@@ -686,16 +686,16 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" multiple />
-                                
+
                                 <div className="relative">
-                                    <input 
-                                        name="imageUrl" 
-                                        onKeyDown={handleUrlInput} 
-                                        className="w-full bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-lg px-4 py-3 text-xs font-medium transition-all" 
-                                        placeholder="Paste URL & Enter..." 
-                                        type="url" 
+                                    <input
+                                        name="imageUrl"
+                                        onKeyDown={handleUrlInput}
+                                        className="w-full bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-lg px-4 py-3 text-xs font-medium transition-all"
+                                        placeholder="Paste URL & Enter..."
+                                        type="url"
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                                         <ImageIcon className="w-3 h-3" />

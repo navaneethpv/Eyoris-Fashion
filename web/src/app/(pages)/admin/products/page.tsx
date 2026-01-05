@@ -16,6 +16,8 @@ import { useAdminFetch } from '@/lib/adminFetch';
 import { motion, AnimatePresence } from "framer-motion";
 
 
+import { useDebounce } from "@/hooks/useDebounce"; // Import useDebounce
+
 export default function ProductsListPage() {
   type Product = {
     _id: string;
@@ -29,6 +31,7 @@ export default function ProductsListPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500); // Debounce search
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(24);
@@ -39,7 +42,14 @@ export default function ProductsListPage() {
 
   useEffect(() => {
     const p = page;
-    adminFetch(`/api/products?limit=${limit}&page=${p}`)
+    // Include search query in API call
+    const query = new URLSearchParams({
+      limit: String(limit),
+      page: String(p),
+      ...(debouncedSearch && { q: debouncedSearch })
+    });
+
+    adminFetch(`/api/products?${query.toString()}`)
       .then((res: any) => {
         setProducts(res.data || []);
         setTotalPages(res.meta?.pages || 1);
@@ -49,7 +59,7 @@ export default function ProductsListPage() {
         setProducts([]);
         setTotalPages(1);
       });
-  }, [page, limit]);
+  }, [page, limit, debouncedSearch]); // Add debouncedSearch to dependency
 
   // keep pageInput in sync when page changes externally
   useEffect(() => {
@@ -77,9 +87,11 @@ export default function ProductsListPage() {
     }
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Removed client-side filtering
+  const filteredProducts = products;
+  // We can just use 'products' directly, but keeping variable name to minimize diff changes if desired, 
+  // or just replace 'filteredProducts' with 'products' in render.
+  // Let's use 'products' in render in the next step or just assign it here.
 
   return (
     <div className="space-y-6">
@@ -108,7 +120,10 @@ export default function ProductsListPage() {
           placeholder="Search products..."
           className="flex-1 outline-none text-sm"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1); // Reset to page 1 on new search
+          }}
         />
       </div>
 

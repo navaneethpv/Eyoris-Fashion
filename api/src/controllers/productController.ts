@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import axios from "axios";
 import fs from 'fs';
 import path from 'path';
-// import cloudinary from "../config/cloudinary"; // REMOVED
+
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
@@ -68,7 +68,7 @@ async function processSingleImage(
 
 
   try {
-    // --- Step 1: Get the Image Buffer and Upload to Cloudinary ---
+    // --- Step 1: Get the Image Buffer and Upload ---
     if (source.url) {
       try {
         // ✅ DIRECT URL HANDLING: Use the URL for display, but download for AI analysis

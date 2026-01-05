@@ -13,7 +13,7 @@ export default function WishlistTab() {
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
     if (user) {
@@ -68,7 +68,7 @@ export default function WishlistTab() {
         </h3>
         <p className="text-gray-600 mb-6">Start adding products you love!</p>
         <Link
-          href="/products"
+          href="/product"
           className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-violet-700 transition"
         >
           <ShoppingBag className="w-5 h-5" />
@@ -79,76 +79,75 @@ export default function WishlistTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-gray-600">
-        {wishlist.length} {wishlist.length === 1 ? "item" : "items"} saved
+    <div className="space-y-8">
+      <p className="text-gray-500 font-light text-sm tracking-wide">
+        {wishlist.length} {wishlist.length === 1 ? "ITEM" : "ITEMS"} SAVED
       </p>
 
-      <div className="grid grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-6">
         {wishlist.map((item) => {
           const product = item.productId;
           return (
             <div
               key={item._id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition"
+              className="group relative flex flex-col bg-transparent"
             >
-              {/* Product Image */}
+              {/* Product Image Card */}
               <Link
                 href={`/products/${product.slug}`}
-                className="relative block aspect-square overflow-hidden bg-gray-100"
+                className="relative aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition-all duration-500 block"
               >
                 <img
-                  src={product.images[0]}
+                  src={product.images?.[0]}
                   alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out will-change-transform"
                 />
+
+                {/* Remove Button Overlay */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeFromWishlist(product._id);
+                  }}
+                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all duration-300 backdrop-blur-sm z-10"
+                  title="Remove"
+                >
+                  <Heart className="w-4 h-4 fill-current" />
+                </button>
               </Link>
 
               {/* Product Info */}
-              <div className="p-3 sm:p-4">
+              <div className="flex flex-col flex-1 px-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">
+                  {product.brand || "Eyoris Basics"}
+                </p>
                 <Link href={`/products/${product.slug}`}>
-                  <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2 hover:text-primary transition">
+                  <h3 className="font-serif font-medium text-gray-900 text-sm sm:text-base leading-tight mb-2 line-clamp-2 hover:text-gray-600 transition-colors">
                     {product.name}
                   </h3>
                 </Link>
 
-                <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
-                  {product.brand}
-                </p>
-
                 {/* Price */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base sm:text-lg font-bold text-gray-900">
-                    ₹{(product.price_cents / 100).toFixed(2)}
+                <div className="flex items-baseline gap-2 mt-auto">
+                  <span className="text-base sm:text-lg font-medium text-gray-900 tracking-tight">
+                    ₹{(product.price_cents / 100).toFixed(0)}
                   </span>
                   {product.price_before_cents && (
-                    <span className="text-xs sm:text-sm text-gray-400 line-through">
-                      ₹{(product.price_before_cents / 100).toFixed(2)}
+                    <span className="text-xs text-gray-400 line-through font-light">
+                      ₹{(product.price_before_cents / 100).toFixed(0)}
                     </span>
                   )}
                 </div>
 
-                {/* Rating */}
-                {product.rating && (
-                  <div className="flex items-center gap-1 mb-3">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {product.rating}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      ({product.reviewsCount || 0})
-                    </span>
+                {/* Rating (Optional - keeping minimal for premium look, maybe remove if too cluttered? keeping as per req to not remove features) */}
+                {product.rating > 0 && (
+                  <div className="flex items-center gap-1 mt-2">
+                    <Star className="w-3 h-3 fill-black text-black" />
+                    <span className="text-xs font-medium text-gray-900">{product.rating}</span>
+                    <span className="text-[10px] text-gray-400">({product.reviewsCount})</span>
                   </div>
                 )}
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => removeFromWishlist(product._id)}
-                  className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border-2 border-red-200 text-red-600 font-bold text-sm rounded-lg hover:bg-red-50 transition"
-                >
-                  <Heart className="w-4 h-4 fill-current" />
-                  Remove
-                </button>
               </div>
             </div>
           );

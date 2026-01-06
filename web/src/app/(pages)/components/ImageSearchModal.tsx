@@ -196,8 +196,29 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
           {!analysis && !loading && (
             <div className="flex flex-col items-center justify-center h-full py-10 space-y-6">
               {preview ? (
-                <div className="relative w-64 h-64 rounded-xl overflow-hidden shadow-lg border-4 border-white">
-                  <Image src={preview} alt="Preview" fill className="object-cover" />
+                <div className="w-full max-w-xl bg-neutral-50/50 rounded-3xl p-8 flex flex-col items-center">
+                  <div className="relative w-72 h-72 rounded-2xl overflow-hidden shadow-2xl border-4 border-white mb-8">
+                    <Image src={preview} alt="Preview" fill className="object-cover" />
+                  </div>
+
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-widest mb-6">
+                    Ready to analyze this image
+                  </p>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={resetArr}
+                      className="px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] border border-neutral-200 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 transition-all font-sans"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      onClick={handleAnalyze}
+                      className="px-10 py-3 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] bg-neutral-900 text-white hover:bg-black shadow-xl shadow-neutral-200 transition-all hover:scale-105 active:scale-95 font-sans"
+                    >
+                      Analyze Image
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div
@@ -254,20 +275,6 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                     )}
                   </div>
                 </>
-              )}
-
-              {preview && (
-                <div className="flex gap-4 pt-4">
-                  <button onClick={resetArr} className="px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors">
-                    Replace
-                  </button>
-                  <button
-                    onClick={handleAnalyze}
-                    className="px-10 py-3 rounded-full font-bold text-xs uppercase tracking-widest bg-neutral-900 text-white hover:bg-black shadow-lg shadow-neutral-200 transition-all hover:scale-105"
-                  >
-                    Analyze Image
-                  </button>
-                </div>
               )}
             </div>
           )}

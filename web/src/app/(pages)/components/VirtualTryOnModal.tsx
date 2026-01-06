@@ -20,26 +20,48 @@ export default function VirtualTryOnModal({
 }: VirtualTryOnModalProps) {
     const [step, setStep] = useState<"upload" | "processing" | "result">("upload");
     const [userImage, setUserImage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setError(null);
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setUserImage(reader.result as string);
-                setStep("processing");
-                // Simulate AI processing
-                setTimeout(() => {
-                    setStep("result");
-                }, 3000);
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        // 1. Validate File Type (JPG/PNG only)
+        const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+        if (!validTypes.includes(file.type)) {
+            setError("Please upload a JPG or PNG image.");
+            return;
         }
+
+        // 2. Validate File Size (Max 5MB)
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setError("Image size exceeds 5MB. Please upload a smaller file.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setUserImage(reader.result as string);
+            // Stay on upload step to show preview
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const startTryOn = () => {
+        if (!userImage) return;
+        setStep("processing");
+        // Simulate AI processing
+        setTimeout(() => {
+            setStep("result");
+        }, 3000);
     };
 
     const resetModal = () => {
         setStep("upload");
         setUserImage(null);
+        setError(null);
     };
 
     if (!isOpen) return null;
@@ -91,29 +113,62 @@ export default function VirtualTryOnModal({
                                     <div>
                                         <h4 className="text-sm font-bold text-amber-900">Pro Tip</h4>
                                         <p className="text-xs text-amber-700 font-medium">
-                                            Upload a clear, front-facing image for the best results.
+                                            Upload a clear image of your hand / neck depending on the product
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="relative group border-2 border-dashed border-gray-200 hover:border-black rounded-3xl transition-all duration-300">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    />
-                                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                                            <Upload className="w-6 h-6 text-gray-400 group-hover:text-black transition-colors" />
-                                        </div>
-                                        <p className="text-lg font-medium text-gray-900 mb-2">
-                                            Click to upload or drag & drop
-                                        </p>
-                                        <p className="text-sm text-gray-400">
-                                            Supports JPG, PNG (Max 5MB)
-                                        </p>
+                                {error && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-medium text-red-600 text-center animate-in fade-in slide-in-from-top-2">
+                                        {error}
                                     </div>
+                                )}
+
+                                <div className="relative group border-2 border-dashed border-gray-200 hover:border-black rounded-3xl transition-all duration-300 min-h-[280px] flex items-center justify-center">
+                                    {!userImage ? (
+                                        <>
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png"
+                                                onChange={handleImageUpload}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            />
+                                            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+                                                    <Upload className="w-6 h-6 text-gray-400 group-hover:text-black transition-colors" />
+                                                </div>
+                                                <p className="text-lg font-medium text-gray-900 mb-2">
+                                                    Click to upload or drag & drop
+                                                </p>
+                                                <p className="text-sm text-gray-400">
+                                                    Supports JPG, PNG (Max 5MB)
+                                                </p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="relative w-full h-full p-4 flex flex-col items-center">
+                                            <div className="relative w-48 h-48 rounded-2xl overflow-hidden border border-gray-100 shadow-lg mb-4">
+                                                <img
+                                                    src={userImage}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <button
+                                                    onClick={() => setUserImage(null)}
+                                                    className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full transition-all shadow-sm"
+                                                >
+                                                    <X className="w-3.5 h-3.5 text-gray-500" />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 font-medium mb-6">Image ready for Try-On</p>
+                                            <button
+                                                onClick={startTryOn}
+                                                className="w-full max-w-xs py-4 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-100"
+                                            >
+                                                Generate Preview
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

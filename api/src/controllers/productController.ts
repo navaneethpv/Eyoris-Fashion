@@ -240,21 +240,9 @@ export const getProducts = async (req: Request, res: Response) => {
     // Helper: Escape Regex special characters
     const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
-    // --- Flipkart-style Intent-Based Search ---
-    // Parse natural language search into structured filters
-    let inferredGender: string | null = null;
-    let inferredCategory: string | null = null;
-    let isSearch = false;
+    // --- 1. Identify Search Mode (Phase 2: Strict) ---
+    const isSearch = !!q;
 
-    if (q && typeof q === 'string') {
-      const { parseSearchIntent } = require('../utils/searchIntentParser');
-      const intent = parseSearchIntent(q);
-
-      if (intent.gender) inferredGender = intent.gender;
-      if (intent.category) inferredCategory = intent.category;
-
-      isSearch = true;
-    }
 
     const pipeline: any[] = [];
     const matchStage: any = { isPublished: true };
@@ -262,13 +250,13 @@ export const getProducts = async (req: Request, res: Response) => {
     // --- 1. Apply Filters (Manual overrides Inferred) ---
 
     // Gender
-    const rawGender = (req.query.gender as string) || inferredGender;
+    const rawGender = req.query.gender as string;
     if (rawGender) {
       matchStage.gender = new RegExp(`^${rawGender}$`, 'i');
     }
 
     // Category
-    let finalCategory = (category as string) || (req.query.articleType as string) || inferredCategory;
+    let finalCategory = (category as string) || (req.query.articleType as string);
     if (finalCategory) {
       const queryLower = originalQuery && typeof originalQuery === 'string' ? originalQuery.toLowerCase() : '';
       // Special Footwear Handling
@@ -355,42 +343,15 @@ export const getProducts = async (req: Request, res: Response) => {
           return {
             $or: [
               { name: tokenRegex },
-              { description: tokenRegex },
               { brand: tokenRegex },
               { category: tokenRegex },
-              { subCategory: tokenRegex },
-              { masterCategory: tokenRegex },
-              { "dominantColor.name": tokenRegex },
-              { "aiTags.style_tags": tokenRegex },
-              { "aiTags.material_tags": tokenRegex },
-              { "aiTags.pattern": tokenRegex },
-              { "aiTags.sleeve": tokenRegex }
+              { subCategory: tokenRegex }
             ]
           };
         });
-
-        // Allow Accessories Special Case (OR logic for "Accessories" keyword itself to catch various items)
-        if (/accessory|accessories/i.test(q)) {
-          const accTerms = [
-            'Jewellery', 'Bingle', 'Bangle', 'Necklace', 'Handbag', 'Purse', 'Sunglass',
-            'Belt', 'Watch', 'Hat', 'Cap', 'Accessory', 'Accessories',
-            'Earring', 'Ring', 'Wallet', 'Perfume', 'Tie', 'Cufflink', 'Scarf'
-          ];
-          const accRegex = new RegExp(accTerms.join('|'), 'i');
-          // If query is JUST "accessories", replace the AND logic with this wide net
-          // If query is "red accessories", keep "red" AND (accessories_group)
-
-          // For now, simpler approach: If accessories search, just add broad match to existing Match Stage
-          matchStage.$or = [
-            { category: accRegex },
-            { subCategory: accRegex },
-            { masterCategory: accRegex }
-          ];
-          // Remove 'accessory' from tokens to avoid double filtering if mapped
-        } else {
-          searchStage = { $and: andConditions };
-        }
+        searchStage = { $and: andConditions };
       }
+
     }
 
     // Merge Search Stage into Match Stage
@@ -476,39 +437,7 @@ export const getProducts = async (req: Request, res: Response) => {
     let data = result[0].data || [];
     let total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
-    // --- 5. FALLBACK LOGIC ---
-    // If no results found, search was attempted, and we need a fallback
-    // if (total === 0 && isSearch) {
-    //   console.log(`[SEARCH] No exact matches for "${q}". Attempting fallback...`);
 
-    //   // A. Try Category Fallback
-    //   const fallbackCategory = resolveSearchCategory(q as string);
-    //   if (fallbackCategory) {
-    //     console.log(`[SEARCH] Fallback: Found category "${fallbackCategory}"`);
-    //     const fallbackResult = await Product.find({
-    //       category: fallbackCategory,
-    //       isPublished: true
-    //     })
-    //       .sort({ createdAt: -1 })
-    //       .limit(limit)
-    //       .select('name slug category price_cents images brand'); // Lean select for fallback
-
-    //     if (fallbackResult.length > 0) {
-    //       data = fallbackResult;
-    //       total = data.length; // Approximate
-    //     }
-    //   }
-
-    //   // B. If still empty, return "Latest Products" (Generic Fallback)
-    //   if (data.length === 0) {
-    //     console.log(`[SEARCH] Fallback: Fetching latest products.`);
-    //     data = await Product.find({ isPublished: true })
-    //       .sort({ createdAt: -1 })
-    //       .limit(40) // Limit to 40 for fallback
-    //       .select('name slug category price_cents images brand');
-    //     total = data.length;
-    //   }
-    // }
 
     res.json({
       data,

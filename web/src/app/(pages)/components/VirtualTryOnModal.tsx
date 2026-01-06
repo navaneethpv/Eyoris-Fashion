@@ -10,6 +10,7 @@ interface VirtualTryOnModalProps {
     onClose: () => void;
     productName: string;
     productImage: string;
+    productType: string;
 }
 
 export default function VirtualTryOnModal({
@@ -17,9 +18,11 @@ export default function VirtualTryOnModal({
     onClose,
     productName,
     productImage,
+    productType,
 }: VirtualTryOnModalProps) {
     const [step, setStep] = useState<"upload" | "processing" | "result">("upload");
     const [userImage, setUserImage] = useState<string | null>(null);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,18 +52,48 @@ export default function VirtualTryOnModal({
         reader.readAsDataURL(file);
     };
 
-    const startTryOn = () => {
+    const startTryOn = async () => {
         if (!userImage) return;
         setStep("processing");
-        // Simulate AI processing
-        setTimeout(() => {
+        setError(null);
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+            const res = await fetch(`${API_URL}/api/try-on/preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userImage, // base64
+                    productImage,
+                    productType
+                }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'Failed to generate preview');
+            }
+
+            const data = await res.json();
+            setGeneratedImage(data.generatedImageUrl);
             setStep("result");
-        }, 3000);
+        } catch (err: any) {
+            console.error('Try-On Error:', err);
+            setError(err.name === 'AbortError' ? 'Request timed out. Please try again.' : err.message || "Failed to process try-on. Please try again.");
+            setStep("upload");
+        }
     };
 
     const resetModal = () => {
         setStep("upload");
         setUserImage(null);
+        setGeneratedImage(null);
         setError(null);
     };
 
@@ -236,7 +269,7 @@ export default function VirtualTryOnModal({
                                                     className="relative w-full h-full flex items-center justify-center"
                                                 >
                                                     <img
-                                                        src={productImage}
+                                                        src={generatedImage || productImage}
                                                         alt={productName}
                                                         className="w-3/4 h-3/4 object-contain drop-shadow-2xl mix-blend-multiply opacity-90 rotate-[-15deg]"
                                                     />

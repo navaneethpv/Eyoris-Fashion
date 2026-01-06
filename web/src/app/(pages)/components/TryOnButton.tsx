@@ -7,9 +7,10 @@ import VirtualTryOnModal from "./VirtualTryOnModal";
 interface TryOnButtonProps {
     productName: string;
     productImage: string;
+    productType: string;
 }
 
-export default function TryOnButton({ productName, productImage }: TryOnButtonProps) {
+export default function TryOnButton({ productName, productImage, productType }: TryOnButtonProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -39,6 +40,7 @@ export default function TryOnButton({ productName, productImage }: TryOnButtonPr
                 onClose={() => setIsModalOpen(false)}
                 productName={productName}
                 productImage={productImage}
+                productType={productType}
             />
         </>
     );

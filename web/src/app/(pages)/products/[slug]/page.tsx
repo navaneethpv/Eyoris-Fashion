@@ -269,17 +269,24 @@ export default async function ProductDetailPage({
               />
 
               {/* 🛑 AI VIRTUAL TRY-ON (Prototype) 🛑 */}
-              {["bangle", "ring", "necklace"].some(cat =>
-                product.category?.toLowerCase().includes(cat) ||
-                product.subCategory?.toLowerCase().includes(cat)
-              ) && (
-                  <div className="mt-4 border-t border-gray-100 pt-8">
-                    <TryOnButton
-                      productName={product.name}
-                      productImage={resolveImageSrc(product.images) || ""}
-                    />
-                  </div>
-                )}
+              {(() => {
+                const type = ["bangle", "ring", "necklace"].find(cat =>
+                  product.category?.toLowerCase().includes(cat) ||
+                  product.subCategory?.toLowerCase().includes(cat)
+                );
+                if (type) {
+                  return (
+                    <div className="mt-4 border-t border-gray-100 pt-8">
+                      <TryOnButton
+                        productName={product.name}
+                        productImage={resolveImageSrc(product.images) || ""}
+                        productType={type}
+                      />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* 4. Delivery & Trust Icons */}

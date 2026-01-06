@@ -36,7 +36,7 @@ import path from "path"; // Added path
 
 app.use(cors(corsOptions));
 // app.options(/.*/, cors(corsOptions));// MUST be immediately after
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increased limit for base64 image uploads (try-on feature)
 app.use(morgan("dev"));
 
 // Serve uploaded files statically

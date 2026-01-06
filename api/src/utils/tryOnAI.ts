@@ -34,13 +34,27 @@ function toGenerativePart(data: Buffer | string, mimeType: string) {
  */
 async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string }> {
     try {
-        const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
+        const response = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
         const buffer = Buffer.from(response.data);
         const mimeType = response.headers['content-type'] || 'image/jpeg';
         return { buffer, mimeType };
     } catch (error: any) {
         console.error("[TRY-ON AI] Image download failed:", url, error.message);
-        throw new Error("Failed to download product image.");
+
+        // Provide specific error messages
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            throw new Error(`Cannot reach the product image host. The image URL may be external or unavailable: ${url.substring(0, 50)}...`);
+        }
+        if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+            throw new Error("Product image download timed out. Please try again.");
+        }
+        throw new Error(`Failed to download product image: ${error.message}`);
     }
 }
 

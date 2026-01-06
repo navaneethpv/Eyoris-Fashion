@@ -1,139 +1,102 @@
 import { GoogleGenAI } from "@google/genai";
 import { Buffer } from "buffer";
-import dotenv from "dotenv";
 import axios from 'axios';
+import dotenv from "dotenv";
 
 dotenv.config();
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY!,
-});
+// 1. Init Client (Uses your existing API Key)
+const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-/**
- * Converts image data (Buffer or base64 string) to a generative part for Gemini.
- */
-function toGenerativePart(data: Buffer | string, mimeType: string) {
-    let base64Data: string;
-    if (Buffer.isBuffer(data)) {
-        base64Data = data.toString("base64");
-    } else {
-        // Strip data:image/...;base64, if present
-        base64Data = data.includes(',') ? data.split(',')[1] : data;
-    }
-
-    return {
-        inlineData: {
-            data: base64Data,
-            mimeType,
-        },
-    };
-}
-
-/**
- * Downloads an image from a URL and returns its Buffer and MIME type.
- */
-async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string }> {
+// Helper: Download Image
+async function downloadImage(url: string): Promise<string> {
     try {
-        const response = await axios.get(url, {
-            responseType: 'arraybuffer',
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        const buffer = Buffer.from(response.data);
-        const mimeType = response.headers['content-type'] || 'image/jpeg';
-        return { buffer, mimeType };
-    } catch (error: any) {
-        console.error("[TRY-ON AI] Image download failed:", url, error.message);
-
-        // Provide specific error messages
-        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-            throw new Error(`Cannot reach the product image host. The image URL may be external or unavailable: ${url.substring(0, 50)}...`);
-        }
-        if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
-            throw new Error("Product image download timed out. Please try again.");
-        }
-        throw new Error(`Failed to download product image: ${error.message}`);
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        return Buffer.from(response.data).toString('base64');
+    } catch (err) {
+        throw new Error(`Failed to download image: ${url}`);
     }
 }
 
-/**
- * Uses Gemini to generate a virtual try-on preview.
- * Task: Place the accessory naturally on the person.
- */
 export async function generateVirtualTryOn(
     userImageBase64: string,
     productImageUrl: string,
     productType: string
-): Promise<string> {
+): Promise<{ generatedImageUrl: string }> {
     try {
-        console.log(`[TRY-ON AI] Starting generation for ${productType}...`);
+        console.log("🍌 [Try-On] Starting 'Nano Banana' Image Generation...");
 
-        if (!process.env.GEMINI_API_KEY) {
-            console.error("[TRY-ON AI] GEMINI_API_KEY is missing!");
-            throw new Error("AI service not configured.");
-        }
+        // 2. Prepare Images
+        // Clean the user image base64 if it has the header prefix
+        const userClean = userImageBase64.includes(',')
+            ? userImageBase64.split(',')[1]
+            : userImageBase64;
 
-        // 1. Prepare User Image (Assuming it's base64 from frontend)
-        const userPart = toGenerativePart(userImageBase64, "image/jpeg");
+        const productBase64 = await downloadImage(productImageUrl);
 
-        // 2. Prepare Product Image
-        const { buffer: productBuffer, mimeType: productMimeType } = await downloadImage(productImageUrl);
-        const productPart = toGenerativePart(productBuffer, productMimeType);
+        // 3. The Generative Prompt
+        const prompt = `
+        ACT AS: Professional Fashion Retoucher.
+        TASK: Create a photorealistic image of the person in the FIRST image wearing the jewelry from the SECOND image.
 
-        const prompt = `You are an AI image editor.
+        DETAILS:
+        - Product Type: ${productType}
+        - PLACEMENT: Place the jewelry anatomically correctly (e.g., if it's a bangle, wrap it around the wrist).
+        - LIGHTING: Match the lighting, shadows, and reflections of the user's photo exactly.
+        - REALISM: The jewelry should cast realistic shadows on the skin.
+        - PRESERVE: Keep the user's skin tone and background exactly as they are.
 
-Task:
-Place the given accessory naturally on the person in the uploaded image.
+        OUTPUT:
+        - Return ONLY the generated image.
+        `;
 
-Rules:
-- The accessory is: ${productType}
-- The product image must be placed realistically
-- Maintain correct scale and alignment
-- Match lighting and skin tone
-- Add natural shadow
-- Do NOT distort the person's body
-- Do NOT change face or background
-- The result should look like a realistic preview photo
-
-Output:
-One final realistic image only.`;
-
-        console.log("[TRY-ON AI] Sending request to Gemini (multimodal)...");
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+        // 4. Call Gemini 2.0 Flash (The "Nano Banana" Model)
+        const response = await client.models.generateContent({
+            model: 'gemini-2.0-flash-exp', // <--- This is the only model that can do this!
             contents: [
                 {
-                    role: "user",
                     parts: [
-                        userPart,
-                        productPart,
+                        { inlineData: { mimeType: 'image/jpeg', data: userClean } },
+                        { inlineData: { mimeType: 'image/jpeg', data: productBase64 } },
                         { text: prompt }
                     ]
                 }
             ],
             config: {
-                temperature: 0.4,
+                // 🛑 CRITICAL: We are asking for an IMAGE response, not JSON
+                responseMimeType: 'image/jpeg'
             }
         });
 
-        const resultText = response.text;
+        // 5. Extract the Image Data
+        // The new SDK returns the binary image data inside inlineData
+        const candidate = response.candidates?.[0];
+        const part = candidate?.content?.parts?.[0];
 
-        // LOG the result for debugging (first 100 chars)
-        console.log("[TRY-ON AI] Received response:", resultText ? resultText.substring(0, 100) : "EMPTY");
-
-        // Fallback: If the model doesn't return an image/base64 (which is likely with standard text models),
-        // we return the product image URL as a placeholder for the prototype visualization.
-        // In a real production system, we'd use a dedicated Image-to-Image model.
-        return resultText && resultText.length > 500 ? resultText : productImageUrl;
-
-    } catch (err: any) {
-        console.error("[TRY-ON AI] Generation Error:", err.stack || err.message);
-        if (err.message && err.message.includes('quota')) {
-            return productImageUrl; // Silently fallback on quota issues
+        if (part && 'inlineData' in part && part.inlineData?.data) {
+            console.log("🍌 [Try-On] Success! Image generated.");
+            // Return as data URL format
+            const base64Data = part.inlineData.data;
+            return {
+                generatedImageUrl: `data:image/jpeg;base64,${base64Data}`
+            };
         }
-        throw new Error(err.message || "Failed to generate virtual try-on preview.");
+
+        // If we get text instead (usually a safety refusal), throw an error
+        if (part && 'text' in part && part.text) {
+            console.error("🍌 Model refused:", part.text);
+            throw new Error("AI Refusal: " + part.text);
+        }
+
+        throw new Error("No image returned from AI.");
+
+    } catch (error: any) {
+        // Handle Quota Errors (429) gracefully
+        if (error.message?.includes('429')) {
+            console.error("❌ Quota Exceeded for Gemini 2.0");
+            throw new Error("Try-On is busy (Quota Exceeded). Please try again in a minute.");
+        }
+        console.error("❌ [Try-On] Error:", error);
+        throw new Error(`AI Failed: ${error.message || 'Unknown error'}`);
     }
 }

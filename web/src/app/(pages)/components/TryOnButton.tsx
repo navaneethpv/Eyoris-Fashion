@@ -35,13 +35,18 @@ export default function TryOnButton({ productName, productImage, productType }: 
                 </div>
             </div>
 
-            <VirtualTryOnModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                productName={productName}
-                productImage={productImage}
-                productType={productType}
-            />
+            {/* FIX 1: Conditional Rendering ensures it only mounts when open */}
+            {isModalOpen && (
+                <VirtualTryOnModal
+                    // FIX 2: Removed 'isOpen' (the modal doesn't use it, we handle it here)
+                    onClose={() => setIsModalOpen(false)}
+
+                    // FIX 3: MAPPED THE PROP CORRECTLY HERE 👇
+                    productImageUrl={productImage}
+
+                    productType={productType}
+                />
+            )}
         </>
     );
 }

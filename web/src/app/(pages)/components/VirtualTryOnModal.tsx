@@ -1,306 +1,161 @@
-"use client";
+import React, { useState, useRef } from 'react';
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Check, Loader2, Info } from "lucide-react";
-import Image from "next/image";
-
-interface VirtualTryOnModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    productName: string;
-    productImage: string;
-    productType: string;
+interface Positioning {
+    region: string;
+    position: { x: number; y: number };
+    scale: number;
+    rotation: number;
 }
 
-export default function VirtualTryOnModal({
-    isOpen,
-    onClose,
-    productName,
-    productImage,
-    productType,
-}: VirtualTryOnModalProps) {
-    const [step, setStep] = useState<"upload" | "processing" | "result">("upload");
+interface TryOnProps {
+    productImageUrl: string;
+    productType: string; // 'bangle', 'ring', 'necklace', etc.
+    onClose: () => void;
+}
+
+const VirtualTryOnModal: React.FC<TryOnProps> = ({ productImageUrl, productType, onClose }) => {
     const [userImage, setUserImage] = useState<string | null>(null);
-    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [positioning, setPositioning] = useState<Positioning | null>(null);
+    const [loading, setLoading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setError(null);
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // 1. Validate File Type (JPG/PNG only)
-        const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-        if (!validTypes.includes(file.type)) {
-            setError("Please upload a JPG or PNG image.");
-            return;
+    // 1. Handle File Upload
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setUserImage(ev.target?.result as string);
+                setPositioning(null); // Reset previous try-on
+            };
+            reader.readAsDataURL(e.target.files[0]);
         }
-
-        // 2. Validate File Size (Max 5MB)
-        const maxSize = 5 * 1024 * 1024;
-        if (file.size > maxSize) {
-            setError("Image size exceeds 5MB. Please upload a smaller file.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setUserImage(reader.result as string);
-            // Stay on upload step to show preview
-        };
-        reader.readAsDataURL(file);
     };
 
-    const startTryOn = async () => {
+    // 2. Call API to get Placement Logic
+    const handleTryOn = async () => {
         if (!userImage) return;
-        setStep("processing");
-        setError(null);
 
+        setLoading(true);
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-            const res = await fetch(`${API_URL}/api/try-on/preview`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/try-on/preview`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userImage, // base64
-                    productImage,
+                    userImageBase64: userImage,
+                    productImageUrl,
                     productType
-                }),
-                signal: controller.signal
+                })
             });
 
-            clearTimeout(timeoutId);
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || data.message || 'Failed to generate preview');
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
             }
 
-            const data = await res.json();
-            setGeneratedImage(data.generatedImageUrl);
-            setStep("result");
+            const data = await response.json();
+            if (data.positioning) {
+                setPositioning(data.positioning);
+            }
         } catch (err: any) {
-            console.error('Try-On Error:', err);
-            setError(err.name === 'AbortError' ? 'Request timed out. Please try again.' : err.message || "Failed to process try-on. Please try again.");
-            setStep("upload");
+            console.error("Try-on failed", err);
+            alert(`Could not analyze image placement. ${err.message || 'Please ensure the backend server is running on port 4000.'}`);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const resetModal = () => {
-        setStep("upload");
-        setUserImage(null);
-        setGeneratedImage(null);
-        setError(null);
+    // 3. Calculated Styles for the Overlay
+    const getOverlayStyle = () => {
+        if (!positioning) return {};
+        const { position, scale, rotation } = positioning;
+
+        return {
+            position: 'absolute' as 'absolute',
+            left: `${position.x}%`,
+            top: `${position.y}%`,
+            transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`,
+            width: '30%', // Base width relative to container; adjustable based on product type
+            pointerEvents: 'none' as 'none',
+            filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))' // Adds realism
+        };
     };
 
-    if (!isOpen) return null;
-
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                {/* Backdrop */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
 
-                {/* Modal Content */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl"
-                >
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                        <div>
-                            <h2 className="text-xl font-serif font-medium text-gray-900">
-                                Virtual Try-On
-                            </h2>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">
-                                Prototype Feature (AI)
-                            </p>
+                {/* Header */}
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <h2 className="font-bold text-lg text-gray-800">✨ AI Virtual Try-On <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full ml-2">Prototype</span></h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+                </div>
+
+                {/* Canvas Area */}
+                <div className="relative bg-gray-100 flex-grow flex items-center justify-center overflow-hidden min-h-[400px]">
+                    {!userImage ? (
+                        <div className="text-center p-8">
+                            <p className="mb-4 text-gray-500">Upload a photo of your hand, wrist, or neck</p>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition"
+                            >
+                                Upload Photo 📸
+                            </button>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <X className="w-5 h-5 text-gray-500" />
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            {/* User Image (Background) */}
+                            <img
+                                src={userImage}
+                                alt="User"
+                                className="max-h-[60vh] object-contain w-auto shadow-sm"
+                            />
 
-                    <div className="p-8">
-                        {step === "upload" && (
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
-                                        <Info className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-amber-900">Pro Tip</h4>
-                                        <p className="text-xs text-amber-700 font-medium">
-                                            Upload a clear image of your hand / neck depending on the product
-                                        </p>
-                                    </div>
-                                </div>
+                            {/* Product Overlay (The Magic) */}
+                            {positioning && (
+                                <img
+                                    src={productImageUrl}
+                                    alt="Virtual Accessory"
+                                    style={getOverlayStyle()}
+                                    className="transition-all duration-500 ease-out"
+                                />
+                            )}
 
-                                {error && (
-                                    <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-medium text-red-600 text-center animate-in fade-in slide-in-from-top-2">
-                                        {error}
-                                    </div>
-                                )}
+                            {/* Loading State */}
+                            {loading && (
+                                <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">
+                                    <div className="animate-spin text-4xl">🍌</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
+                </div>
 
-                                <div className="relative group border-2 border-dashed border-gray-200 hover:border-black rounded-3xl transition-all duration-300 min-h-[280px] flex items-center justify-center">
-                                    {!userImage ? (
-                                        <>
-                                            <input
-                                                type="file"
-                                                accept="image/jpeg,image/png"
-                                                onChange={handleImageUpload}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            />
-                                            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                                                    <Upload className="w-6 h-6 text-gray-400 group-hover:text-black transition-colors" />
-                                                </div>
-                                                <p className="text-lg font-medium text-gray-900 mb-2">
-                                                    Click to upload or drag & drop
-                                                </p>
-                                                <p className="text-sm text-gray-400">
-                                                    Supports JPG, PNG (Max 5MB)
-                                                </p>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="relative w-full h-full p-4 flex flex-col items-center">
-                                            <div className="relative w-48 h-48 rounded-2xl overflow-hidden border border-gray-100 shadow-lg mb-4">
-                                                <img
-                                                    src={userImage}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <button
-                                                    onClick={() => setUserImage(null)}
-                                                    className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full transition-all shadow-sm"
-                                                >
-                                                    <X className="w-3.5 h-3.5 text-gray-500" />
-                                                </button>
-                                            </div>
-                                            <p className="text-xs text-gray-500 font-medium mb-6">Image ready for Try-On</p>
-                                            <button
-                                                onClick={startTryOn}
-                                                className="w-full max-w-xs py-4 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-100"
-                                            >
-                                                Generate Preview
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {step === "processing" && (
-                            <div className="flex flex-col items-center justify-center py-12 space-y-8">
-                                <div className="relative">
-                                    <div className="w-32 h-32 rounded-3xl border border-gray-100 overflow-hidden shadow-xl">
-                                        {userImage && (
-                                            <img
-                                                src={userImage}
-                                                alt="User"
-                                                className="w-full h-full object-cover grayscale opacity-50"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Loader2 className="w-8 h-8 text-black animate-spin" />
-                                    </div>
-                                </div>
-                                <div className="text-center">
-                                    <h3 className="text-lg font-serif font-medium text-gray-900 mb-2 italic">
-                                        AI is analyzing your photo...
-                                    </h3>
-                                    <p className="text-sm text-gray-400 animate-pulse">
-                                        Mapping product to your proportions
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {step === "result" && (
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Original</p>
-                                        <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-gray-100 bg-gray-50 shadow-inner">
-                                            {userImage && (
-                                                <img
-                                                    src={userImage}
-                                                    alt="User Original"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] font-bold text-black uppercase tracking-widest px-1 flex items-center gap-2">
-                                            <Check className="w-3 h-3 text-emerald-500" /> AI Preview
-                                        </p>
-                                        <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-2 border-black bg-gray-50 shadow-2xl">
-                                            {userImage && (
-                                                <img
-                                                    src={userImage}
-                                                    alt="User with Product"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            )}
-                                            {/* PROTOTYPE OVERLAY: Mocking the product being 'tried on' */}
-                                            <div className="absolute inset-0 bg-black/5 flex items-center justify-center p-12">
-                                                <motion.div
-                                                    initial={{ scale: 0.5, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    transition={{ type: "spring", stiffness: 100, delay: 0.5 }}
-                                                    className="relative w-full h-full flex items-center justify-center"
-                                                >
-                                                    <img
-                                                        src={generatedImage || productImage}
-                                                        alt={productName}
-                                                        className="w-3/4 h-3/4 object-contain drop-shadow-2xl mix-blend-multiply opacity-90 rotate-[-15deg]"
-                                                    />
-                                                </motion.div>
-                                            </div>
-                                            <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg">
-                                                Prototype View
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        onClick={resetModal}
-                                        className="flex-1 py-4 border border-gray-200 rounded-full text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black hover:border-black transition-all"
-                                    >
-                                        Try another photo
-                                    </button>
-                                    <button
-                                        onClick={onClose}
-                                        className="flex-1 py-4 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
-                                    >
-                                        Close Preview
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
+                {/* Footer Controls */}
+                <div className="p-4 border-t bg-white flex justify-between items-center">
+                    {userImage ? (
+                        <>
+                            <button onClick={() => setUserImage(null)} className="text-sm text-gray-500 underline">Reset Photo</button>
+                            <button
+                                onClick={handleTryOn}
+                                disabled={loading || !!positioning}
+                                className={`px-8 py-3 rounded-lg font-semibold shadow-lg transition transform active:scale-95 ${positioning
+                                    ? 'bg-green-100 text-green-700 cursor-default'
+                                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                                    }`}
+                            >
+                                {positioning ? 'Try-On Applied ✅' : (loading ? 'Analyzing...' : 'Visualize on Me ✨')}
+                            </button>
+                        </>
+                    ) : (
+                        <span className="text-xs text-gray-400">Supported: Rings, Bangles, Necklaces</span>
+                    )}
+                </div>
             </div>
-        </AnimatePresence>
+        </div>
     );
-}
+};
+
+export default VirtualTryOnModal;

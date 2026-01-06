@@ -35,8 +35,8 @@ import path from "path"; // Added path
 // ...
 
 app.use(cors(corsOptions));
-// app.options(/.*/, cors(corsOptions));// MUST be immediately after
-app.use(express.json({ limit: '10mb' })); // Increased limit for base64 image uploads (try-on feature)
+app.use(express.json({ limit: '50mb' })); // Safe buffer for large phone photos
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // Standard practice to match limits
 app.use(morgan("dev"));
 
 // Serve uploaded files statically

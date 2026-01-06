@@ -300,30 +300,39 @@ export default function ProductFilters({
               const isWhite = bg === '#ffffff' || bg === '#fffdd0' || bg === '#f5f5dc';
 
               return (
-                <button
-                  key={normalizedColor}
-                  type="button"
-                  title={displayColor}
-                  className={`group relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
-                    ? 'ring-2 ring-black ring-offset-2 scale-110'
-                    : 'hover:scale-110 hover:shadow-lg'
-                    }`}
-                  onClick={() => updateFilter('color', colorValue)}
-                >
-                  <div
-                    className="w-full h-full rounded-full border border-gray-100 shadow-sm"
-                    style={{ backgroundColor: bg }}
-                  />
-                  {isActive && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Check className={`w-4 h-4 ${isWhite ? 'text-black' : 'text-white'}`} strokeWidth={3} />
-                    </div>
-                  )}
-                  {/* Tooltip */}
-                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                <div key={normalizedColor} className="flex flex-col items-center gap-2 mb-2">
+                  <button
+                    type="button"
+                    title={displayColor}
+                    className={`group relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                      ? 'ring-2 ring-black ring-offset-2 scale-110'
+                      : 'hover:scale-110 hover:shadow-lg'
+                      }`}
+                    onClick={() => updateFilter('color', colorValue)}
+                  >
+                    <div
+                      className="w-full h-full rounded-full border border-gray-100 shadow-sm"
+                      style={{ backgroundColor: bg }}
+                    />
+                    {isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Check className={`w-4 h-4 ${isWhite ? 'text-black' : 'text-white'}`} strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Permanent Label (Pill Style) */}
+                  <span
+                    onClick={() => updateFilter('color', colorValue)}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-full transition-all cursor-pointer whitespace-nowrap shadow-sm
+                      ${isActive
+                        ? 'bg-black text-white'
+                        : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
+                      }`}
+                  >
                     {displayColor}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

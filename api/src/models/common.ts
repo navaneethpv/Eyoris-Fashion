@@ -7,4 +7,9 @@ export interface IAITags {
     dominant_color_name: string;
     style_tags: string[];
     material_tags: string[];
+    pattern?: string;
+    fit?: string;
+    sleeve?: string;
+    neckline?: string;
+    hem?: string;
 }

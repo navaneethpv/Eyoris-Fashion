@@ -413,31 +413,73 @@ export const getProducts = async (req: Request, res: Response) => {
       pipeline.push({ $sort: sortOptions });
     }
 
-    // --- 4. Projection & Pagination ---
-    pipeline.push(
-      {
-        $project: {
-          _id: 1, name: 1, slug: 1, category: 1, gender: 1, subCategory: 1,
-          masterCategory: 1, price_cents: 1, price_before_cents: 1, brand: 1,
-          rating: 1, images: 1, dominantColor: 1, variants: 1, // Keep full variants for cart
-          searchScore: 1
-        }
+    // --- 4. Projection & Pagination Stage ---
+    const projectionStage: any = {
+      $project: {
+        _id: 1, name: 1, slug: 1, category: 1, gender: 1, subCategory: 1,
+        masterCategory: 1, price_cents: 1, price_before_cents: 1, brand: 1,
+        rating: 1, images: 1, dominantColor: 1, variants: 1,
+        searchScore: 1
       }
-    );
+    };
 
-    pipeline.push({
+    const facetStage: any = {
       $facet: {
         metadata: [{ $count: "total" }],
         data: [{ $skip: skip }, { $limit: limit }]
       }
-    });
+    };
 
-    // Execute Main Search
-    let result = await Product.aggregate(pipeline);
+    // --- 5. EXECUTION: TIER 1 (STRICT SEARCH) ---
+    // [Phase 2 Strict Logic]
+    let result = await Product.aggregate([...pipeline, projectionStage, facetStage] as any[]);
     let data = result[0].data || [];
     let total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
+    // --- 6. EXECUTION: TIER 2 (SEMANTIC FALLBACK) ---
+    // [Phase 3 Semantic Logic]
+    // If strict search failed but we have a query, try matching against AI semantic tags
+    if (total === 0 && isSearch && typeof q === 'string') {
+      const tokens = q.trim().split(/\s+/)
+        .map(t => t.trim())
+        .filter(t => t.length > 2 || /^[0-9]+$/.test(t));
 
+      if (tokens.length > 0) {
+        console.log(`[SEARCH] Tier 1 Strict failed for "${q}". Attempting Tier 2 Semantic fallback...`);
+
+        // Build Semantic Search Stage
+        const semanticAndConditions = tokens.map(token => {
+          const tokenRegex = new RegExp(escapeRegex(token), 'i');
+          return {
+            $or: [
+              { "aiTags.style_tags": tokenRegex },
+              { "aiTags.material_tags": tokenRegex },
+              { "aiTags.pattern": tokenRegex },
+              { "aiTags.fit": tokenRegex },
+              { "aiTags.sleeve": tokenRegex },
+              { "aiTags.neckline": tokenRegex },
+              { "aiTags.hem": tokenRegex },
+              { "description": tokenRegex }
+            ]
+          };
+        });
+
+        const semanticSearchStage = { $and: semanticAndConditions };
+        const semanticFinalMatchStage = { ...matchStage, ...semanticSearchStage };
+
+        // Re-build semantic pipeline (maintains original filters but swaps search stage)
+        const semanticPipeline: any[] = [
+          { $match: semanticFinalMatchStage },
+          { $sort: { createdAt: -1 as const } }, // Default sort for semantic results
+          projectionStage,
+          facetStage
+        ];
+
+        result = await Product.aggregate(semanticPipeline);
+        data = result[0].data || [];
+        total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+      }
+    }
 
     res.json({
       data,

@@ -73,6 +73,11 @@ const ProductSchema = new Schema<IProduct>(
       dominant_color_name: { type: String },
       style_tags: { type: [String] },
       material_tags: { type: [String] },
+      pattern: { type: String },
+      fit: { type: String },
+      sleeve: { type: String },
+      neckline: { type: String },
+      hem: { type: String },
     },
 
     variants: [{ type: Schema.Types.Mixed }],
@@ -90,6 +95,11 @@ ProductSchema.index({ masterCategory: 1 });
 ProductSchema.index({ "dominantColor.name": 1 });
 ProductSchema.index({ "aiTags.style_tags": 1 });
 ProductSchema.index({ "aiTags.material_tags": 1 });
+ProductSchema.index({ "aiTags.pattern": 1 });
+ProductSchema.index({ "aiTags.fit": 1 });
+ProductSchema.index({ "aiTags.sleeve": 1 });
+ProductSchema.index({ "aiTags.neckline": 1 });
+ProductSchema.index({ "aiTags.hem": 1 });
 
 export const Product = mongoose.model<IProduct>("Product", ProductSchema);
 export default Product;

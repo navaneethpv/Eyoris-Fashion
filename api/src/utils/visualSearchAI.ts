@@ -107,7 +107,7 @@ export async function analyzeImageForVisualSearch(
             dominantColor: {
                 name: parsed.dominantColor.name,
                 hex: parsed.dominantColor.hex,
-                rgb: hexToRgb(parsed.dominantColor.hex)
+                rgb: [0, 0, 0] // Dummy RGB as it's being removed/ignored
             }
         };
     } catch (err: any) {

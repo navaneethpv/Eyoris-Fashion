@@ -23,12 +23,10 @@ interface ImageSearchModalProps {
 }
 
 interface AnalysisData {
-  category: string;
-  aiTags: string[];
-  dominantColor: {
-    name: string;
-    hex: string;
-    rgb: [number, number, number];
+  q: string;
+  filters: {
+    category: string | null;
+    color: string | null;
   };
 }
 
@@ -130,14 +128,12 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
       setAnalysis(data);
 
-      // REDIRECT TO PRODUCT PAGE
+      // REDIRECT TO PRODUCT PAGE (Phase 3: Strict)
       const params = new URLSearchParams();
 
-      if (data.category) params.set("articleType", data.category);
-      if (data.dominantColor?.name) params.set("color", data.dominantColor.name);
-      if (data.aiTags && Array.isArray(data.aiTags)) {
-        params.set("q", data.aiTags.slice(0, 3).join(" "));
-      }
+      if (data.q) params.set("q", data.q);
+      if (data.filters?.category) params.set("category", data.filters.category);
+      if (data.filters?.color) params.set("color", data.filters.color);
 
       onClose(); // Close modal
       router.push(`/product?${params.toString()}`);

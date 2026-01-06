@@ -329,7 +329,13 @@ export default function ProductFilters({
                 'cream': '#FFFDD0',
                 'tan': '#D2B48C',
                 'copper': '#B87333',
-                'purple': '#800080'
+                'purple': '#800080',
+                'coffee brown': '#4B3621',
+                'off white': '#FAF9F6',
+                'grey melange': '#B2B2B2',
+                'charcoal': '#36454F',
+                'rust': '#B7410E',
+                'multi': 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)',
               };
               const bg = colorMap[normalizedColor] || '#e5e7eb';
               const isWhite = bg.toLowerCase() === '#ffffff' || bg.toLowerCase() === '#fffdd0' || bg.toLowerCase() === '#f5f5dc';

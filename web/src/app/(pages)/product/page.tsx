@@ -234,6 +234,7 @@ type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
 import { SlidersHorizontal } from "lucide-react";
 import FilterDrawer from "../components/FilterDrawer";
 import { AnimatePresence, motion } from "framer-motion";
+import ProductCardSkeleton from "../components/ProductCardSkeleton";
 import ProductPageLoader from "../components/ProductPageLoader";
 
 // ... (keep logic above ProductPageContent)
@@ -448,177 +449,172 @@ function ProductPageContent() {
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
       <Navbar />
 
-      <AnimatePresence mode="wait">
-        {loading && <ProductPageLoader key="loader" />}
-      </AnimatePresence>
+      {/* No more full-screen loader, we use skeletons for a smoother experience */}
 
-      {!loading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+      <div className="pt-2">
+        {/* Filter Drawer (Mobile) */}
+        <FilterDrawer
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          sizeFilterMode={sizeFilterMode}
+          genders={genders}
+          brands={brands}
+          colors={colors}
+        />
+
+        {/* MOBILE STICKY FILTER PILL */}
+        <motion.button
+          initial={{ y: 100, opacity: 0, x: "-50%" }}
+          animate={{ y: 0, opacity: 1, x: "-50%" }}
+          transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 20 }}
+          onClick={() => setIsFilterOpen(true)}
+          className="fixed bottom-8 left-1/2 z-50 md:hidden flex items-center gap-3 px-6 py-3 bg-black/90 backdrop-blur-md text-white rounded-full shadow-2xl hover:bg-black transition-colors"
+          aria-label="Open Filters"
         >
-          {/* Filter Drawer (Mobile) */}
-          <FilterDrawer
-            isOpen={isFilterOpen}
-            onClose={() => setIsFilterOpen(false)}
-            sizeFilterMode={sizeFilterMode}
-            genders={genders}
-            brands={brands}
-            colors={colors}
-          />
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="text-xs font-medium tracking-[0.15em] uppercase">Filters</span>
+        </motion.button>
 
-          {/* MOBILE STICKY FILTER PILL */}
-          <motion.button
-            initial={{ y: 100, opacity: 0, x: "-50%" }}
-            animate={{ y: 0, opacity: 1, x: "-50%" }}
-            transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 20 }}
-            onClick={() => setIsFilterOpen(true)}
-            className="fixed bottom-8 left-1/2 z-50 md:hidden flex items-center gap-3 px-6 py-3 bg-black/90 backdrop-blur-md text-white rounded-full shadow-2xl hover:bg-black transition-colors"
-            aria-label="Open Filters"
+        {/* 1) PREMIUM HEADER */}
+        <header className="pt-16 pb-12 sm:pt-24 sm:pb-16 text-center max-w-4xl mx-auto px-6">
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="text-4xl md:text-5xl font-serif font-medium text-gray-900 mb-4"
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            <span className="text-xs font-medium tracking-[0.15em] uppercase">Filters</span>
-          </motion.button>
+            {pageTitle}
+          </motion.h1>
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-gray-500 uppercase tracking-[0.15em] text-xs md:text-sm font-medium"
+          >
+            {loading ? "Discovering..." : (sortedProducts.length > 0 ? `${sortedProducts.length} Items` : "Collection")}
+          </motion.p>
+        </header>
 
-          {/* 1) PREMIUM HEADER */}
-          <header className="pt-16 pb-12 sm:pt-24 sm:pb-16 text-center max-w-4xl mx-auto px-6">
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.6 }}
-              className="text-4xl md:text-5xl font-serif font-medium text-gray-900 mb-4"
-            >
-              {pageTitle}
-            </motion.h1>
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="text-gray-500 uppercase tracking-[0.15em] text-xs md:text-sm font-medium"
-            >
-              {sortedProducts.length > 0 ? `${sortedProducts.length} Items` : "Collection"}
-            </motion.p>
-          </header>
+        {/* 2) STICKY UTILITY BAR (Mobile & Desktop) */}
+        <div className="sticky top-[60px] md:top-[80px] z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
 
-          {/* 2) STICKY UTILITY BAR (Mobile & Desktop) */}
-          <div className="sticky top-[60px] md:top-[80px] z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
+            {/* Left: Filter Toggle / Count */}
+            <div className="flex items-center gap-6">
 
-              {/* Left: Filter Toggle / Count */}
-              <div className="flex items-center gap-6">
-
-                <div className="hidden md:flex items-center gap-4 text-sm text-gray-500">
-                  <span className="font-medium text-gray-900 hidden lg:inline">Filters</span>
-                  <span className="h-4 w-px bg-gray-200"></span>
-                  <span>{sortedProducts.length} Results</span>
-                </div>
+              <div className="hidden md:flex items-center gap-4 text-sm text-gray-500">
+                <span className="font-medium text-gray-900 hidden lg:inline">Filters</span>
+                <span className="h-4 w-px bg-gray-200"></span>
+                <span>{loading ? "..." : sortedProducts.length} Results</span>
               </div>
+            </div>
 
-              {/* Right: Sort */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 uppercase tracking-wider hidden sm:inline">Sort by</span>
-                <div className="relative">
-                  <select
-                    className="appearance-none bg-transparent text-sm font-medium text-gray-900 pr-8 pl-2 py-1 focus:outline-none cursor-pointer hover:opacity-70 transition-opacity text-right"
-                    value={sortKey || ""}
-                    onChange={(e) => handleSortChange(e.target.value)}
-                  >
-                    <option value="">Recommended</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
-                    <option value="new">New Arrivals</option>
-                    <option value="rating">Top Rated</option>
-                  </select>
-                  {/* Tiny custom arrow to replace default browser arrow */}
-                  {/* <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                    </div> */}
-                </div>
+            {/* Right: Sort */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 uppercase tracking-wider hidden sm:inline">Sort by</span>
+              <div className="relative">
+                <select
+                  className="appearance-none bg-transparent text-sm font-medium text-gray-900 pr-8 pl-2 py-1 focus:outline-none cursor-pointer hover:opacity-70 transition-opacity text-right"
+                  value={sortKey || ""}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                >
+                  <option value="">Recommended</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="new">New Arrivals</option>
+                  <option value="rating">Top Rated</option>
+                </select>
               </div>
             </div>
           </div>
+        </div>
 
-          <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 flex gap-12">
+        <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 flex gap-12">
 
-            {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-64 flex-shrink-0 pt-2 sticky px-4 top-32 h-[calc(100vh-8rem)] overflow-y-auto pr-4 thin-scrollbar">
-              <div className="flex justify-between items-baseline mb-8">
-                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Refine</span>
-                {hasActiveFiltersOrSort && (
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="text-[10px] uppercase font-bold text-gray-400 hover:text-black transition-colors"
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-
-              <ProductFilters
-                sizeFilterMode={sizeFilterMode}
-                genders={genders}
-                brands={brands}
-                colors={colors}
-                values={resolvedSearchParams}
-                onChange={handleSidebarFilterChange}
-              />
-            </aside>
-
-            {/* Product Grid */}
-            <div className="flex-1">
-              {sortedProducts.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-6 md:gap-y-16">
-                    {sortedProducts.map((p, i) => (
-                      <motion.div
-                        key={p._id}
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "0px" }}
-                        transition={{ duration: 0.6, delay: i * 0.05 }}
-                      >
-                        <ProductCard
-                          product={{
-                            _id: p._id,
-                            slug: (p.slug as string) || "",
-                            name: (p.name as string) || "",
-                            brand: (p.brand as string) || "",
-                            price_cents: p.price_cents ?? 0,
-                            price_before_cents:
-                              p.price_before_cents ?? p.price_cents ?? 0,
-                            images: p.images ?? [],
-                            offer_tag: p.offer_tag ?? undefined,
-                          }}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="mt-20 border-t border-gray-100 pt-12 text-center">
-                    <Pagination page={meta.page} totalPages={meta.pages} />
-                  </div>
-                </>
-              ) : (
-                <div className="min-h-[400px] flex flex-col items-center justify-center text-center px-6">
-                  <h3 className="font-serif text-2xl text-gray-900 mb-2">No matches found</h3>
-                  <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                    We couldn't find any items matching your filters. Try adjusting your search criteria.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="inline-flex items-center justify-center bg-gray-900 text-white px-8 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200 hover:scale-105"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
+          {/* Desktop Sidebar */}
+          <aside className="hidden md:block w-64 flex-shrink-0 pt-2 sticky px-4 top-32 h-[calc(100vh-8rem)] overflow-y-auto pr-4 thin-scrollbar">
+            <div className="flex justify-between items-baseline mb-8">
+              <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Refine</span>
+              {hasActiveFiltersOrSort && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="text-[10px] uppercase font-bold text-gray-400 hover:text-black transition-colors"
+                >
+                  Clear All
+                </button>
               )}
             </div>
-          </main>
-        </motion.div>
-      )}
+
+            <ProductFilters
+              sizeFilterMode={sizeFilterMode}
+              genders={genders}
+              brands={brands}
+              colors={colors}
+              values={resolvedSearchParams}
+              onChange={handleSidebarFilterChange}
+            />
+          </aside>
+
+          {/* Product Grid / Skeleton */}
+          <div className="flex-1">
+            {loading ? (
+              /* --- SKELETON GRID --- */
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-6 md:gap-y-16">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : sortedProducts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-6 md:gap-y-16">
+                  {sortedProducts.map((p, i) => (
+                    <motion.div
+                      key={p._id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "0px" }}
+                      transition={{ duration: 0.6, delay: i * 0.05 }}
+                    >
+                      <ProductCard
+                        product={{
+                          _id: p._id,
+                          slug: (p.slug as string) || "",
+                          name: (p.name as string) || "",
+                          brand: (p.brand as string) || "",
+                          price_cents: p.price_cents ?? 0,
+                          price_before_cents:
+                            p.price_before_cents ?? p.price_cents ?? 0,
+                          images: p.images ?? [],
+                          offer_tag: p.offer_tag ?? undefined,
+                        }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="mt-20 border-t border-gray-100 pt-12 text-center">
+                  <Pagination page={meta.page} totalPages={meta.pages} />
+                </div>
+              </>
+            ) : (
+              <div className="min-h-[400px] flex flex-col items-center justify-center text-center px-6">
+                <h3 className="font-serif text-2xl text-gray-900 mb-2">No matches found</h3>
+                <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                  We couldn't find any items matching your filters. Try adjusting your search criteria.
+                </p>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="inline-flex items-center justify-center bg-gray-900 text-white px-8 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200 hover:scale-105"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -22,29 +22,47 @@ export default function ProductPageLoader() {
                 className="flex flex-col items-center"
             >
                 {/* Logo Mark */}
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl bg-black flex items-center justify-center mb-4 lg:mb-6 transition-all duration-500">
-                    <span className="text-white font-serif text-2xl lg:text-3xl leading-none">E</span>
+                <div
+                    className="
+            w-14 h-14
+            md:w-16 md:h-16
+            2xl:w-20 2xl:h-20
+            rounded-xl bg-black
+            flex items-center justify-center
+            mb-4 md:mb-5
+          "
+                >
+                    <span
+                        className="
+              text-white font-serif
+              text-2xl md:text-3xl 2xl:text-4xl
+              leading-none
+            "
+                    >
+                        E
+                    </span>
                 </div>
 
                 {/* Brand Name */}
-                <span className="font-serif text-lg lg:text-xl text-black leading-none mb-1 lg:mb-2 transition-all duration-500">
+                <span
+                    className="
+            font-serif text-black leading-none
+            text-lg md:text-xl 2xl:text-2xl
+            mb-1
+          "
+                >
                     Eyoris
                 </span>
 
                 {/* Sub Brand */}
-                <span className="text-[10px] lg:text-xs tracking-[0.25em] text-gray-500 transition-all duration-500">
+                <span
+                    className="
+            text-gray-500 tracking-[0.25em]
+            text-[10px] md:text-[11px] 2xl:text-[12px]
+          "
+                >
                     FASHION
                 </span>
-
-                {/* Loading Status */}
-                <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 1 }}
-                    className="text-[9px] lg:text-[10px] tracking-[0.2em] text-gray-400 uppercase mt-8 lg:mt-10 font-medium"
-                >
-                    Product Loading
-                </motion.span>
             </motion.div>
         </motion.div>
     );

@@ -11,6 +11,7 @@ import {
   Loader2,
   Link as LinkIcon,
   Heart,
+  Camera,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -18,6 +19,7 @@ import AccountInfo from "../components/profile/AccountInfo";
 import OrderHistory from "../components/profile/OrderHistory";
 import AddressBook from "../components/profile/AddressBook";
 import WishlistTab from "../components/profile/WishlistTab";
+import StoryArchive from "../components/profile/StoryArchive";
 import { SignInButton } from '@clerk/nextjs';
 
 const PROFILE_COMPONENTS: { [key: string]: React.ElementType } = {
@@ -25,6 +27,7 @@ const PROFILE_COMPONENTS: { [key: string]: React.ElementType } = {
   orders: OrderHistory,
   addresses: AddressBook,
   wishlist: WishlistTab,
+  stories: StoryArchive,
 };
 
 const PROFILE_LINKS = [
@@ -33,7 +36,14 @@ const PROFILE_LINKS = [
     name: "My Orders",
     description: "View, track, or cancel orders",
     icon: ShoppingBag,
-    color: "text-gray-900", // Updated to neutral/premium
+    color: "text-gray-900",
+  },
+  {
+    id: "stories",
+    name: "Your Stories",
+    description: "Manage your active & archived looks",
+    icon: Camera,
+    color: "text-gray-900",
   },
   {
     id: "wishlist",

@@ -119,7 +119,7 @@ export const createStory = async (req: Request, res: Response) => {
             imageUrl: uploadedUrl,
             caption: caption || "",
             status: "approved", // Auto-approve as per plan since verified by AI
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            // expiresAt: handled by model default (15 days)
         });
 
         res.status(201).json(story);
@@ -252,5 +252,45 @@ export const getStoryLikes = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("[GetLikes] Error:", error);
         res.status(500).json({ message: "Server error fetching likes." });
+    }
+};
+
+export const getUserStories = async (req: Request, res: Response) => {
+    try {
+        const { userId } = (req as any).auth;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        // Fetch ALL stories for this user (active and expired)
+        const stories = await Story.find({ userId })
+            .sort({ createdAt: -1 })
+            .populate('productId', 'name images price_cents price_before_cents slug');
+
+        res.json(stories);
+    } catch (error: any) {
+        console.error("[GetUserStories] Error:", error);
+        res.status(500).json({ message: "Server error fetching user stories." });
+    }
+};
+
+export const deleteStory = async (req: Request, res: Response) => {
+    try {
+        const { userId } = (req as any).auth;
+        const { id } = req.params;
+
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const story = await Story.findById(id);
+        if (!story) return res.status(404).json({ message: "Story not found" });
+
+        if (story.userId !== userId) {
+            return res.status(403).json({ message: "You can only delete your own stories." });
+        }
+
+        await Story.deleteOne({ _id: id });
+        res.json({ message: "Story deleted successfully." });
+
+    } catch (error: any) {
+        console.error("[DeleteStory] Error:", error);
+        res.status(500).json({ message: "Server error deleting story." });
     }
 };

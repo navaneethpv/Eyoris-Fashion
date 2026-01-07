@@ -22,7 +22,7 @@ const StorySchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         required: true,
-        default: () => new Date(+new Date() + 24 * 60 * 60 * 1000) // 24 hours from now
+        default: () => new Date(+new Date() + 15 * 24 * 60 * 60 * 1000) // 15 days from now
     }
 }, {
     timestamps: true,

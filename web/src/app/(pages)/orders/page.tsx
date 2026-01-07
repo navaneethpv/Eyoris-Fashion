@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { Order } from "../../../types/order";
 import Navbar from "../components/Navbar";
-import { Package, Truck, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
+import { Package, Truck, CheckCircle, Clock, XCircle, RefreshCw, Camera } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import StoryUploadModal from "../../../components/StoryUploadModal"; // Import Modal
 
 // Polling interval in ms
 const POLLING_INTERVAL = 5000;
@@ -17,6 +18,12 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<{
+        orderId: string;
+        productId: string;
+        productName: string;
+        productImage: string;
+    } | null>(null);
 
     const fetchOrders = async () => {
         if (!user) return;
@@ -152,10 +159,26 @@ export default function OrdersPage() {
                                                     <h4 className="font-medium text-gray-900 line-clamp-1">{item.name}</h4>
                                                     <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right flex flex-col items-end gap-2">
                                                     <span className="text-sm font-bold text-gray-900">
                                                         ₹{(item.price_cents / 100).toFixed(2)}
                                                     </span>
+
+                                                    {/* Add Story Button */}
+                                                    {(order.orderStatus === 'delivered' || (order as any).status === 'delivered') && (
+                                                        <button
+                                                            onClick={() => setSelectedProduct({
+                                                                orderId: order._id,
+                                                                productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+                                                                productName: item.name,
+                                                                productImage: item.image || ""
+                                                            })}
+                                                            className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1"
+                                                        >
+                                                            <Camera className="w-3 h-3" />
+                                                            Add Story
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -168,12 +191,22 @@ export default function OrdersPage() {
                                         </span>
                                     </div>
                                 </div>
-
                             </div>
                         ))}
                     </div>
                 )}
             </main>
+
+            {selectedProduct && (
+                <StoryUploadModal
+                    isOpen={!!selectedProduct}
+                    onClose={() => setSelectedProduct(null)}
+                    orderId={selectedProduct.orderId}
+                    productId={selectedProduct.productId}
+                    productName={selectedProduct.productName}
+                    productImage={selectedProduct.productImage}
+                />
+            )}
         </div>
     );
 }

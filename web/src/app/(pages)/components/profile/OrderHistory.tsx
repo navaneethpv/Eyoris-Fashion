@@ -4,6 +4,8 @@ import { useAuth } from "@clerk/nextjs";
 import { Loader2, Package, Calendar, MapPin, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
 import Link from "next/link";
+import StoryUploadModal from "@/components/StoryUploadModal";
+import { Camera } from "lucide-react";
 
 interface OrderHistoryProps {
   clerkUser: any;
@@ -14,6 +16,7 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [selectedProductForStory, setSelectedProductForStory] = useState<any | null>(null);
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -146,8 +149,31 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
             <span className="text-xs font-medium text-gray-400">
               Order #{order._id.slice(-8).toUpperCase()}
             </span>
-            <div className="flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
-              View Details <ChevronRight className="w-4 h-4" />
+
+            <div className="flex items-center gap-3">
+              {/* Add Story Button (Stop Propagation to prevent opening drawer) */}
+              {(order.status === 'delivered' || order.orderStatus === 'delivered') && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const item = order.items[0];
+                    setSelectedProductForStory({
+                      orderId: order._id,
+                      productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+                      productName: item.name,
+                      productImage: item.image || ""
+                    });
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-gray-700 transition-colors z-10"
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>Add Story</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
+                View Details <ChevronRight className="w-4 h-4" />
+              </div>
             </div>
           </div>
         </div>
@@ -219,6 +245,17 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         onClose={() => setSelectedOrder(null)}
         onOrderUpdate={handleOrderUpdate}
       />
+
+      {selectedProductForStory && (
+        <StoryUploadModal
+          isOpen={!!selectedProductForStory}
+          onClose={() => setSelectedProductForStory(null)}
+          orderId={selectedProductForStory.orderId}
+          productId={selectedProductForStory.productId}
+          productName={selectedProductForStory.productName}
+          productImage={selectedProductForStory.productImage}
+        />
+      )}
     </>
   );
 }

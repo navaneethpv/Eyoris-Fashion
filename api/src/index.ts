@@ -13,6 +13,7 @@ import reviewRoutes from "./routes/reviewRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import outfitRoutes from "./routes/outfitRoutes";
 import userRoutes from "./routes/userRoutes";
+import storyRoutes from "./routes/storyRoutes";
 
 import { syncClerkUsers } from "./services/clerkUserSync";
 
@@ -64,6 +65,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/outfit", outfitRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/stories", storyRoutes);
 
 
 

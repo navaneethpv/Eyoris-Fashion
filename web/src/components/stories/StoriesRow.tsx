@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ProductSpotlight from "./ProductSpotlight";
+import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
@@ -171,6 +172,29 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                 </button>
                             );
                         })}
+
+                        {/* Editorial Empty State / CTA Card */}
+                        <Link
+                            href="/profile"
+                            className="group relative flex flex-col flex-shrink-0 w-[200px] md:w-[240px] text-left focus:outline-none snap-start"
+                        >
+                            <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 group-hover:bg-gray-100 group-hover:border-gray-400">
+                                <h4 className="font-serif text-xl text-gray-900 mb-2">
+                                    Share your style
+                                </h4>
+                                <p className="text-sm text-gray-500 font-light leading-relaxed mb-6">
+                                    Verified buyers can add their look after delivery
+                                </p>
+                                <span className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-900 pb-0.5 group-hover:opacity-70 transition-opacity">
+                                    Upload your story &rarr;
+                                </span>
+                            </div>
+                            {/* Spacer for label alignment */}
+                            <div className="pl-1 space-y-0.5 opacity-0">
+                                <h4 className="text-sm font-medium">Placeholder</h4>
+                                <p className="text-xs">Wearing Eyoris</p>
+                            </div>
+                        </Link>
                     </div>
                 </div>
             </section>

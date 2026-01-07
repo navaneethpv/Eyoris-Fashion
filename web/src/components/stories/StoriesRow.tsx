@@ -46,12 +46,13 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
     useEffect(() => {
         const fetchStories = async () => {
             try {
-                let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/stories`;
+                let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories`;
                 if (productId) {
                     url += `?productId=${productId}`;
                 }
 
-                const res = await fetch(url);
+                console.log("Fetching stories from:", url);
+                const res = await fetch(url, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
                     setStories(data);

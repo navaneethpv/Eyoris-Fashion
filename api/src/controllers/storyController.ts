@@ -146,11 +146,17 @@ export const getStories = async (req: Request, res: Response) => {
         const stories = await Story.find(query)
             .sort({ createdAt: -1 })
             .limit(50)
-            .populate('productId', 'name price slug images');
+            .populate('productId', 'name price_cents price_before_cents slug images');
 
         // If needed, populate User info (assuming we have a User model or just store basic info).
         // Since User is in Clerk, we might not maintain a full User collection or it might be synced.
         // For now, return stories as is. Frontend can show "Verified Buyer".
+
+
+        // Debug logging
+        if (stories.length > 0) {
+            console.log("[GetStories] First story product sample:", JSON.stringify(stories[0].productId, null, 2));
+        }
 
         res.json(stories);
     } catch (error: any) {

@@ -30,6 +30,8 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
     // Construct the "Playlist" of views: [Styled Image, Main Product Image, ...Other Images]
     const productImages = story.productId.images || [];
 
+    console.log("ProductSpotlight Data:", story.productId);
+
     // Helper to get URL string whether it's an object or string
     const getImgUrl = (img: any) => (typeof img === 'string' ? img : img?.url || "");
 
@@ -158,10 +160,17 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-900 text-sm truncate">{story.productId.name}</h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-sm font-semibold text-gray-900">
-                                ₹{(story.productId.price / 100).toLocaleString('en-IN')}
-                            </span>
-                            {/* Show saved amount if applicable could go here */}
+                            <div className="flex flex-col">
+                                {/* Price Display v2 */}
+                                <span className="text-sm font-semibold text-gray-900 leading-none">
+                                    ₹{(Number(story.productId.price_cents ?? story.productId.price) / 100).toLocaleString('en-IN')}
+                                </span>
+                                {story.productId.price_before_cents && Number(story.productId.price_before_cents) > 0 && (
+                                    <span className="text-[10px] text-gray-400 line-through">
+                                        ₹{(Number(story.productId.price_before_cents) / 100).toLocaleString('en-IN')}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 

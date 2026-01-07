@@ -4,7 +4,7 @@ import { X, CheckCircle, ChevronRight, ChevronLeft, ShoppingBag, Heart, Eye } fr
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 interface Story {
     _id: string;
@@ -31,6 +31,7 @@ interface ProductSpotlightProps {
 
 export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNext, hasPrev }: ProductSpotlightProps) {
     const { user } = useUser();
+    const { getToken } = useAuth();
     // Construct the "Playlist" of views: [Styled Image, Main Product Image, ...Other Images]
     const productImages = story.productId.images || [];
 
@@ -67,17 +68,12 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
         setLiked(newLiked);
 
         try {
+            const token = await getToken();
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories/${story._id}/like`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Authorization header is usually handled by Clerk middleware automatically if using useAuth or just valid session cookies?
-                    // Actually, if backend requires auth, we need to pass token or ensure cookie is sent.
-                    // Assuming cookie based auth or header injection. 
-                    // To be safe, let's assume standard fetch picks up cookies if same domain or credentials include.
-                    // But here it's localhost:4000 vs 3000. We need credentials: 'include' maybe?
-                    // Or we just rely on the fact that Clerk handles it.
-                    // Let's rely on global fetch configuration if existing, or just try.
+                    'Authorization': `Bearer ${token}`
                 }
             });
             // If failed, revert
@@ -93,7 +89,12 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
         setLoadingLikes(true);
         try {
             // Fetch likes
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories/${story._id}/likes`);
+            const token = await getToken();
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories/${story._id}/likes`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setLikedUsers(data);

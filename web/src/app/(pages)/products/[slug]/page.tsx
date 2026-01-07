@@ -237,40 +237,17 @@ export default async function ProductDetailPage({
               <div className="h-px w-16 bg-gray-200 mb-8" />
             </div>
 
-            {/* 2. Price Section */}
+            {/* 3. Pricing & Cart Actions (Encapsulated) */}
             <div className="mb-10">
-              <div className="flex items-baseline gap-4 mb-3">
-                <span className="text-3xl font-medium text-gray-900 tracking-tight">
-                  ₹{(product.price_cents / 100).toFixed(0)}
-                </span>
-                {product.price_before_cents && (
-                  <span className="text-lg text-gray-400 line-through font-light">
-                    ₹{(product.price_before_cents / 100).toFixed(0)}
-                  </span>
-                )}
-                {discount > 0 && (
-                  <span className="text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wide border border-emerald-100">
-                    Save {discount}%
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 font-light">
-                Price inclusive of all taxes
-              </p>
-            </div>
-
-            {/* 3. Sizes & Add To Cart (Encapsulated) */}
-            <div className="mb-10">
-              {/* AddToCartButton handles the "Select Size" header, buttons, and Add/Heart actions */}
               <AddToCartButton
                 productId={product._id}
                 price={product.price_cents}
+                mrp={product.price_before_cents}
                 variants={product.variants}
               />
-
-              {/* 🛑 AI VIRTUAL TRY-ON (Prototype) 🛑 */}
-              {/* 🛑 AI VIRTUAL TRY-ON (Prototype) REMOVED 🛑 */}
             </div>
+
+            {/* 🛑 AI VIRTUAL TRY-ON REMOVED 🛑 */}
 
             {/* 4. Delivery & Trust Icons */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 mb-10">
@@ -364,7 +341,7 @@ export default async function ProductDetailPage({
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }

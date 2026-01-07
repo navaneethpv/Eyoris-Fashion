@@ -51,6 +51,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     });
 
     // --- Variant Management State ---
+    interface Variant {
+        size: string;
+        price: number | string;
+        mrp: number | string;
+        stock: number;
+    }
     const [variants, setVariants] = useState<Variant[]>([]);
 
     // --- Dropdown States & Data ---
@@ -103,6 +109,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             if (data.variants) {
                 setVariants(data.variants.map((v: any) => ({
                     size: v.size,
+                    price: v.price || '',
+                    mrp: v.mrp || '',
                     stock: v.stock
                 })));
             }
@@ -256,13 +264,13 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
     const removeImage = (id: number) => setImageInputs(prev => prev.filter(input => input.id !== id));
 
-    const handleVariantChange = (index: number, field: 'size' | 'stock', value: string | number) => {
+    const handleVariantChange = (index: number, field: 'size' | 'stock' | 'price' | 'mrp', value: string | number) => {
         const newVariants = [...variants];
         // @ts-ignore
         newVariants[index][field] = value;
         setVariants(newVariants);
     };
-    const addVariant = () => setVariants([...variants, { size: '', stock: 0 }]);
+    const addVariant = () => setVariants([...variants, { size: '', price: '', mrp: '', stock: 0 }]);
     const removeVariant = (index: number) => setVariants(variants.filter((_, i) => i !== index));
 
 
@@ -501,15 +509,17 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                 {/* Variants Table */}
                                 <div className="bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden">
                                     <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        <div className="col-span-4 pl-2">Size / Variant</div>
-                                        <div className="col-span-4">Stock Level</div>
-                                        <div className="col-span-4 text-right pr-2">Actions</div>
+                                        <div className="col-span-3 pl-2">Size</div>
+                                        <div className="col-span-3">Price (₹)</div>
+                                        <div className="col-span-3">MRP (₹)</div>
+                                        <div className="col-span-2">Stock</div>
+                                        <div className="col-span-1 text-right pr-2">Actions</div>
                                     </div>
 
                                     <div className="divide-y divide-gray-100">
                                         {variants.map((variant, index) => (
                                             <div key={index} className="grid grid-cols-12 gap-6 px-6 py-4 items-center hover:bg-white transition-colors">
-                                                <div className="col-span-4">
+                                                <div className="col-span-3">
                                                     <input
                                                         type="text"
                                                         value={variant.size}
@@ -518,7 +528,25 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                                         placeholder="Size"
                                                     />
                                                 </div>
-                                                <div className="col-span-4">
+                                                <div className="col-span-3">
+                                                    <input
+                                                        type="number"
+                                                        value={variant.price}
+                                                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-center focus:border-black focus:ring-0"
+                                                        placeholder="Price"
+                                                    />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <input
+                                                        type="number"
+                                                        value={variant.mrp}
+                                                        onChange={(e) => handleVariantChange(index, 'mrp', e.target.value)}
+                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-center focus:border-black focus:ring-0"
+                                                        placeholder="MRP"
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
                                                     <div className="relative">
                                                         <input
                                                             type="number"
@@ -526,10 +554,9 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                                             onChange={(e) => handleVariantChange(index, 'stock', Number(e.target.value))}
                                                             className={`w-full bg-white border rounded-lg px-3 py-2 text-sm font-mono text-center focus:border-black focus:ring-0 ${variant.stock < 5 ? 'border-red-200 text-red-600 bg-red-50/10' : 'border-gray-200 text-gray-900'}`}
                                                         />
-                                                        {variant.stock < 5 && <div className="absolute top-1/2 -translate-y-1/2 right-2 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
                                                     </div>
                                                 </div>
-                                                <div className="col-span-4 text-right flex justify-end">
+                                                <div className="col-span-1 text-right flex justify-end">
                                                     <button type="button" onClick={() => removeVariant(index)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>

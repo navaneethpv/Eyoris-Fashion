@@ -705,6 +705,58 @@ export const createProduct = async (req: Request, res: Response) => {
       }
     }
 
+    // --- DERIVE PRICE & STOCK FROM VARIANTS ---
+    // If variants exist, they dictate the master price (min variant price) and total stock.
+    let calculatedMinPriceCents = 0;
+    let calculatedTotalStock = 0;
+
+    // Fallback price input (if no variants or consistent legacy behavior)
+    let inputPriceNumber = (() => {
+      const raw = price_cents ?? req.body.price;
+      if (!raw) return 0;
+      const asNum = Number(raw);
+      if (isNaN(asNum)) return 0;
+      return asNum > 1000 ? Math.round(asNum) : Math.round(asNum * 100);
+    })();
+
+    if (parsedVariants.length > 0) {
+      let minP = Infinity;
+      parsedVariants.forEach((v: any) => {
+        // Ensure numeric
+        v.price = Number(v.price) || 0;
+        v.mrp = Number(v.mrp) || v.price;
+        v.stock = Number(v.stock) || 0;
+
+        if (v.price < minP) minP = v.price;
+        calculatedTotalStock += v.stock;
+      });
+      calculatedMinPriceCents = Math.round(minP * 100);
+    } else {
+      // Create default variant if none provided
+      if (inputPriceNumber > 0) {
+        calculatedMinPriceCents = inputPriceNumber;
+        calculatedTotalStock = req.body.stock ? Number(req.body.stock) : 10;
+        const priceBeforeParam = req.body.price_before_cents ? Number(req.body.price_before_cents) / 100 : (calculatedMinPriceCents * 1.3 / 100);
+
+        parsedVariants.push({
+          size: "One Size",
+          price: calculatedMinPriceCents / 100,
+          mrp: priceBeforeParam,
+          stock: calculatedTotalStock
+        });
+      }
+    }
+
+    if (calculatedMinPriceCents === 0 && inputPriceNumber === 0) {
+      return res.status(400).json({ message: 'Price is required (either via variants or top-level price).' });
+    }
+
+    // Final master values
+    const finalPriceCents = calculatedMinPriceCents > 0 ? calculatedMinPriceCents : inputPriceNumber;
+    // Note: If variants were empty and we created a default one, calculatedTotalStock is set.
+    // If variants existed, it is the sum.
+
+
     // parse image urls
     let urlArray: string[] = [];
     if (imageUrls) {
@@ -768,17 +820,9 @@ export const createProduct = async (req: Request, res: Response) => {
     // Collect ALL successful image URLs
     const validImageUrls = successes.map((s: any) => s.url).filter((u: any) => u && typeof u === 'string');
 
-    // parse price safely: accept cents or decimal rupees
-    const priceNumber = (() => {
-      const raw = price_cents ?? req.body.price;
-      if (!raw) return null;
-      const asNum = Number(raw);
-      if (isNaN(asNum)) return null;
-      return asNum > 1000 ? Math.round(asNum) : Math.round(asNum * 100);
-    })();
-
-    if (!priceNumber) {
-      return res.status(400).json({ message: 'Invalid price. Provide price_cents (integer) or price (decimal rupees).' });
+    // Validation (Price check already mostly done but double check final)
+    if (finalPriceCents <= 0) {
+      return res.status(400).json({ message: 'Invalid price. Must be greater than 0.' });
     }
 
     // Validate gender (required for outfit generation, must be one of: Men, Women, Kids)
@@ -849,10 +893,11 @@ export const createProduct = async (req: Request, res: Response) => {
       gender: String(gender).trim(), // Required field, validated above
       masterCategory: masterCategory ? String(masterCategory).trim() : undefined,
       description: String(description || '').trim(),
-      price: priceNumber / 100, // price in decimal (e.g., rupees)
-      price_cents: priceNumber,
-      price_before_cents: req.body.price_before_cents ? Number(req.body.price_before_cents) : Math.round(priceNumber * 1.3),
-      variants: parsedVariants.length ? parsedVariants : [{ size: "One Size", color: "Default", sku: `${slug}-OS`, stock: 10 }],
+      price: finalPriceCents / 100, // price in decimal (e.g., rupees)
+      price_cents: finalPriceCents,
+      price_before_cents: req.body.price_before_cents ? Number(req.body.price_before_cents) : Math.round(finalPriceCents * 1.3),
+      stock: calculatedTotalStock,
+      variants: parsedVariants,
       images: validImageUrls.length > 0 ? validImageUrls : [], // ✅ Save ALL images
       dominantColor: firstImageResult.dominantColor || undefined,
       imageEmbedding: firstImageResult.imageEmbedding, // ✅ Save Embedding
@@ -910,18 +955,36 @@ export const updateProduct = async (req: Request, res: Response) => {
     delete updateData._id;
     delete updateData.images; // We don't support image updates here yet
 
-    // Sync price and price_cents
-    if (updateData.price !== undefined) {
+    // --- HANDLE VARIANTS UPDATE & RECALCULATION ---
+    if (updateData.variants) {
+      let parsedVariants = updateData.variants;
+      // Ensure valid logic
+      if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
+        let minP = Infinity;
+        let totalStock = 0;
+        parsedVariants.forEach((v: any) => {
+          // sanitize
+          const vPrice = Number(v.price) || 0;
+          const vStock = Number(v.stock) || 0;
+          if (vPrice < minP) minP = vPrice;
+          totalStock += vStock;
+        });
+
+        if (minP !== Infinity) {
+          updateData.price = minP;
+          updateData.price_cents = Math.round(minP * 100);
+        }
+        updateData.stock = totalStock;
+
+        // Re-assign sanitized variants? Or rely on Mongoose schema?
+        // Let's just pass them through, assuming structure is correct or Mongoose will validate types.
+      }
+    } else if (updateData.price !== undefined) {
+      // Only updating price manually (legacy or bulk edit without variants)
       const priceVal = Number(updateData.price);
       if (!isNaN(priceVal)) {
         updateData.price = priceVal;
-        // Heuristic: if price is small (e.g. < 1000) assume it's decimal (rupees), * 100 for cents
-        // If it's large, assume it's already cents? No, the Edit page sends the decimal value.
-        // Let's standardise: Edit page sends "1299.00" (rupees).
-        // Backend expects price (decimal) and price_cents (integer).
         updateData.price_cents = Math.round(priceVal * 100);
-
-        // Also check price_before_cents logic if needed, but let's stick to fixing the main price first.
       }
     }
 

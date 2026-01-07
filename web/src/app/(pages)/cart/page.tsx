@@ -161,7 +161,9 @@ export default function CartPage() {
   // Calculate Total
   const subtotal =
     (cart?.items ?? []).reduce((acc: number, item: any) => {
-      return acc + (item.product?.price_cents ?? 0) * item.quantity;
+      // Use the stored price (variant price) if available, fallback to current product price
+      const price = item.price_at_add ?? item.product?.price_cents ?? 0;
+      return acc + price * item.quantity;
     }, 0) || 0;
 
   // safe items reference for rendering
@@ -290,7 +292,7 @@ export default function CartPage() {
 
                       <div className="text-right">
                         <div className="font-medium text-lg text-gray-900">
-                          ₹{(item.product.price_cents / 100).toFixed(0)}
+                          ₹{((item.price_at_add ?? item.product.price_cents) / 100).toFixed(0)}
                         </div>
                         {item.product.stock !== undefined &&
                           item.quantity >= item.product.stock && (

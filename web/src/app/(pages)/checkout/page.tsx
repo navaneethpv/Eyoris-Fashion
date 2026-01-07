@@ -82,7 +82,8 @@ export default function CheckoutPage() {
 
 
   const subtotal = cart?.items?.reduce((acc: number, item: any) => {
-    return acc + (item.product.price_cents * item.quantity);
+    const price = item.price_at_add ?? item.product.price_cents ?? 0;
+    return acc + (price * item.quantity);
   }, 0) || 0;
 
 
@@ -382,7 +383,7 @@ export default function CheckoutPage() {
                     <div className="flex-1 py-1">
                       <p className="font-medium text-gray-900 text-sm truncate mb-1 pr-4">{item.product.name}</p>
                       <p className="text-gray-500 text-xs mb-1 font-light">Size: {item.variantSku} | Qty: {item.quantity}</p>
-                      <span className="font-medium text-sm text-gray-900">₹{((item.product.price_cents * item.quantity) / 100).toFixed(0)}</span>
+                      <span className="font-medium text-sm text-gray-900">₹{(((item.price_at_add ?? item.product.price_cents) * item.quantity) / 100).toFixed(0)}</span>
                     </div>
                   </div>
                 ))}

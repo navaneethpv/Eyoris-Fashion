@@ -43,11 +43,15 @@ export default function AddProductPage() {
   });
 
   // --- Variant Management State ---
-  const [variants, setVariants] = useState([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
+  const [variants, setVariants] = useState([
+    { size: 'S', price: '', mrp: '', stock: 20 },
+    { size: 'M', price: '', mrp: '', stock: 20 },
+    { size: 'L', price: '', mrp: '', stock: 20 }
+  ]);
 
   // --- State for Cascading Category/SubCategory Dropdowns ---
-  const [masterCategories, setMasterCategories] = useState<string[]>([]); // For Category dropdown (masterCategory)
-  const [articleTypes, setArticleTypes] = useState<string[]>([]); // For SubCategory dropdown (category/articleType)
+  const [masterCategories, setMasterCategories] = useState<string[]>([]);
+  const [articleTypes, setArticleTypes] = useState<string[]>([]);
   const [filteredArticleTypes, setFilteredArticleTypes] = useState<string[]>([]);
   const [isMasterCategoryDropdownOpen, setIsMasterCategoryDropdownOpen] = useState(false);
   const [isArticleTypeDropdownOpen, setIsArticleTypeDropdownOpen] = useState(false);
@@ -57,105 +61,65 @@ export default function AddProductPage() {
   // --- Gender dropdown state ---
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
   const genderOptions = ['Men', 'Women', 'Kids'];
+  const base = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const baseUrl = base.replace(/\/$/, "");
 
   // --- Logic Hooks ---
   useEffect(() => {
-    // Fetch masterCategories from products (since there's no dedicated endpoint)
+    // Fetch masterCategories
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
       .then((res) => res.json())
       .then((data) => {
         const masterCats = Array.from(new Set(
-          data.data
-            .map((p: any) => p.masterCategory)
-            .filter((cat: string) => cat && cat.trim())
+          (data.data || []).map((p: any) => p.masterCategory).filter((cat: string) => cat && cat.trim())
         )).sort() as string[];
-
-        // Fallback to common master categories if none found
         const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
         setMasterCategories(masterCats.length > 0 ? masterCats : defaultMasterCategories);
-
-        // Set default if empty (only on initial load)
-        setFormData(prev => {
-          if (!prev.masterCategory) {
-            const defaultCat = masterCats.length > 0 ? masterCats[0] : defaultMasterCategories[0];
-            setMasterCategoryInputValue(defaultCat);
-            return { ...prev, masterCategory: defaultCat };
-          }
-          return prev;
-        });
       })
       .catch((err) => {
         console.error("MasterCategory fetch failed", err);
-        // Fallback to defaults
-        const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
-        setMasterCategories(defaultMasterCategories);
-        setFormData(prev => {
-          if (!prev.masterCategory) {
-            setMasterCategoryInputValue(defaultMasterCategories[0]);
-            return { ...prev, masterCategory: defaultMasterCategories[0] };
-          }
-          return prev;
-        });
+        setMasterCategories(['Apparel', 'Footwear', 'Accessories']);
       });
   }, []);
 
   useEffect(() => {
-    // Fetch articleTypes (categories) when masterCategory changes
-    // These are the articleTypes that belong to the selected masterCategory
     if (formData.masterCategory) {
-      // ✅ Use the new dynamic endpoint instead of fetching 1000 products
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories/${formData.masterCategory}/subcategories`)
+      fetch(`${baseUrl}/api/products?limit=1000`)
         .then((res) => res.json())
         .then((data) => {
-          // Data is array of strings (the distinct categories)
-          if (Array.isArray(data) && data.length > 0) {
-            setArticleTypes(data);
-            setFilteredArticleTypes(data);
-          } else {
-            // Fallback if empty (bootstrapping new category?) - still try general fetch or just empty
-            // For now, let's keep it empty so user can maybe type custom if we allowed it, 
-            // but UI currently forces selection. 
-            // Let's use the old fallback of "all categories" just in case this is a new master calc
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
+          const articleTypesList = Array.from(new Set(
+            (data.data || [])
+              .filter((p: any) => p.masterCategory === formData.masterCategory)
+              .map((p: any) => p.category)
+              .filter((cat: string) => cat && cat.trim())
+          )).sort() as string[];
+
+          if (articleTypesList.length === 0) {
+            fetch(`${baseUrl}/api/products/categories`)
               .then((res) => res.json())
               .then((cats) => {
                 setArticleTypes(cats);
                 setFilteredArticleTypes(cats);
-              })
-              .catch((err) => console.error("Category fetch failed", err));
+              }).catch(() => { });
+          } else {
+            setArticleTypes(articleTypesList);
+            setFilteredArticleTypes(articleTypesList);
           }
-
-          setArticleTypeInputValue(''); // Clear articleType when masterCategory changes
-          setFormData(prev => ({ ...prev, category: '' }));
         })
-        .catch((err) => {
-          console.error("SubCategory fetch failed", err);
-          // Fallback to all categories
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
-            .then((res) => res.json())
-            .then((cats) => {
-              setArticleTypes(cats);
-              setFilteredArticleTypes(cats);
-            })
-            .catch((e) => console.error("Category fetch failed", e));
-        });
+        .catch(() => { });
     } else {
       setArticleTypes([]);
       setFilteredArticleTypes([]);
-      setArticleTypeInputValue('');
-      setFormData(prev => ({ ...prev, category: '' }));
     }
   }, [formData.masterCategory]);
 
   useEffect(() => {
-    // Filter the articleType list based on input
     const filtered = articleTypes.filter((at) =>
       at.toLowerCase().includes(articleTypeInputValue.toLowerCase())
     );
     setFilteredArticleTypes(filtered);
   }, [articleTypeInputValue, articleTypes]);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -169,17 +133,11 @@ export default function AddProductPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-
   useEffect(() => {
-    // Automatically apply the AI's suggested category and subcategory to the form
-    // AI returns: category (articleType) and subCategory
-    // We need to map: AI category → formData.category (articleType), AI subCategory → can be ignored or used as subCategory
     if (suggestedCategory) {
-      // AI's "category" is actually the articleType (what goes in backend "category" field)
-      // AI's "subCategory" can be used as subCategory if needed, but primary mapping is category → category
       setFormData(prev => ({
         ...prev,
-        category: suggestedCategory.category, // AI category → backend category (articleType)
+        category: suggestedCategory.category,
       }));
       setArticleTypeInputValue(suggestedCategory.category);
       setIsMasterCategoryDropdownOpen(false);
@@ -223,12 +181,13 @@ export default function AddProductPage() {
   };
 
   const removeImage = (id: number) => setImageInputs(prev => prev.filter(input => input.id !== id));
-  const handleVariantChange = (index: number, field: 'size' | 'stock', value: string | number) => {
+
+  const handleVariantChange = (index: number, field: 'size' | 'stock' | 'price' | 'mrp', value: string | number) => {
     const newVariants = [...variants];
     (newVariants[index] as any)[field] = value;
     setVariants(newVariants);
   };
-  const addVariant = () => setVariants([...variants, { size: '', stock: 0 }]);
+  const addVariant = () => setVariants([...variants, { size: '', price: '', mrp: '', stock: 0 }]);
   const removeVariant = (index: number) => setVariants(variants.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -506,14 +465,16 @@ export default function AddProductPage() {
                 </div>
 
                 <div className="bg-zinc-50 rounded-lg border border-zinc-200 overflow-hidden">
-                  <div className="grid grid-cols-6 gap-4 p-3 border-b border-zinc-200 text-xs font-bold text-zinc-400 uppercase">
+                  <div className="grid grid-cols-10 gap-4 p-3 border-b border-zinc-200 text-xs font-bold text-zinc-400 uppercase">
                     <div className="col-span-2">Size</div>
-                    <div className="col-span-3">Stock Quantity</div>
+                    <div className="col-span-2">Price (₹)</div>
+                    <div className="col-span-2">MRP (₹)</div>
+                    <div className="col-span-3">Stock</div>
                     <div className="col-span-1 text-right">Action</div>
                   </div>
                   <div className="divide-y divide-zinc-200">
                     {variants.map((variant, index) => (
-                      <div key={index} className="grid grid-cols-6 gap-4 p-3 items-center hover:bg-white transition-colors">
+                      <div key={index} className="grid grid-cols-10 gap-4 p-3 items-center hover:bg-white transition-colors">
                         <div className="col-span-2">
                           <input
                             type="text"
@@ -521,6 +482,24 @@ export default function AddProductPage() {
                             className="w-full p-2 border border-zinc-200 rounded text-sm font-medium uppercase"
                             value={variant.size}
                             onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="number"
+                            placeholder="Price"
+                            className="w-full p-2 border border-zinc-200 rounded text-sm"
+                            value={variant.price}
+                            onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="number"
+                            placeholder="MRP"
+                            className="w-full p-2 border border-zinc-200 rounded text-sm"
+                            value={variant.mrp}
+                            onChange={(e) => handleVariantChange(index, 'mrp', e.target.value)}
                           />
                         </div>
                         <div className="col-span-3">

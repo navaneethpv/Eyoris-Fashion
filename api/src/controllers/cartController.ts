@@ -60,6 +60,15 @@ export const addToCart = async (req: Request, res: Response) => {
     if (index > -1) {
       cart.items[index].quantity += quantity;
     } else {
+      // Find variant price
+      let variantPrice = product.price_cents;
+      if (product.variants && Array.isArray(product.variants)) {
+        const v = product.variants.find((v: any) => v.size === variant);
+        if (v && v.price) {
+          variantPrice = Math.round(Number(v.price) * 100);
+        }
+      }
+
       // images[] may be an array of strings (urls) or objects with a `url` property.
       // Normalize to a string URL or null.
       let imageUrl: string | null = null;
@@ -72,7 +81,7 @@ export const addToCart = async (req: Request, res: Response) => {
         product: product._id, // or store snapshot
         variantSku: variant,
         quantity,
-        price_at_add: product.price_cents,
+        price_at_add: variantPrice,
         image_at_add: imageUrl, // new field on CartItem
       });
     }
@@ -133,9 +142,11 @@ export const updateCartQuantity = async (req: Request, res: Response) => {
     }
 
     // try increment existing item quantity
+    const latestPrice = await getLatestPrice(productId, variant);
+
     const incResult = await Cart.updateOne(
       { userId, "items.product": productId, "items.variantSku": variant },
-      { $set: { "items.$.price_at_add": await getLatestPrice(productId) }, $inc: { "items.$.quantity": quantity - await getCurrentQuantity(userId, productId, variant) } }
+      { $set: { "items.$.price_at_add": latestPrice }, $inc: { "items.$.quantity": quantity - await getCurrentQuantity(userId, productId, variant) } }
     );
 
     // if no item matched, push new (upsert)
@@ -148,7 +159,7 @@ export const updateCartQuantity = async (req: Request, res: Response) => {
               product: new mongoose.Types.ObjectId(productId),
               variantSku: variant,
               quantity,
-              price_at_add: await getLatestPrice(productId),
+              price_at_add: latestPrice,
             },
           },
         },
@@ -170,9 +181,15 @@ export const updateCartQuantity = async (req: Request, res: Response) => {
 };
 
 // helper examples (implement according your Product model)
-async function getLatestPrice(productId: string) {
+async function getLatestPrice(productId: string, variantSize: string = "") {
   const p = await Product.findById(productId).lean();
-  return p?.price_cents ?? 0;
+  if (!p) return 0;
+
+  if (variantSize && p.variants && Array.isArray(p.variants)) {
+    const v = p.variants.find((v: any) => v.size === variantSize);
+    if (v && v.price) return Math.round(Number(v.price) * 100);
+  }
+  return p.price_cents ?? 0;
 }
 async function getCurrentQuantity(userId: string, productId: string, variant: string) {
   const cart = await Cart.findOne({ userId }).lean();

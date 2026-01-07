@@ -8,17 +8,19 @@ import SizeGuideModal from './SizeGuideModal';
 interface Variant {
   size: string;
   stock: number;
-  // other fields ignored for this component
+  price?: number; // Selling Price in Rupees
+  mrp?: number;   // MRP in Rupees
 }
 
 interface AddToCartButtonProps {
   productId: string;
-  price: number;
+  price: number; // Base price in cents
+  mrp?: number;  // Base MRP in cents
   variants: Variant[];
-  compact?: boolean; // New Prop
+  compact?: boolean;
 }
 
-export default function AddToCartButton({ variants = [], productId, price, compact = false }: AddToCartButtonProps) {
+export default function AddToCartButton({ variants = [], productId, price, mrp, compact = false }: AddToCartButtonProps) {
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const router = useRouter();
@@ -35,8 +37,6 @@ export default function AddToCartButton({ variants = [], productId, price, compa
   // --- WISHLIST FETCH ON MOUNT ---
   useEffect(() => {
     if (!isLoaded || !user) return;
-
-    // Fetch user's wishlist to see if this product is in it
     const fetchWishlistStatus = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/wishlist?userId=${user.id}`);
@@ -51,21 +51,31 @@ export default function AddToCartButton({ variants = [], productId, price, compa
         console.error("Failed to fetch wishlist status:", error);
       }
     };
-
     fetchWishlistStatus();
   }, [isLoaded, user, productId]);
 
-  // --- STOCK LOGIC ---
+  // --- PRICING & STOCK LOGIC ---
   const selectedVariant = Array.isArray(variants) ? variants.find(v => v.size === selectedSize) : undefined;
   const availableStock = selectedVariant ? (selectedVariant.stock ?? 0) : 0;
   const isOutOfStock = !!selectedSize && availableStock <= 0;
   const isLowStock = availableStock > 0 && availableStock <= 10;
-  // --- END STOCK LOGIC ---
 
-  const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
+  // Calculate Display Price
+  // Base inputs are in CENTS. Variant inputs are in RUPEES.
+  // We convert everything to RUPEES for display.
+  const displayPrice = selectedVariant && selectedVariant.price
+    ? selectedVariant.price
+    : (price / 100);
+
+  const displayMrp = selectedVariant && selectedVariant.mrp
+    ? selectedVariant.mrp
+    : (mrp ? mrp / 100 : undefined);
+
+  const discount = displayMrp && displayMrp > displayPrice
+    ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
+    : 0;
+
+  const base = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
   const handleAddToCart = async () => {
@@ -79,13 +89,11 @@ export default function AddToCartButton({ variants = [], productId, price, compa
     const hasVariants = variants.length > 0;
 
     // 2. Validation
-    // Case A: Product HAS variants but none selected
     if (hasVariants && !selectedSize) {
       setShowSizeError(true);
       return;
     }
 
-    // Case B: Size selected but OOS
     if (hasVariants && selectedSize && availableStock <= 0) {
       alert("Selected size is out of stock.");
       return;
@@ -102,7 +110,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
         body: JSON.stringify({
           userId: user.id,
           productId: productId,
-          variant: hasVariants ? selectedSize : "One Size", // Default to "One Size" if no variants
+          variant: hasVariants ? selectedSize : "One Size",
           quantity: 1
         })
       });
@@ -128,42 +136,29 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       clerk.openSignIn();
       return;
     }
-
-    // OPTIMISTIC UPDATE
     const previousState = isLiked;
     setIsLiked(!previousState);
     setWishlistLoading(true);
-
     try {
       if (!previousState) {
-        // Was NOT liked -> ADD it
         const res = await fetch(`${baseUrl}/api/wishlist/add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, productId })
         });
-        if (!res.ok && res.status !== 400) {
-          // Revert on real failure (ignore 400 duplicate)
-          setIsLiked(previousState);
-        }
+        if (!res.ok && res.status !== 400) setIsLiked(previousState);
       } else {
-        // WAS liked -> REMOVE it
         const res = await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id })
         });
-        if (!res.ok) {
-          setIsLiked(previousState);
-        }
+        if (!res.ok) setIsLiked(previousState);
       }
-
-      // Trigger global event for header counters etc
       window.dispatchEvent(new Event("wishlist-updated"));
-
     } catch (err) {
       console.error(err);
-      setIsLiked(previousState); // Revert on network error
+      setIsLiked(previousState);
     } finally {
       setWishlistLoading(false);
     }
@@ -171,6 +166,31 @@ export default function AddToCartButton({ variants = [], productId, price, compa
 
   return (
     <div className={compact ? "space-y-3" : "space-y-8"}>
+
+      {/* 🛑 DYNAMIC PRICE SECTION (Moved inside component) 🛑 */}
+      {!compact && (
+        <div className="mb-2">
+          <div className="flex items-baseline gap-4 mb-3">
+            <span className="text-3xl font-medium text-gray-900 tracking-tight">
+              ₹{displayPrice.toFixed(0)}
+            </span>
+            {displayMrp && (
+              <span className="text-lg text-gray-400 line-through font-light">
+                ₹{displayMrp.toFixed(0)}
+              </span>
+            )}
+            {discount > 0 && (
+              <span className="text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wide border border-emerald-100">
+                Save {discount}%
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 font-light">
+            Price inclusive of all taxes
+          </p>
+        </div>
+      )}
+
       {/* Size Selector */}
       <div className={compact ? "mb-2" : "mb-6"}>
         <div className="flex justify-between items-center mb-4">

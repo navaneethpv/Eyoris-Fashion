@@ -80,7 +80,14 @@ const ProductSchema = new Schema<IProduct>(
       hem: { type: String },
     },
 
-    variants: [{ type: Schema.Types.Mixed }],
+    variants: [
+      {
+        size: { type: String, required: true },
+        price: { type: Number, required: true }, // Selling Price (Rupees)
+        mrp: { type: Number }, // Maximum Retail Price (Rupees)
+        stock: { type: Number, required: true, default: 0 }
+      }
+    ],
     rating: { type: Number },
     reviewsCount: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: true },

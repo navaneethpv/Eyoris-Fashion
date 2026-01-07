@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, ChevronRight, ShoppingBag } from "lucide-react";
+import { X, CheckCircle, ChevronRight, ChevronLeft, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
@@ -24,15 +24,15 @@ interface ProductSpotlightProps {
     onClose: () => void;
     onNext?: () => void;
     onPrev?: () => void;
+    hasNext?: boolean;
+    hasPrev?: boolean;
 }
 
-export default function ProductSpotlight({ story, onClose, onNext, onPrev }: ProductSpotlightProps) {
+export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNext, hasPrev }: ProductSpotlightProps) {
     // Construct the "Playlist" of views: [Styled Image, Main Product Image, ...Other Images]
     const productImages = story.productId.images || [];
 
-    console.log("ProductSpotlight Data:", story.productId);
-
-    // Helper to get URL string whether it's an object or string
+    // Helper to get URL string
     const getImgUrl = (img: any) => (typeof img === 'string' ? img : img?.url || "");
 
     const views = [
@@ -46,25 +46,102 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
 
     const [activeViewIndex, setActiveViewIndex] = useState(0);
     const activeView = views[activeViewIndex];
+    const [isPaused, setIsPaused] = useState(false);
+
+    // Timeline Logic
+    // Using simple CSS animation via keyframes isn't easy to reset from JS without removing valid DOM.
+    // Using standard requestAnimationFrame or standard React state is safer for explicit control.
+    // Requirement: 15s duration.
+    const DURATION = 15000;
+
+    // We use key props on the component itself (in parent) to reset state completely on story switch.
+    // So we just need a simple onMount timer here.
+
+    // However, we need to support "Pause".
+    // Let's use a CSS animation approach for the visual bar because it handles "pause" property natively and smoothly.
+    // But we also need an actual timer to trigger the close.
+    // Syncing JS timer + CSS animation is tricky if paused.
+
+    // Better approach: JS sets the progress, requestAnimationFrame updates it.
+    const [progress, setProgress] = useState(0);
+    const lastTimeRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        let animationFrameId: number;
+
+        const animate = (time: number) => {
+            if (!isPaused) {
+                if (lastTimeRef.current === null) {
+                    lastTimeRef.current = time;
+                }
+                const delta = time - lastTimeRef.current;
+                // If we paused, delta would be huge on resume if we didn't reset lastTime.
+                // Actually, we should accumulate elapsed time.
+
+                // Simpler: Just track 'elapsed'.
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        };
+        // cancelAnimationFrame(animationFrameId);
+
+        // Let's go with a simpler interval approach for 15s, it's fine for this UI.
+        // 15 seconds / 100 steps = 150ms per step.
+        // Or 60fps.
+    }, [isPaused]); // This is getting complicated.
+
+    // SIMPLIFIED TIMELINE:
+    // Using CSS animation for the visual bar is robust. 
+    // For the actual logic, we can listen to `onAnimationEnd` of the visual bar!
 
     // Keyboard Navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
-            if (e.key === "ArrowRight") onNext?.();
-            if (e.key === "ArrowLeft") onPrev?.();
+            if (e.key === "ArrowRight" && hasNext) onNext?.();
+            if (e.key === "ArrowLeft" && hasPrev) onPrev?.();
             if (e.key === "ArrowUp") setActiveViewIndex(prev => Math.max(0, prev - 1));
             if (e.key === "ArrowDown") setActiveViewIndex(prev => Math.min(views.length - 1, prev + 1));
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [onClose, onNext, onPrev, views.length]);
+    }, [onClose, onNext, onPrev, views.length, hasNext, hasPrev]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
 
+            {/* 0. Timeline (Top) */}
+            <div className="absolute top-0 left-0 right-0 z-30 flex justify-center pt-2">
+                <div
+                    className="relative w-full max-w-md h-0.5 bg-gray-800 rounded-full overflow-hidden"
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                    onTouchStart={() => setIsPaused(true)}
+                    onTouchEnd={() => setIsPaused(false)}
+                >
+                    <div
+                        className="h-full bg-white origin-left"
+                        style={{
+                            width: '100%',
+                            animation: `progress ${DURATION}ms linear forwards`,
+                            animationPlayState: isPaused ? 'paused' : 'running'
+                        }}
+                        onAnimationEnd={onClose}
+                    />
+                </div>
+                <div className="absolute top-4 text-[10px] text-gray-500 font-medium tracking-wide uppercase opacity-0 lg:opacity-60 transition-opacity">
+                    Auto-closes in {DURATION / 1000}s
+                </div>
+            </div>
+
+            <style jsx>{`
+        @keyframes progress {
+          from { transform: scaleX(0); }
+          to { transform: scaleX(1); }
+        }
+      `}</style>
+
             {/* 1. Header: Context & Close */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-6">
+            <div className="absolute top-6 left-0 right-0 z-20 flex items-center justify-between px-6">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
                         <CheckCircle className="w-3.5 h-3.5 text-green-400" />
@@ -84,10 +161,37 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
             </div>
 
             {/* 2. Main Stage */}
-            <div className="relative w-full h-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 p-4 md:p-12">
+            <div
+                className="relative w-full h-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 p-4 md:p-12"
+            >
+
+                {/* Navigation Arrows */}
+                {hasPrev && (
+                    <button
+                        onClick={onPrev}
+                        aria-label="Previous product story"
+                        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/5 hover:bg-white/10 hover:scale-110 border border-white/10 text-white backdrop-blur-sm transition-all shadow-lg hidden md:flex"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                )}
+
+                {hasNext && (
+                    <button
+                        onClick={onNext}
+                        aria-label="Next product story"
+                        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/5 hover:bg-white/10 hover:scale-110 border border-white/10 text-white backdrop-blur-sm transition-all shadow-lg hidden md:flex"
+                    >
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
+                )}
 
                 {/* Central visual */}
-                <div className="relative w-full max-w-lg aspect-[3/4] md:aspect-[4/5] flex-shrink-0">
+                <div
+                    className="relative w-full max-w-lg aspect-[3/4] md:aspect-[4/5] flex-shrink-0 group"
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeView.url}
@@ -125,7 +229,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
                 </div>
 
                 {/* 3. Vertical Rail (Desktop) / Horizontal Rail (Mobile) */}
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-3 z-30">
+                <div className="absolute right-24 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-3 z-30">
                     {views.map((view, idx) => (
                         <button
                             key={idx}
@@ -144,7 +248,11 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev }: Pro
             </div>
 
             {/* 4. Persistent Product Card (Footer) */}
-            <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 w-[90%] md:w-auto z-30">
+            <div
+                className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 w-[90%] md:w-auto z-30"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
                 <div className="flex items-center gap-4 p-2 pr-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/40 border border-white/20 md:min-w-[360px]">
                     {/* Thumbnail */}
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">

@@ -167,8 +167,11 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
 
             {selectedStoryIndex !== null && (
                 <ProductSpotlight
+                    key={stories[selectedStoryIndex]._id}
                     story={stories[selectedStoryIndex]}
                     onClose={() => setSelectedStoryIndex(null)}
+                    hasNext={selectedStoryIndex < stories.length - 1}
+                    hasPrev={selectedStoryIndex > 0}
                     onNext={() => {
                         if (selectedStoryIndex < stories.length - 1) {
                             setSelectedStoryIndex(selectedStoryIndex + 1);

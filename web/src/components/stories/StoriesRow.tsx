@@ -16,6 +16,7 @@ interface Story {
     createdAt: string;
     user?: {
         firstName?: string;
+        lastName?: string;
     };
 }
 
@@ -117,47 +118,55 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
 
     return (
         <>
-            <section className={`py-6 md:py-8 ${className} animate-in fade-in duration-700`}>
+            <section className={`py-12 md:py-16 ${className} animate-in fade-in duration-700`}>
                 <div className="container mx-auto px-4 md:px-8">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6 tracking-tight">{title}</h3>
 
-                    <div className="flex gap-5 overflow-x-auto pb-6 -mb-4 scrollbar-hide snap-x px-1">
+                    {/* Editorial Header */}
+                    <div className="mb-10 pl-1">
+                        <h3 className="font-serif text-3xl md:text-4xl text-gray-900 mb-2 tracking-tight">
+                            {title}
+                        </h3>
+                        <p className="text-gray-500 text-sm md:text-base tracking-wide font-light">
+                            Real looks from verified Eyoris buyers
+                        </p>
+                    </div>
+
+                    {/* Lookbook Scroll */}
+                    <div className="flex gap-6 overflow-x-auto pb-8 -mx-4 px-4 md:px-0 md:-mx-0 scrollbar-hide snap-x">
                         {stories.map((story, index) => {
-                            const isViewed = viewedStories.has(story._id);
-                            // Fallback name logic if backend doesn't provide user info
-                            const displayName = story.user?.firstName || `Buyer`;
+                            // Name Formatting: First Name + Last Initial
+                            const firstName = story.user?.firstName || "Shopper";
+                            const lastInitial = story.user?.lastName ? `${story.user.lastName[0]}.` : "";
+                            const displayName = `${firstName} ${lastInitial}`;
 
                             return (
                                 <button
                                     key={story._id}
                                     onClick={() => handleStoryClick(index, story._id)}
-                                    className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start focus:outline-none"
+                                    className="group relative flex flex-col flex-shrink-0 w-[200px] md:w-[240px] text-left focus:outline-none snap-start"
                                 >
-                                    {/* Story Ring Container */}
-                                    <div className={clsx(
-                                        "relative w-[72px] h-[72px] md:w-[84px] md:h-[84px] rounded-full p-[3px] transition-transform duration-300 ease-out group-hover:scale-105",
-                                        isViewed
-                                            ? "bg-gray-200"
-                                            : "bg-gradient-to-tr from-yellow-400 via-orange-500 to-pink-500 shadow-sm group-hover:shadow-pink-500/30"
-                                    )}>
-                                        {/* Inner White Border & Image */}
-                                        <div className="relative w-full h-full rounded-full border-2 border-white overflow-hidden bg-white">
-                                            <Image
-                                                src={story.imageUrl}
-                                                alt={`Story by ${displayName}`}
-                                                fill
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                        </div>
+                                    {/* Portrait Card */}
+                                    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 mb-4 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
+                                        <Image
+                                            src={story.imageUrl}
+                                            alt={`Styled by ${displayName}`}
+                                            fill
+                                            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                        />
+
+                                        {/* Subtle Overlay on Hover */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                                     </div>
 
-                                    {/* User Name */}
-                                    <span className={clsx(
-                                        "text-xs font-medium text-center truncate w-16 md:w-20 transition-colors",
-                                        isViewed ? "text-gray-400" : "text-gray-700 Group-hover:text-black"
-                                    )}>
-                                        {displayName}
-                                    </span>
+                                    {/* Editorial Label */}
+                                    <div className="pl-1 space-y-0.5">
+                                        <h4 className="text-sm font-medium text-gray-900">
+                                            {displayName}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide opacity-80">
+                                            Wearing Eyoris
+                                        </p>
+                                    </div>
                                 </button>
                             );
                         })}

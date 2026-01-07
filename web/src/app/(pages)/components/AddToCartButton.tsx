@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { ShoppingBag, Loader2, Check, X, AlertTriangle, Ruler, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import SizeGuideModal from './SizeGuideModal';
 
 interface Variant {
   size: string;
@@ -29,6 +30,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
 
   const [showSizeError, setShowSizeError] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   // --- WISHLIST FETCH ON MOUNT ---
   useEffect(() => {
@@ -177,7 +179,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
           ) : (
             <button
-              onClick={() => alert("Showing Size Guide Modal")}
+              onClick={() => setIsSizeGuideOpen(true)}
               className="text-xs text-gray-500 hover:text-gray-900 transition-colors flex items-center underline-offset-4 hover:underline"
             >
               <Ruler className="w-3.5 h-3.5 mr-1.5" /> Size Guide
@@ -264,6 +266,9 @@ export default function AddToCartButton({ variants = [], productId, price, compa
           <Heart className={`${compact ? "w-4 h-4" : "w-5 h-5"} ${wishlistLoading ? "animate-pulse" : ""} ${isLiked ? "fill-current text-red-600 stroke-red-600" : "text-gray-900 stroke-1.5"} transition-colors`} />
         </button>
       </div>
+
+      {/* Size Guide Modal */}
+      <SizeGuideModal isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
     </div>
   );
 }

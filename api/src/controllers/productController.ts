@@ -17,6 +17,7 @@ import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../u
 import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
+import { calculateStyleConfidence } from "../utils/styleConfidence";
 
 import imagekit from "../config/imagekit";
 
@@ -649,9 +650,13 @@ export const getProductBySlug = async (req: Request, res: Response) => {
 
     const [relatedAccessories, similarProducts] = await Promise.all(queries);
 
+    // Calculate Style Confidence Score
+    const styleConfidence = calculateStyleConfidence(product);
+
     // Attach to product object (Backward Compatible)
     const enhancedProduct = {
       ...product,
+      styleConfidence,
       relatedAccessories: relatedAccessories || [],
       similarProducts: similarProducts || []
     };

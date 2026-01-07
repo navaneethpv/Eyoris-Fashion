@@ -52,6 +52,7 @@ interface Product {
   aiTags: AiTagsType;
   rating?: number;
   reviewsCount?: number;
+  styleConfidence?: number;
 
   // Optional extra fields that first layout uses
   fabric?: string;
@@ -244,6 +245,7 @@ export default async function ProductDetailPage({
                 price={product.price_cents}
                 mrp={product.price_before_cents}
                 variants={product.variants}
+                styleConfidence={product.styleConfidence}
               />
             </div>
 

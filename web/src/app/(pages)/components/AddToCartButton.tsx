@@ -4,6 +4,7 @@ import { useUser, useClerk } from '@clerk/nextjs';
 import { ShoppingBag, Loader2, Check, X, AlertTriangle, Ruler, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SizeGuideModal from './SizeGuideModal';
+import StyleConfidenceCard from './StyleConfidenceCard';
 
 interface Variant {
   size: string;
@@ -18,9 +19,10 @@ interface AddToCartButtonProps {
   mrp?: number;  // Base MRP in cents
   variants: Variant[];
   compact?: boolean;
+  styleConfidence?: number; // New Prop
 }
 
-export default function AddToCartButton({ variants = [], productId, price, mrp, compact = false }: AddToCartButtonProps) {
+export default function AddToCartButton({ variants = [], productId, price, mrp, compact = false, styleConfidence }: AddToCartButtonProps) {
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const router = useRouter();
@@ -189,6 +191,11 @@ export default function AddToCartButton({ variants = [], productId, price, mrp, 
             Price inclusive of all taxes
           </p>
         </div>
+      )}
+
+      {/* Style Confidence Score */}
+      {!compact && styleConfidence !== undefined && (
+        <StyleConfidenceCard score={styleConfidence} />
       )}
 
       {/* Size Selector */}

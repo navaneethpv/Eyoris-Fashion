@@ -13,7 +13,7 @@ import reviewRoutes from "./routes/reviewRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import outfitRoutes from "./routes/outfitRoutes";
 import userRoutes from "./routes/userRoutes";
-import tryOnRoutes from "./routes/tryOnRoutes";
+
 import { syncClerkUsers } from "./services/clerkUserSync";
 
 dotenv.config();
@@ -64,7 +64,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/outfit", outfitRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/try-on", tryOnRoutes);
+
 
 
 app.get("/", (req, res) => {

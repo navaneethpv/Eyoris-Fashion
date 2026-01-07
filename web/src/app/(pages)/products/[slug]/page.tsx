@@ -11,7 +11,7 @@ import ProductReviews from "../../components/productReview";
 import AddToCartButton from "../../components/AddToCartButton";
 import { Star, Truck, ShieldCheck } from "lucide-react";
 import ProductSlider from "../../components/ProductSlider";
-import TryOnButton from "../../components/TryOnButton";
+
 
 // Force dynamic rendering for this route
 export const dynamic = "force-dynamic";
@@ -269,24 +269,7 @@ export default async function ProductDetailPage({
               />
 
               {/* 🛑 AI VIRTUAL TRY-ON (Prototype) 🛑 */}
-              {(() => {
-                const type = ["bangle", "ring", "necklace"].find(cat =>
-                  product.category?.toLowerCase().includes(cat) ||
-                  product.subCategory?.toLowerCase().includes(cat)
-                );
-                if (type) {
-                  return (
-                    <div className="mt-4 border-t border-gray-100 pt-8">
-                      <TryOnButton
-                        productName={product.name}
-                        productImage={resolveImageSrc(product.images) || ""}
-                        productType={type}
-                      />
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+              {/* 🛑 AI VIRTUAL TRY-ON (Prototype) REMOVED 🛑 */}
             </div>
 
             {/* 4. Delivery & Trust Icons */}

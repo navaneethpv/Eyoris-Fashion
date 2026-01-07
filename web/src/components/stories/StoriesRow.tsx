@@ -118,11 +118,11 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
 
     return (
         <>
-            <section className={`py-12 md:py-16 ${className} animate-in fade-in duration-700`}>
+            <section className={`py-8 md:py-16 ${className} animate-in fade-in duration-700`}>
                 <div className="container mx-auto px-4 md:px-8">
 
                     {/* Permanent Social Features Guide */}
-                    <div className="mb-10 bg-white border border-neutral-100 rounded-2xl p-6 md:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-shadow duration-500">
+                    <div className="mb-8 md:mb-10 bg-white border border-neutral-100 rounded-2xl p-5 md:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-shadow duration-500">
                         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
                             {/* Icon / Brand Element */}
                             <div className="flex-shrink-0 w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center">
@@ -181,7 +181,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                     </div>
 
                     {/* Lookbook Scroll */}
-                    <div className="flex gap-6 overflow-x-auto pb-8 -mx-4 px-4 md:px-0 md:-mx-0 scrollbar-hide snap-x">
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 -mx-4 px-4 md:px-0 md:-mx-0 scrollbar-hide snap-x">
                         {stories.map((story, index) => {
                             // Name Formatting: First Name + Last Initial
                             const firstName = story.user?.firstName || "Shopper";
@@ -192,7 +192,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                 <button
                                     key={story._id}
                                     onClick={() => handleStoryClick(index, story._id)}
-                                    className="group relative flex flex-col flex-shrink-0 w-[200px] md:w-[240px] text-left focus:outline-none snap-start"
+                                    className="group relative flex flex-col flex-shrink-0 w-[165px] md:w-[240px] text-left focus:outline-none snap-start"
                                 >
                                     {/* Portrait Card */}
                                     <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 mb-4 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
@@ -236,7 +236,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                         {/* Editorial Empty State / CTA Card */}
                         <Link
                             href="/profile"
-                            className="group relative flex flex-col flex-shrink-0 w-[200px] md:w-[240px] text-left focus:outline-none snap-start"
+                            className="group relative flex flex-col flex-shrink-0 w-[165px] md:w-[240px] text-left focus:outline-none snap-start"
                         >
                             <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 group-hover:bg-gray-100 group-hover:border-gray-400">
                                 <h4 className="font-serif text-lg text-gray-900 mb-2">

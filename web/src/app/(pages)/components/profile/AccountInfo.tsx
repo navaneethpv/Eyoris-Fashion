@@ -92,9 +92,9 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 md:space-y-12">
       {/* 🛑 HEADER CARD 🛑 */}
-      <div className="relative overflow-hidden bg-white rounded-3xl p-8 shadow-[0_2px_40px_rgba(0,0,0,0.03)] border border-gray-100">
+      <div className="relative overflow-hidden bg-white rounded-3xl p-6 md:p-8 shadow-[0_2px_40px_rgba(0,0,0,0.03)] border border-gray-100">
         {/* Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-50 to-pink-50 rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
@@ -111,7 +111,7 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingPhoto}
-              className="absolute bottom-1 right-1 bg-black text-white rounded-full p-2.5 hover:bg-gray-800 hover:scale-110 shadow-lg transition-all duration-300 disabled:opacity-50"
+              className="absolute bottom-1 right-1 bg-black text-white rounded-full p-2.5 hover:bg-gray-800 hover:scale-110 shadow-lg border-2 border-white transition-all duration-300 disabled:opacity-50"
               title="Change profile photo"
             >
               {isUploadingPhoto ? (
@@ -141,8 +141,8 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
                   transition={{ duration: 0.2 }}
                   className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-100"
                 >
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 justify-center md:justify-start">
-                    <Edit2 className="w-3 h-3" />
+                  <p className="text-sm font-bold text-gray-900 tracking-wide mb-6 flex items-center gap-2 justify-center md:justify-start">
+                    <Edit2 className="w-4 h-4" />
                     Edit Personal Details
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -173,7 +173,7 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
                     <button
                       onClick={handleCancelEdit}
                       disabled={isSavingName}
-                      className="px-6 py-2.5 rounded-full text-sm font-bold text-gray-500 hover:text-black hover:bg-gray-100 transition-colors"
+                      className="px-6 py-2.5 rounded-full text-sm font-bold text-gray-900 hover:underline hover:bg-gray-50 transition-all"
                     >
                       Cancel
                     </button>

@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Truck, Check, X, Loader2, ChevronDown, ChevronUp, FileText, Download, Package, CreditCard, Clock, MapPin, CheckCircle } from 'lucide-react';
+import { Eye, Truck, Check, X, Loader2, ChevronDown, ChevronUp, FileText, Download, Package, CreditCard, Clock, MapPin, CheckCircle, Star } from 'lucide-react';
 // import { useAuth } from "@clerk/nextjs"; // Removed
 import { useAdminFetch } from '@/lib/adminFetch';
 
@@ -542,6 +542,58 @@ export default function OrdersPage() {
                                               </span>
                                             </div>
                                           )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Customer Reviews Section */}
+                                    {order.reviews && order.reviews.length > 0 && (
+                                      <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center">
+                                          <CheckCircle className="w-5 h-5 mr-2 text-indigo-600" />
+                                          Customer Reviews
+                                        </h3>
+                                        <div className="space-y-4">
+                                          {order.reviews.map((review: any, rIdx: number) => (
+                                            <div key={rIdx} className="bg-white/80 p-4 rounded-lg border border-indigo-100">
+                                              <div className="flex justify-between items-start mb-2">
+                                                <div className="space-y-1">
+                                                  <div className="flex items-center gap-2">
+                                                    <div className="flex">
+                                                      {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                          key={i}
+                                                          className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                        />
+                                                      ))}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-indigo-900">{review.rating}/5</span>
+                                                  </div>
+                                                  <p className="text-sm font-semibold text-gray-900">
+                                                    {order.items?.find((it: any) => (it.productId?._id || it.productId) === review.productId)?.name || 'Product'}
+                                                  </p>
+                                                </div>
+                                                <span className="text-[10px] text-gray-500 uppercase font-bold">
+                                                  {new Date(review.createdAt).toLocaleDateString()}
+                                                </span>
+                                              </div>
+
+                                              <p className="text-sm text-gray-700 italic mb-3">"{review.comment}"</p>
+
+                                              {review.photos && review.photos.length > 0 && (
+                                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                                  {review.photos.map((photo: string, pIdx: number) => (
+                                                    <img
+                                                      key={pIdx}
+                                                      src={photo}
+                                                      alt="Review evidence"
+                                                      className="w-16 h-16 rounded-lg object-cover border border-gray-200 shadow-sm"
+                                                    />
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
                                         </div>
                                       </div>
                                     )}

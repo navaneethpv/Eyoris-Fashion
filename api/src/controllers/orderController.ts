@@ -167,12 +167,25 @@ export const getUserOrders = async (req: Request, res: Response) => {
 // GET /api/orders/all (Admin)
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
+    const orders = await Order.find().sort({ createdAt: -1 }).lean();
+
+    // Fetch all reviews for these orders
+    const orderIds = orders.map(o => o._id);
+    const reviews = await Review.find({ orderId: { $in: orderIds } }).lean();
+
+    // Attach reviews to their respective orders
+    const ordersWithReviews = orders.map(order => ({
+      ...order,
+      reviews: reviews.filter(r => r.orderId.toString() === (order as any)._id.toString())
+    }));
+
+    res.json(ordersWithReviews);
   } catch (error) {
+    console.error('Error fetching all orders:', error);
     res.status(500).json({ message: 'Failed to fetch orders' });
   }
 };
+
 
 
 // GET /api/admin/stats

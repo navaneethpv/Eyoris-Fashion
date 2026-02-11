@@ -344,66 +344,121 @@ export default function OrdersPage() {
                                 exit={{ opacity: 0, y: -10 }}
                                 className="py-6"
                               >
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                  {/* Order Items */}
-                                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                      <Package className="w-5 h-5 mr-2 text-blue-600" />
-                                      Ordered Items
-                                    </h3>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                  {/* Left Column: Product Info & Reviews */}
+                                  <div className="space-y-6">
+                                    {/* Order Items */}
+                                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                        <Package className="w-5 h-5 mr-2 text-blue-600" />
+                                        Ordered Items
+                                      </h3>
 
-                                    <div className="space-y-4">
-                                      {order.items?.map((item: any, itemIndex: number) => (
-                                        <motion.div
-                                          key={itemIndex}
-                                          initial={{ opacity: 0, x: -20 }}
-                                          animate={{ opacity: 1, x: 0 }}
-                                          transition={{ delay: itemIndex * 0.1 }}
-                                          className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                                        >
-                                          <div className="flex-shrink-0">
-                                            {item.image ? (
-                                              <img
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="w-12 h-12 rounded-lg object-cover"
-                                              />
-                                            ) : (
-                                              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                                <Package className="w-6 h-6 text-gray-400" />
-                                              </div>
-                                            )}
-                                          </div>
+                                      <div className="space-y-4">
+                                        {order.items?.map((item: any, itemIndex: number) => (
+                                          <motion.div
+                                            key={itemIndex}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: itemIndex * 0.1 }}
+                                            className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                                          >
+                                            <div className="shrink-0">
+                                              {item.image ? (
+                                                <img
+                                                  src={item.image}
+                                                  alt={item.name}
+                                                  className="w-12 h-12 rounded-lg object-cover"
+                                                />
+                                              ) : (
+                                                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                                  <Package className="w-6 h-6 text-gray-400" />
+                                                </div>
+                                              )}
+                                            </div>
 
-                                          <div className="flex-grow">
-                                            <h4 className="font-semibold text-gray-900 text-sm">{item.name}</h4>
-                                            <p className="text-xs text-gray-500">Variant: {item.variantSku}</p>
-                                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                                          </div>
+                                            <div className="grow">
+                                              <h4 className="font-semibold text-gray-900 text-sm">{item.name}</h4>
+                                              <p className="text-xs text-gray-500">Variant: {item.variantSku}</p>
+                                              <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                            </div>
 
-                                          <div className="text-right">
-                                            <p className="font-bold text-gray-900">
-                                              {formatCurrency(item.price_cents)}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                              {formatCurrency(item.price_cents * item.quantity)}
-                                            </p>
-                                          </div>
-                                        </motion.div>
-                                      ))}
-                                    </div>
+                                            <div className="text-right">
+                                              <p className="font-bold text-gray-900">
+                                                {formatCurrency(item.price_cents)}
+                                              </p>
+                                              <p className="text-xs text-gray-500">
+                                                {formatCurrency(item.price_cents * item.quantity)}
+                                              </p>
+                                            </div>
+                                          </motion.div>
+                                        ))}
+                                      </div>
 
-                                    <div className="mt-4 pt-4 border-t border-gray-200">
-                                      <div className="flex justify-between items-center">
-                                        <span className="font-bold text-gray-900">Total:</span>
-                                        <span className="font-bold text-lg text-gray-900">
-                                          {formatCurrency(order.total_cents)}
-                                        </span>
+                                      <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-bold text-gray-900">Total:</span>
+                                          <span className="font-bold text-lg text-gray-900">
+                                            {formatCurrency(order.total_cents)}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
+
+                                    {/* Customer Reviews Section */}
+                                    {order.reviews && order.reviews.length > 0 && (
+                                      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                          <CheckCircle className="w-5 h-5 mr-2 text-indigo-600" />
+                                          Customer Reviews
+                                        </h3>
+                                        <div className="space-y-4">
+                                          {order.reviews.map((review: any, rIdx: number) => (
+                                            <div key={rIdx} className="p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+                                              <div className="flex justify-between items-start mb-2">
+                                                <div className="space-y-1">
+                                                  <div className="flex items-center gap-2">
+                                                    <div className="flex">
+                                                      {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                          key={i}
+                                                          className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                        />
+                                                      ))}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-700">{review.rating}/5</span>
+                                                  </div>
+                                                  <p className="text-sm font-semibold text-gray-900">
+                                                    {order.items?.find((it: any) => (it.productId?._id || it.productId) === review.productId)?.name || 'Product'}
+                                                  </p>
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 uppercase font-bold">
+                                                  {new Date(review.createdAt).toLocaleDateString()}
+                                                </span>
+                                              </div>
+
+                                              <p className="text-sm text-gray-600 italic mb-3">"{review.comment}"</p>
+
+                                              {review.photos && review.photos.length > 0 && (
+                                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                                  {review.photos.map((photo: string, pIdx: number) => (
+                                                    <img
+                                                      key={pIdx}
+                                                      src={photo}
+                                                      alt="Review evidence"
+                                                      className="w-16 h-16 rounded-lg object-cover border border-gray-200 shadow-sm"
+                                                    />
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
 
-                                  {/* Shipping & Payment Info */}
+                                  {/* Right Column: Logistics & Info */}
                                   <div className="space-y-6">
                                     {/* Shipping Address */}
                                     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -431,7 +486,7 @@ export default function OrdersPage() {
                                       </div>
                                     </div>
 
-                                    {/* Payment & Order Info */}
+                                    {/* Order Information */}
                                     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                                       <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                                         <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
@@ -442,7 +497,7 @@ export default function OrdersPage() {
                                         <div className="flex items-center justify-between">
                                           <span className="text-sm text-gray-500">Order Date:</span>
                                           <span className="text-sm font-medium text-gray-900 flex items-center">
-                                            <Clock className="w-4 h-4 mr-1" />
+                                            <Clock className="w-4 h-4 mr-1 text-gray-400" />
                                             {new Date(order.createdAt).toLocaleDateString('en-US', {
                                               year: 'numeric',
                                               month: 'short',
@@ -455,7 +510,7 @@ export default function OrdersPage() {
 
                                         <div className="flex items-center justify-between">
                                           <span className="text-sm text-gray-500">Payment Method:</span>
-                                          <span className="text-sm font-medium text-gray-900">
+                                          <span className="text-sm font-medium text-gray-900 uppercase">
                                             {order.paymentInfo?.method || 'Credit Card'}
                                           </span>
                                         </div>
@@ -476,12 +531,12 @@ export default function OrdersPage() {
                                       </div>
                                     </div>
 
-                                    {/* Cancellation Details - Only show for cancelled orders */}
+                                    {/* Cancellation Details */}
                                     {order.orderStatus === 'cancelled' && (
                                       <div className="bg-red-50 rounded-xl border-2 border-red-200 p-6 shadow-sm">
                                         <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center">
                                           <X className="w-5 h-5 mr-2 text-red-600" />
-                                          🚫 Order Cancelled
+                                          Order Cancelled
                                         </h3>
 
                                         <div className="space-y-3">
@@ -511,12 +566,12 @@ export default function OrdersPage() {
                                       </div>
                                     )}
 
-                                    {/* Return Request Details - Only show for return_requested orders */}
+                                    {/* Return Details */}
                                     {order.orderStatus === 'return_requested' && (
                                       <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-6 shadow-sm">
                                         <h3 className="text-lg font-bold text-orange-900 mb-4 flex items-center">
                                           <Package className="w-5 h-5 mr-2 text-orange-600" />
-                                          📦 Return Requested
+                                          Return Requested
                                         </h3>
 
                                         <div className="space-y-3">
@@ -545,61 +600,10 @@ export default function OrdersPage() {
                                         </div>
                                       </div>
                                     )}
-
-                                    {/* Customer Reviews Section */}
-                                    {order.reviews && order.reviews.length > 0 && (
-                                      <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-6 shadow-sm">
-                                        <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center">
-                                          <CheckCircle className="w-5 h-5 mr-2 text-indigo-600" />
-                                          Customer Reviews
-                                        </h3>
-                                        <div className="space-y-4">
-                                          {order.reviews.map((review: any, rIdx: number) => (
-                                            <div key={rIdx} className="bg-white/80 p-4 rounded-lg border border-indigo-100">
-                                              <div className="flex justify-between items-start mb-2">
-                                                <div className="space-y-1">
-                                                  <div className="flex items-center gap-2">
-                                                    <div className="flex">
-                                                      {[...Array(5)].map((_, i) => (
-                                                        <Star
-                                                          key={i}
-                                                          className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                                                        />
-                                                      ))}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-indigo-900">{review.rating}/5</span>
-                                                  </div>
-                                                  <p className="text-sm font-semibold text-gray-900">
-                                                    {order.items?.find((it: any) => (it.productId?._id || it.productId) === review.productId)?.name || 'Product'}
-                                                  </p>
-                                                </div>
-                                                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                                                  {new Date(review.createdAt).toLocaleDateString()}
-                                                </span>
-                                              </div>
-
-                                              <p className="text-sm text-gray-700 italic mb-3">"{review.comment}"</p>
-
-                                              {review.photos && review.photos.length > 0 && (
-                                                <div className="flex gap-2 overflow-x-auto pb-1">
-                                                  {review.photos.map((photo: string, pIdx: number) => (
-                                                    <img
-                                                      key={pIdx}
-                                                      src={photo}
-                                                      alt="Review evidence"
-                                                      className="w-16 h-16 rounded-lg object-cover border border-gray-200 shadow-sm"
-                                                    />
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               </motion.div>
+
                             </td>
                           </motion.tr>
                         )}

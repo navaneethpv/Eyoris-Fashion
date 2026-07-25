@@ -76,7 +76,7 @@ function normalizeColor(color: string): string {
 // ---------------------------------------------------------
 // Helpers: Variants Generation
 // ---------------------------------------------------------
-function generateDeterministicVariants(productId: string, masterCategory: string, baseColour: string) {
+function generateDeterministicVariants(productId: string, masterCategory: string, baseColour: string, priceInRupees: number) {
   const seed = getHash(productId);
   const variants = [];
   let sizes: string[] = [];
@@ -96,6 +96,8 @@ function generateDeterministicVariants(productId: string, masterCategory: string
         color: baseColour,
         sku: `${productId}-OS`,
         stock: stockOS,
+        price: priceInRupees,
+        mrp: Math.round(priceInRupees * 1.35),
       }];
   }
 
@@ -109,6 +111,8 @@ function generateDeterministicVariants(productId: string, masterCategory: string
       color: baseColour,
       sku: `${productId}-${size}`,
       stock: stock,
+      price: priceInRupees,
+      mrp: Math.round(priceInRupees * 1.35),
     });
   }
   return variants;
@@ -186,7 +190,7 @@ async function processRow(
   const reviewsCount = Math.floor(deterministicRandom(seed + 999) * 200);
 
   // Variants & Stock
-  const variants = generateDeterministicVariants(id, masterCategory, baseColour);
+  const variants = generateDeterministicVariants(id, masterCategory, baseColour, priceInRupees);
   const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
   // Dominant Color
